@@ -1,129 +1,334 @@
 ---
-title: "Case study- Acute Kidney injury comparison in Antiviral Treatment Regimens In Patients With Hepatitis C"
-author: "Gilead Tutorial"
+title: "HCV Treatment and Kidney Injury: A Simulation-Based Case Study"
+author: "Andrew Mertens"
 date: "`r Sys.Date()`"
-output:
+output: 
   html_document:
     toc: true
-    toc_depth: 3
-    number_sections: true
-    theme: readable
-    highlight: tango
+    toc_float: true
+    theme: cosmo
+    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval=FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, 
+                      fig.width = 10, fig.height = 6, 
+                      fig.align = "center")
 ```
 
-## NOTES
+# Overview
 
-TO ADD
+This document simulates and analyzes data for a case study on HCV treatment and kidney injury. The steps include:
 
-Code currently isn't runnable- editing in progress
+1. Data simulation with realistic confounding relationships
+2. Introduction of missing data following realistic patterns
+3. Exploratory data analysis and visualization
+4. Missing data handling through random forest imputation
+5. Calculation of true causal effects (for simulation reference)
 
+## Setting up the environment
 
-## Introduction
-Real-world evidence (RWE) studies in pharma often rely on traditional regression methods to analyze outcomes. However, causal inference requires more than a p-value or an adjusted hazard ratio (HR). The **causal inference roadmap** provides a structured framework to design analyses that yield **causally interpretable results**.
+```{r load-libraries}
+# Load necessary libraries
+library(MASS)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(naniar)       # For missing data visualization
+library(tableone)     # For summary tables
+library(missForest)   # For random-forest based imputation
 
-This tutorial will:
-- Explain what an **estimand** is and why it matters in causal inference.
-- Highlight **limitations of the Cox proportional hazards model and HR**.
-- Introduce alternative estimands and estimation methods (e.g., **TMLE, G-computation**).
-- Walk through a **case study** on Hepatitis C drug treatment and kidney injury.
-- Provide **R code** to execute causal inference analyses using propensity score methods, TMLE, and diagnostics.
-
-## The Causal Inference Roadmap & Estimand Selection
-Modern causal inference recommends designing studies like a **target trial** by clearly specifying:
-- **Causal question** (e.g., "Does Treatment X reduce 12-month kidney injury risk?")
-- **Estimand** (e.g., **absolute risk difference**, survival probability, RMST)
-- **Estimator** (e.g., **G-computation, TMLE, inverse probability weighting (IPW)**)
-
-### Defining the Estimand
-**Example:**
-- "What is the **12-month risk difference** in kidney injury between treated vs. untreated patients?"
-- **Estimand:** Absolute risk difference (Risk[treated] - Risk[untreated])
-- **Estimators:** TMLE, G-computation, IPW
-
-```{r}
-# Example: Simulating hypothetical risk difference estimand
-risk_treated <- 0.05  # 5% incidence
-risk_untreated <- 0.08 # 8% incidence
-risk_difference <- risk_treated - risk_untreated
-risk_difference
+# Set seed for reproducibility
+set.seed(42)
 ```
 
-## Issues with the Hazard Ratio (HR)
-### Why HR May Be Misleading
-- **Assumes Proportional Hazards**: HR is assumed constant over time.
-- **Selection Bias**: HRs condition on survival, introducing bias.
-- **Lack of Interpretability**: HR does not directly translate into **risk reduction**.
+# Part 1: Data Simulation
 
-## Alternative Estimands & Methods
-| **Estimand** | **Definition** | **Use Case** |
-|-------------|--------------|--------------|
-| **Risk Difference (RD)** | Difference in cumulative incidence between groups | Intuitive, direct impact on clinical decision-making |
-| **Risk Ratio (RR)** | Ratio of cumulative incidence between groups | Epidemiologic comparisons |
-| **Restricted Mean Survival Time (RMST)** | Difference in event-free time | Non-proportional hazards settings |
+We'll simulate data for a study examining whether HCV treatment reduces the risk of kidney injury. The simulation will include:
 
-## Addressing Selection Bias & Informative Censoring
-Selection bias occurs when loss to follow-up is related to **both treatment and outcome**.
-### **Inverse Probability of Censoring Weighting (IPCW)**
-```{r}
-library(ipw)
-censor_model <- glm(censor ~ age + diabetes + treatment, family = binomial, data = mydata)
-mydata$weights <- 1 / predict(censor_model, type = "response")
+- Baseline covariates (age, sex, diabetes, hypertension, GFR, BMI)
+- Treatment assignment with realistic confounding
+- Time-to-event outcome (kidney injury) with censoring
+- Introduction of realistic missing data patterns
+
+## Simulate baseline covariates and treatment
+
+```{r simulate-covariates}
+# Define sample size
+n <- 5000
+
+# Simulate baseline covariates
+age <- rnorm(n, mean = 60, sd = 10)  # Age centered at 60
+sex <- rbinom(n, 1, 0.5)  # Binary sex variable (0 or 1)
+diabetes <- rbinom(n, 1, 0.3)  # 30% prevalence of diabetes
+hypertension <- rbinom(n, 1, 0.4)  # 40% prevalence of hypertension
+baseline_gfr <- rnorm(n, mean = 90, sd = 15)  # Baseline kidney function (eGFR)
+bmi <- rnorm(n, mean = 28, sd = 5)  # BMI distribution
+
+# Introduce non-linearity in the relationship between age and treatment
+age_effect <- exp(-0.05 * (age - 60)^2)  # Exponential effect centered at 60
+
+# Interaction terms affecting treatment assignment
+interaction_term <- (diabetes * hypertension) + 0.5 * (sex * bmi)
+
+# Simulate treatment assignment (propensity depends on confounders non-linearly)
+treatment_prob <- plogis(-1 + 0.02 * age + 0.4 * diabetes + 0.3 * hypertension +
+                         0.2 * sex + 0.01 * baseline_gfr + 0.02 * bmi +
+                         interaction_term - age_effect)
+
+treatment <- rbinom(n, 1, treatment_prob)
 ```
 
-### **TMLE for Informative Censoring**
-```{r}
-library(survtmle)
-tmle_fit <- survtmle(ftime = mydata$time, ftype = mydata$event, trt = mydata$treat,
-                     adjustVars = mydata[, c("age", "diabetes")],
-                     t0 = 730,
-                     glm.trt = "age + diabetes",
-                     glm.ftime = "age + diabetes + treat",
-                     glm.ctime = "age + diabetes")
-summary(tmle_fit)
+## Simulate outcome (kidney injury) and censoring
+
+```{r simulate-outcome}
+# Introduce non-linearity in the relationship between age and outcome
+age_outcome_effect <- sin(age / 10)
+
+# Simulate time to kidney injury outcome (survival outcome)
+baseline_hazard <- 0.02  # Baseline hazard rate
+outcome_prob <- plogis(-2 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
+                       0.3 * sex + 0.015 * baseline_gfr + 0.025 * bmi +
+                       interaction_term - 0.5 * treatment - age_outcome_effect)
+
+event <- rbinom(n, 1, outcome_prob)  # Binary outcome for kidney injury
+
+# Simulate time-to-event (higher probabilities lead to shorter time-to-event)
+time_to_event <- rexp(n, rate = baseline_hazard * (1 + outcome_prob))
+
+# Censor some observations randomly
+censoring_time <- rexp(n, rate = 1/10)  # Administrative censoring at random times
+observed_time <- pmin(time_to_event, censoring_time)
+censored <- as.integer(time_to_event > censoring_time)
+
+# Create a data frame
+df <- data.frame(
+  age, sex, diabetes, hypertension, baseline_gfr, bmi,
+  treatment, event, time_to_event, observed_time, censored
+)
 ```
 
-## Implementing Targeted Learning (TMLE) in R
-### **Step 1: Specify Super Learner Library**
-```{r}
-library(SuperLearner)
-SL.library <- c("SL.glm", "SL.glmnet", "SL.ranger", "SL.xgboost")
+## Introduce realistic missing data patterns
+
+In real-world studies, missing data follows patterns related to observable characteristics. We'll introduce missingness that depends on observed variables to create a more realistic dataset.
+
+```{r introduce-missingness}
+# Set seed for reproducibility of missingness
+set.seed(123)
+
+# 1. Age: Missingness probability depends on diabetes status and deviation from age 60.
+df <- df %>%
+  mutate(
+    p_age_missing = plogis(-2 + 0.05 * diabetes + 0.01 * (age - 60)),
+    age = ifelse(runif(n()) < p_age_missing, NA, age)
+  )
+
+# 2. Baseline kidney function (baseline_gfr): Missingness depends on hypertension and the current gfr value.
+df <- df %>%
+  mutate(
+    p_gfr_missing = plogis(-1 + 0.03 * hypertension - 0.01 * baseline_gfr),
+    baseline_gfr = ifelse(runif(n()) < p_gfr_missing, NA, baseline_gfr)
+  )
+
+# 3. BMI: Missingness influenced by sex and age.
+df <- df %>%
+  mutate(
+    p_bmi_missing = plogis(-1.5 + 0.02 * sex + 0.01 * (age - 60)),
+    bmi = ifelse(runif(n()) < p_bmi_missing, NA, bmi)
+  )
+
+# 4. Outcome (event): Missingness probability depends on age, diabetes, and treatment status.
+# Here, we assume that being treated (treatment == 1) reduces the probability of missing outcome data.
+df <- df %>%
+  mutate(
+    p_event_missing = plogis(-1 + 0.03 * age - 0.5 * diabetes - 0.5 * treatment),
+    event = ifelse(runif(n()) < p_event_missing, NA, event)
+  )
+
+# Remove the temporary probability columns
+df <- df %>% subset(., select=-c(p_age_missing, p_gfr_missing, p_bmi_missing, p_event_missing))
 ```
 
-### **Step 2: TMLE Analysis**
-```{r}
-library(tmle)
-tmle_fit <- tmle(Y = mydata$event, A = mydata$treatment, W = mydata[, c("age", "diabetes")],
-                 family = "binomial", Q.SL.library = SL.library, g.SL.library = SL.library)
-summary(tmle_fit)
+## Calculate true causal effects (for simulation reference)
+
+One advantage of simulation is that we know the true causal effect, which allows us to validate our methods.
+
+```{r calculate-truth}
+# Define the function for probability of kidney injury
+calc_risk <- function(age, diabetes, hypertension, sex, baseline_gfr, bmi, interaction_term, treatment) {
+  lin_pred <- -2 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
+    0.3 * sex + 0.015 * baseline_gfr + 0.025 * bmi + interaction_term - 0.5 * treatment
+  return(1 / (1 + exp(-lin_pred)))
+}
+
+# Compute expected risks under treatment and no treatment
+df <- df %>%
+  mutate(
+    risk_treated = calc_risk(age, diabetes, hypertension, sex, baseline_gfr, bmi, 
+                             (diabetes * hypertension + 0.5 * sex * bmi), 1),
+    risk_untreated = calc_risk(age, diabetes, hypertension, sex, baseline_gfr, bmi, 
+                               (diabetes * hypertension + 0.5 * sex * bmi), 0)
+  )
+
+# Compute true causal estimand
+true_risk_treated <- mean(df$risk_treated, na.rm = TRUE)
+true_risk_untreated <- mean(df$risk_untreated, na.rm = TRUE)
+
+true_risk_difference <- true_risk_treated - true_risk_untreated
+true_risk_ratio <- true_risk_treated / true_risk_untreated
+
+# Print results
+cat("True Risk (Treated):", round(true_risk_treated, 4), "\n")
+cat("True Risk (Untreated):", round(true_risk_untreated, 4), "\n")
+cat("True Risk Difference (RD):", round(true_risk_difference, 4), "\n")
+cat("True Risk Ratio (RR):", round(true_risk_ratio, 4), "\n")
 ```
 
-## Diagnostics for TMLE
-- **Super Learner Model Weights**
-```{r}
-print(tmle_fit$g$SL.weights)
-print(tmle_fit$Q$SL.weights)
+## Save simulated data
+
+```{r save-simulated-data, eval=FALSE}
+# Save to CSV
+write.csv(df, "data/simulated_case_study_data.csv", row.names = FALSE)
 ```
 
-- **Comparison with Propensity Score Methods**
-```{r}
-library(MatchIt)
-ps_model <- glm(treatment ~ age + diabetes, data = mydata, family = binomial)
-ps <- predict(ps_model, type = "response")
-match <- matchit(treatment ~ age + diabetes, data = mydata, method = "nearest", caliper = 0.2)
-summary(match)
+# Part 2: Exploratory Data Analysis and Missing Data Handling
+
+Now that we have simulated the data, we'll explore it and handle missing values.
+
+## Initial data exploration
+
+```{r data-exploration}
+# Check summary statistics
+summary(df[, c("age", "sex", "diabetes", "hypertension", "baseline_gfr", "bmi", "treatment", "event")])
+
+# Visualize missingness patterns across variables
+vis_miss(df)
+
+# Create a summary table of key covariates (including missingness information)
+covariate_vars <- c("age", "baseline_gfr", "bmi", "sex", "diabetes", "hypertension")
+table1 <- CreateTableOne(vars = covariate_vars, data = df, test = FALSE)
+print(table1, missing = TRUE)
 ```
 
-## Conclusion
-- Always **define the estimand** before choosing an estimation method.
-- Avoid **hazard ratios** as primary causal estimands.
-- **Use absolute risk measures** (e.g., **risk difference, RMST**).
-- **TMLE is robust** to model misspecification and provides better efficiency.
+## Visualize distributions of key variables
 
-## References
-- Hernán MA. *The hazards of hazard ratios.* Epidemiology. 2010.
-- Snowden JM, Rose S, Mortimer KM. *G-computation for causal inference.* Am J Epidemiol. 2011.
-- Gruber S, van der Laan MJ. *An R Package for Targeted Maximum Likelihood Estimation.*
+```{r visualize-distributions}
+# Histogram for Age
+ggplot(df, aes(x = age)) +
+  geom_histogram(binwidth = 2, fill = "skyblue", color = "black", na.rm = TRUE) +
+  labs(title = "Histogram of Age (non-missing)", x = "Age", y = "Frequency") +
+  theme_minimal()
+
+# Histogram for Baseline GFR
+ggplot(df, aes(x = baseline_gfr)) +
+  geom_histogram(binwidth = 2, fill = "lightgreen", color = "black", na.rm = TRUE) +
+  labs(title = "Histogram of Baseline GFR (non-missing)", x = "Baseline GFR", y = "Frequency") +
+  theme_minimal()
+
+# Histogram for BMI
+ggplot(df, aes(x = bmi)) +
+  geom_histogram(binwidth = 1, fill = "lightcoral", color = "black", na.rm = TRUE) +
+  labs(title = "Histogram of BMI (non-missing)", x = "BMI", y = "Frequency") +
+  theme_minimal()
+```
+
+## Examine relationships between variables
+
+```{r relationships}
+# Scatter plot: Age vs. Baseline GFR, colored by diabetes status
+ggplot(df, aes(x = age, y = baseline_gfr, color = factor(diabetes))) +
+  geom_point(alpha = 0.6, na.rm = TRUE) +
+  labs(title = "Age vs. Baseline GFR", x = "Age", y = "Baseline GFR", color = "Diabetes") +
+  theme_minimal()
+
+# Treatment by covariates
+ggplot(df, aes(x = factor(treatment), y = age)) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(title = "Age by Treatment Status", x = "Treatment", y = "Age") +
+  theme_minimal()
+
+# Event by treatment
+df %>%
+  filter(!is.na(event) & !is.na(treatment)) %>%
+  group_by(treatment) %>%
+  summarise(event_rate = mean(event)) %>%
+  ggplot(aes(x = factor(treatment), y = event_rate)) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Unadjusted Event Rate by Treatment", 
+       x = "Treatment", y = "Event Rate") +
+  theme_minimal()
+```
+
+## Missing data imputation using Random Forest
+
+We'll use the missForest algorithm to impute missing values in covariates.
+
+```{r imputation}
+# Select the covariates to impute
+covariates_to_impute <- c("age", "baseline_gfr", "bmi")
+
+# Create a subset for imputation
+df_cov <- df[, covariates_to_impute]
+
+# Apply missForest for imputation (using default settings, which uses random forest)
+impute_result <- missForest(df_cov, verbose = TRUE)
+
+# Extract the imputed data
+df_cov_imputed <- impute_result$ximp
+
+# Replace original covariates in the full dataset with the imputed values
+df_imputed <- df
+df_imputed[, covariates_to_impute] <- df_cov_imputed
+```
+
+## Diagnostics after imputation
+
+```{r post-imputation-diagnostics}
+# Check that missingness in the imputed covariates is removed
+sapply(df_imputed[, covariates_to_impute], function(x) sum(is.na(x)))
+
+# Confirm that the outcome variable remains with its original missingness pattern
+cat("Missing values in outcome (event):", sum(is.na(df_imputed$event)), "\n")
+
+# Compare distributions before and after imputation
+par(mfrow = c(1, 3))
+
+# Age comparison
+hist(df$age, main = "Original Age", col = "lightblue", border = "white", xlab = "Age", na.rm = TRUE)
+hist(df_imputed$age, main = "Imputed Age", col = "lightcoral", border = "white", xlab = "Age")
+
+# GFR comparison
+hist(df$baseline_gfr, main = "Original GFR", col = "lightblue", border = "white", 
+     xlab = "Baseline GFR", na.rm = TRUE)
+hist(df_imputed$baseline_gfr, main = "Imputed GFR", col = "lightcoral", border = "white", 
+     xlab = "Baseline GFR")
+
+# BMI comparison
+hist(df$bmi, main = "Original BMI", col = "lightblue", border = "white", xlab = "BMI", na.rm = TRUE)
+hist(df_imputed$bmi, main = "Imputed BMI", col = "lightcoral", border = "white", xlab = "BMI")
+
+par(mfrow = c(1, 1))
+```
+
+## Save the imputed dataset
+
+```{r save-imputed-data, eval=FALSE}
+# Save the imputed dataset
+write.csv(df_imputed, "data/imputed_case_study_data.csv", row.names = FALSE)
+```
+
+# Next Steps
+
+This case study has:
+1. Generated a simulated dataset with realistic features
+2. Introduced missingness consistent with real-world patterns
+3. Explored the data and imputed missing values
+4. Calculated the true causal effect for simulation validation
+
+The imputed dataset is now ready for causal inference analysis methods like:
+- G-computation
+- TMLE (Targeted Maximum Likelihood Estimation)
+- Inverse probability weighting
+- Hazard-based methods with outcome model adjustment
+
+Given the complete data generation process, we can compare the estimated causal effects from these methods with the

@@ -2,16 +2,22 @@ name: "R Markdown Websites Tutorial"
 navbar:
   title: "HOME"
   left:
-    - text: "TL Roadmap in RWE"
+    - text: "Introduction: TL Roadmap in RWE"
       href: RWE_tutorial.html
-    - text: "Case study: Hep. C and AKI"
+    - text: "Case study intro: Hep. C and AKI"
       href: case_study_AKI.html
-    - text: "Getting Sophisticated"
-      href: getting_sophisticated.html
+    - text: "Propensity score matching analysis"
+      href: PS_analysis.html
+    - text: "Inverse probability weighted analysis"
+      href: IPW_analysis.html
+    - text: "Targeted learning analysis"
+      href: TMLE_analysis.html
+    - text: "Analysis comparisons"
+      href: results_comparisons.html
 output_dir: "."
 output:
   html_document:
-    theme: yeti
+    theme: cosmo
     highlight: textmate
 #    include:
 #      after_body: _footer.html

@@ -9,16 +9,16 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Gilead Tutorial" />
+<meta name="author" content="Andrew Mertens" />
 
 <meta name="date" content="2025-03-03" />
 
-<title>Case study- Acute Kidney injury comparison in Antiviral Treatment Regimens In Patients With Hepatitis C</title>
+<title>HCV Treatment and Kidney Injury: A Simulation-Based Case Study</title>
 
 <script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="site_libs/bootstrap-3.3.5/css/readable.min.css" rel="stylesheet" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
@@ -31,7 +31,13 @@
        h6 {font-size: 12px;}
        code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
        pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -42,109 +48,18 @@
   ul.task-list{list-style: none;}
     </style>
 
-
-
-<style type="text/css">
-  code {
-    white-space: pre;
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
   }
-  .sourceCode {
-    overflow: visible;
-  }
-</style>
-<style type="text/css" data-origin="pandoc">
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
 }
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-div.sourceCode
-  {  background-color: #f8f8f8; }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ef2929; } /* Alert */
-code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #204a87; } /* Attribute */
-code span.bn { color: #0000cf; } /* BaseN */
-code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4e9a06; } /* Char */
-code span.cn { color: #8f5902; } /* Constant */
-code span.co { color: #8f5902; font-style: italic; } /* Comment */
-code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
-code span.dt { color: #204a87; } /* DataType */
-code span.dv { color: #0000cf; } /* DecVal */
-code span.er { color: #a40000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #0000cf; } /* Float */
-code span.fu { color: #204a87; font-weight: bold; } /* Function */
-code span.im { } /* Import */
-code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
-code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
-code span.ot { color: #8f5902; } /* Other */
-code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
-code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
-code span.ss { color: #4e9a06; } /* SpecialString */
-code span.st { color: #4e9a06; } /* String */
-code span.va { color: #000000; } /* Variable */
-code span.vs { color: #4e9a06; } /* VerbatimString */
-code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
-
-</style>
-<script>
-// apply pandoc div.sourceCode style to pre.sourceCode instead
-(function() {
-  var sheets = document.styleSheets;
-  for (var i = 0; i < sheets.length; i++) {
-    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
-    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
-    var j = 0;
-    while (j < rules.length) {
-      var rule = rules[j];
-      // check if there is a div.sourceCode rule
-      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
-        j++;
-        continue;
-      }
-      var style = rule.style.cssText;
-      // check if color or background-color is set
-      if (rule.style.color === '' && rule.style.backgroundColor === '') {
-        j++;
-        continue;
-      }
-      // replace div.sourceCode by a pre.sourceCode rule
-      sheets[i].deleteRule(j);
-      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
-    }
-  }
-})();
 </script>
+
+
 
 
 
@@ -307,7 +222,73 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
 
 
 
@@ -317,6 +298,16 @@ $(document).ready(function () {
 
 
 <div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
 
 
 
@@ -334,13 +325,22 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="RWE_tutorial.html">TL Roadmap in RWE</a>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
 </li>
 <li>
-  <a href="case_study_AKI.html">Case study: Hep. C and AKI</a>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
 </li>
 <li>
-  <a href="getting_sophisticated.html">Getting Sophisticated</a>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="IPW_analysis.html">Inverse probability weighted analysis</a>
+</li>
+<li>
+  <a href="TMLE_analysis.html">Targeted learning analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -352,264 +352,379 @@ $(document).ready(function () {
 
 <div id="header">
 
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
 
 
-<h1 class="title toc-ignore">Case study- Acute Kidney injury comparison
-in Antiviral Treatment Regimens In Patients With Hepatitis C</h1>
-<h4 class="author">Gilead Tutorial</h4>
+
+<h1 class="title toc-ignore">HCV Treatment and Kidney Injury: A
+Simulation-Based Case Study</h1>
+<h4 class="author">Andrew Mertens</h4>
 <h4 class="date">2025-03-03</h4>
 
 </div>
 
-<div id="TOC">
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>This document simulates and analyzes data for a case study on HCV
+treatment and kidney injury. The steps include:</p>
+<ol style="list-style-type: decimal">
+<li>Data simulation with realistic confounding relationships</li>
+<li>Introduction of missing data following realistic patterns</li>
+<li>Exploratory data analysis and visualization</li>
+<li>Missing data handling through random forest imputation</li>
+<li>Calculation of true causal effects (for simulation reference)</li>
+</ol>
+<div id="setting-up-the-environment" class="section level2">
+<h2>Setting up the environment</h2>
+<pre class="r"><code># Load necessary libraries
+library(MASS)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(naniar)       # For missing data visualization
+library(tableone)     # For summary tables
+library(missForest)   # For random-forest based imputation
+
+# Set seed for reproducibility
+set.seed(42)</code></pre>
+</div>
+</div>
+<div id="part-1-data-simulation" class="section level1">
+<h1>Part 1: Data Simulation</h1>
+<p>We’ll simulate data for a study examining whether HCV treatment
+reduces the risk of kidney injury. The simulation will include:</p>
 <ul>
-<li><a href="#notes" id="toc-notes"><span
-class="toc-section-number">1</span> NOTES</a></li>
-<li><a href="#introduction" id="toc-introduction"><span
-class="toc-section-number">2</span> Introduction</a></li>
-<li><a href="#the-causal-inference-roadmap-estimand-selection"
-id="toc-the-causal-inference-roadmap-estimand-selection"><span
-class="toc-section-number">3</span> The Causal Inference Roadmap &amp;
-Estimand Selection</a>
-<ul>
-<li><a href="#defining-the-estimand"
-id="toc-defining-the-estimand"><span
-class="toc-section-number">3.1</span> Defining the Estimand</a></li>
-</ul></li>
-<li><a href="#issues-with-the-hazard-ratio-hr"
-id="toc-issues-with-the-hazard-ratio-hr"><span
-class="toc-section-number">4</span> Issues with the Hazard Ratio
-(HR)</a>
-<ul>
-<li><a href="#why-hr-may-be-misleading"
-id="toc-why-hr-may-be-misleading"><span
-class="toc-section-number">4.1</span> Why HR May Be Misleading</a></li>
-</ul></li>
-<li><a href="#alternative-estimands-methods"
-id="toc-alternative-estimands-methods"><span
-class="toc-section-number">5</span> Alternative Estimands &amp;
-Methods</a></li>
-<li><a href="#addressing-selection-bias-informative-censoring"
-id="toc-addressing-selection-bias-informative-censoring"><span
-class="toc-section-number">6</span> Addressing Selection Bias &amp;
-Informative Censoring</a>
-<ul>
-<li><a href="#tmle-for-informative-censoring"
-id="toc-tmle-for-informative-censoring"><span
-class="toc-section-number">6.1</span> <strong>TMLE for Informative
-Censoring</strong></a></li>
-</ul></li>
-<li><a href="#implementing-targeted-learning-tmle-in-r"
-id="toc-implementing-targeted-learning-tmle-in-r"><span
-class="toc-section-number">7</span> Implementing Targeted Learning
-(TMLE) in R</a>
-<ul>
-<li><a href="#step-1-specify-super-learner-library"
-id="toc-step-1-specify-super-learner-library"><span
-class="toc-section-number">7.1</span> <strong>Step 1: Specify Super
-Learner Library</strong></a></li>
-<li><a href="#step-2-tmle-analysis" id="toc-step-2-tmle-analysis"><span
-class="toc-section-number">7.2</span> <strong>Step 2: TMLE
-Analysis</strong></a></li>
-</ul></li>
-<li><a href="#diagnostics-for-tmle" id="toc-diagnostics-for-tmle"><span
-class="toc-section-number">8</span> Diagnostics for TMLE</a></li>
-<li><a href="#conclusion" id="toc-conclusion"><span
-class="toc-section-number">9</span> Conclusion</a></li>
-<li><a href="#references" id="toc-references"><span
-class="toc-section-number">10</span> References</a></li>
+<li>Baseline covariates (age, sex, diabetes, hypertension, GFR,
+BMI)</li>
+<li>Treatment assignment with realistic confounding</li>
+<li>Time-to-event outcome (kidney injury) with censoring</li>
+<li>Introduction of realistic missing data patterns</li>
 </ul>
+<div id="simulate-baseline-covariates-and-treatment"
+class="section level2">
+<h2>Simulate baseline covariates and treatment</h2>
+<pre class="r"><code># Define sample size
+n &lt;- 5000
+
+# Simulate baseline covariates
+age &lt;- rnorm(n, mean = 60, sd = 10)  # Age centered at 60
+sex &lt;- rbinom(n, 1, 0.5)  # Binary sex variable (0 or 1)
+diabetes &lt;- rbinom(n, 1, 0.3)  # 30% prevalence of diabetes
+hypertension &lt;- rbinom(n, 1, 0.4)  # 40% prevalence of hypertension
+baseline_gfr &lt;- rnorm(n, mean = 90, sd = 15)  # Baseline kidney function (eGFR)
+bmi &lt;- rnorm(n, mean = 28, sd = 5)  # BMI distribution
+
+# Introduce non-linearity in the relationship between age and treatment
+age_effect &lt;- exp(-0.05 * (age - 60)^2)  # Exponential effect centered at 60
+
+# Interaction terms affecting treatment assignment
+interaction_term &lt;- (diabetes * hypertension) + 0.5 * (sex * bmi)
+
+# Simulate treatment assignment (propensity depends on confounders non-linearly)
+treatment_prob &lt;- plogis(-1 + 0.02 * age + 0.4 * diabetes + 0.3 * hypertension +
+                         0.2 * sex + 0.01 * baseline_gfr + 0.02 * bmi +
+                         interaction_term - age_effect)
+
+treatment &lt;- rbinom(n, 1, treatment_prob)</code></pre>
+</div>
+<div id="simulate-outcome-kidney-injury-and-censoring"
+class="section level2">
+<h2>Simulate outcome (kidney injury) and censoring</h2>
+<pre class="r"><code># Introduce non-linearity in the relationship between age and outcome
+age_outcome_effect &lt;- sin(age / 10)
+
+# Simulate time to kidney injury outcome (survival outcome)
+baseline_hazard &lt;- 0.02  # Baseline hazard rate
+outcome_prob &lt;- plogis(-2 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
+                       0.3 * sex + 0.015 * baseline_gfr + 0.025 * bmi +
+                       interaction_term - 0.5 * treatment - age_outcome_effect)
+
+event &lt;- rbinom(n, 1, outcome_prob)  # Binary outcome for kidney injury
+
+# Simulate time-to-event (higher probabilities lead to shorter time-to-event)
+time_to_event &lt;- rexp(n, rate = baseline_hazard * (1 + outcome_prob))
+
+# Censor some observations randomly
+censoring_time &lt;- rexp(n, rate = 1/10)  # Administrative censoring at random times
+observed_time &lt;- pmin(time_to_event, censoring_time)
+censored &lt;- as.integer(time_to_event &gt; censoring_time)
+
+# Create a data frame
+df &lt;- data.frame(
+  age, sex, diabetes, hypertension, baseline_gfr, bmi,
+  treatment, event, time_to_event, observed_time, censored
+)</code></pre>
+</div>
+<div id="introduce-realistic-missing-data-patterns"
+class="section level2">
+<h2>Introduce realistic missing data patterns</h2>
+<p>In real-world studies, missing data follows patterns related to
+observable characteristics. We’ll introduce missingness that depends on
+observed variables to create a more realistic dataset.</p>
+<pre class="r"><code># Set seed for reproducibility of missingness
+set.seed(123)
+
+# 1. Age: Missingness probability depends on diabetes status and deviation from age 60.
+df &lt;- df %&gt;%
+  mutate(
+    p_age_missing = plogis(-2 + 0.05 * diabetes + 0.01 * (age - 60)),
+    age = ifelse(runif(n()) &lt; p_age_missing, NA, age)
+  )
+
+# 2. Baseline kidney function (baseline_gfr): Missingness depends on hypertension and the current gfr value.
+df &lt;- df %&gt;%
+  mutate(
+    p_gfr_missing = plogis(-1 + 0.03 * hypertension - 0.01 * baseline_gfr),
+    baseline_gfr = ifelse(runif(n()) &lt; p_gfr_missing, NA, baseline_gfr)
+  )
+
+# 3. BMI: Missingness influenced by sex and age.
+df &lt;- df %&gt;%
+  mutate(
+    p_bmi_missing = plogis(-1.5 + 0.02 * sex + 0.01 * (age - 60)),
+    bmi = ifelse(runif(n()) &lt; p_bmi_missing, NA, bmi)
+  )
+
+# 4. Outcome (event): Missingness probability depends on age, diabetes, and treatment status.
+# Here, we assume that being treated (treatment == 1) reduces the probability of missing outcome data.
+df &lt;- df %&gt;%
+  mutate(
+    p_event_missing = plogis(-1 + 0.03 * age - 0.5 * diabetes - 0.5 * treatment),
+    event = ifelse(runif(n()) &lt; p_event_missing, NA, event)
+  )
+
+# Remove the temporary probability columns
+df &lt;- df %&gt;% subset(., select=-c(p_age_missing, p_gfr_missing, p_bmi_missing, p_event_missing))</code></pre>
+</div>
+<div id="calculate-true-causal-effects-for-simulation-reference"
+class="section level2">
+<h2>Calculate true causal effects (for simulation reference)</h2>
+<p>One advantage of simulation is that we know the true causal effect,
+which allows us to validate our methods.</p>
+<pre class="r"><code># Define the function for probability of kidney injury
+calc_risk &lt;- function(age, diabetes, hypertension, sex, baseline_gfr, bmi, interaction_term, treatment) {
+  lin_pred &lt;- -2 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
+    0.3 * sex + 0.015 * baseline_gfr + 0.025 * bmi + interaction_term - 0.5 * treatment
+  return(1 / (1 + exp(-lin_pred)))
+}
+
+# Compute expected risks under treatment and no treatment
+df &lt;- df %&gt;%
+  mutate(
+    risk_treated = calc_risk(age, diabetes, hypertension, sex, baseline_gfr, bmi, 
+                             (diabetes * hypertension + 0.5 * sex * bmi), 1),
+    risk_untreated = calc_risk(age, diabetes, hypertension, sex, baseline_gfr, bmi, 
+                               (diabetes * hypertension + 0.5 * sex * bmi), 0)
+  )
+
+# Compute true causal estimand
+true_risk_treated &lt;- mean(df$risk_treated, na.rm = TRUE)
+true_risk_untreated &lt;- mean(df$risk_untreated, na.rm = TRUE)
+
+true_risk_difference &lt;- true_risk_treated - true_risk_untreated
+true_risk_ratio &lt;- true_risk_treated / true_risk_untreated
+
+# Print results
+cat(&quot;True Risk (Treated):&quot;, round(true_risk_treated, 4), &quot;\n&quot;)</code></pre>
+<pre><code>## True Risk (Treated): 0.9204</code></pre>
+<pre class="r"><code>cat(&quot;True Risk (Untreated):&quot;, round(true_risk_untreated, 4), &quot;\n&quot;)</code></pre>
+<pre><code>## True Risk (Untreated): 0.9476</code></pre>
+<pre class="r"><code>cat(&quot;True Risk Difference (RD):&quot;, round(true_risk_difference, 4), &quot;\n&quot;)</code></pre>
+<pre><code>## True Risk Difference (RD): -0.0272</code></pre>
+<pre class="r"><code>cat(&quot;True Risk Ratio (RR):&quot;, round(true_risk_ratio, 4), &quot;\n&quot;)</code></pre>
+<pre><code>## True Risk Ratio (RR): 0.9713</code></pre>
+</div>
+<div id="save-simulated-data" class="section level2">
+<h2>Save simulated data</h2>
+<pre class="r"><code># Save to CSV
+write.csv(df, &quot;data/simulated_case_study_data.csv&quot;, row.names = FALSE)</code></pre>
+</div>
+</div>
+<div id="part-2-exploratory-data-analysis-and-missing-data-handling"
+class="section level1">
+<h1>Part 2: Exploratory Data Analysis and Missing Data Handling</h1>
+<p>Now that we have simulated the data, we’ll explore it and handle
+missing values.</p>
+<div id="initial-data-exploration" class="section level2">
+<h2>Initial data exploration</h2>
+<pre class="r"><code># Check summary statistics
+summary(df[, c(&quot;age&quot;, &quot;sex&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;, &quot;treatment&quot;, &quot;event&quot;)])</code></pre>
+<pre><code>##       age             sex            diabetes       hypertension   
+##  Min.   :26.28   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000  
+##  1st Qu.:53.13   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000  
+##  Median :59.88   Median :1.0000   Median :0.0000   Median :0.0000  
+##  Mean   :59.82   Mean   :0.5068   Mean   :0.2938   Mean   :0.3962  
+##  3rd Qu.:66.59   3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:1.0000  
+##  Max.   :95.85   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000  
+##  NA&#39;s   :606                                                       
+##   baseline_gfr         bmi          treatment          event       
+##  Min.   : 38.41   Min.   :10.47   Min.   :0.0000   Min.   :0.0000  
+##  1st Qu.: 80.55   1st Qu.:24.56   1st Qu.:1.0000   1st Qu.:1.0000  
+##  Median : 90.72   Median :28.02   Median :1.0000   Median :1.0000  
+##  Mean   : 90.44   Mean   :28.03   Mean   :0.9088   Mean   :0.9274  
+##  3rd Qu.:100.35   3rd Qu.:31.50   3rd Qu.:1.0000   3rd Qu.:1.0000  
+##  Max.   :144.94   Max.   :44.13   Max.   :1.0000   Max.   :1.0000  
+##  NA&#39;s   :629      NA&#39;s   :1431                     NA&#39;s   :3045</code></pre>
+<pre class="r"><code># Visualize missingness patterns across variables
+vis_miss(df)</code></pre>
+<p><img src="case_study_AKI_files/figure-html/data-exploration-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Create a summary table of key covariates (including missingness information)
+covariate_vars &lt;- c(&quot;age&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;, &quot;sex&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;)
+table1 &lt;- CreateTableOne(vars = covariate_vars, data = df, test = FALSE)
+print(table1, missing = TRUE)</code></pre>
+<pre><code>##                           
+##                            Overall       Missing
+##   n                         5000                
+##   age (mean (SD))          59.82 (10.07) 12.1   
+##   baseline_gfr (mean (SD)) 90.44 (15.05) 12.6   
+##   bmi (mean (SD))          28.03 (5.00)  28.6   
+##   sex (mean (SD))           0.51 (0.50)   0.0   
+##   diabetes (mean (SD))      0.29 (0.46)   0.0   
+##   hypertension (mean (SD))  0.40 (0.49)   0.0</code></pre>
+</div>
+<div id="visualize-distributions-of-key-variables"
+class="section level2">
+<h2>Visualize distributions of key variables</h2>
+<pre class="r"><code># Histogram for Age
+ggplot(df, aes(x = age)) +
+  geom_histogram(binwidth = 2, fill = &quot;skyblue&quot;, color = &quot;black&quot;, na.rm = TRUE) +
+  labs(title = &quot;Histogram of Age (non-missing)&quot;, x = &quot;Age&quot;, y = &quot;Frequency&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/visualize-distributions-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Histogram for Baseline GFR
+ggplot(df, aes(x = baseline_gfr)) +
+  geom_histogram(binwidth = 2, fill = &quot;lightgreen&quot;, color = &quot;black&quot;, na.rm = TRUE) +
+  labs(title = &quot;Histogram of Baseline GFR (non-missing)&quot;, x = &quot;Baseline GFR&quot;, y = &quot;Frequency&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/visualize-distributions-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Histogram for BMI
+ggplot(df, aes(x = bmi)) +
+  geom_histogram(binwidth = 1, fill = &quot;lightcoral&quot;, color = &quot;black&quot;, na.rm = TRUE) +
+  labs(title = &quot;Histogram of BMI (non-missing)&quot;, x = &quot;BMI&quot;, y = &quot;Frequency&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/visualize-distributions-3.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="examine-relationships-between-variables"
+class="section level2">
+<h2>Examine relationships between variables</h2>
+<pre class="r"><code># Scatter plot: Age vs. Baseline GFR, colored by diabetes status
+ggplot(df, aes(x = age, y = baseline_gfr, color = factor(diabetes))) +
+  geom_point(alpha = 0.6, na.rm = TRUE) +
+  labs(title = &quot;Age vs. Baseline GFR&quot;, x = &quot;Age&quot;, y = &quot;Baseline GFR&quot;, color = &quot;Diabetes&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/relationships-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Treatment by covariates
+ggplot(df, aes(x = factor(treatment), y = age)) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(title = &quot;Age by Treatment Status&quot;, x = &quot;Treatment&quot;, y = &quot;Age&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/relationships-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Event by treatment
+df %&gt;%
+  filter(!is.na(event) &amp; !is.na(treatment)) %&gt;%
+  group_by(treatment) %&gt;%
+  summarise(event_rate = mean(event)) %&gt;%
+  ggplot(aes(x = factor(treatment), y = event_rate)) +
+  geom_col(fill = &quot;steelblue&quot;) +
+  labs(title = &quot;Unadjusted Event Rate by Treatment&quot;, 
+       x = &quot;Treatment&quot;, y = &quot;Event Rate&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/relationships-3.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="missing-data-imputation-using-random-forest"
+class="section level2">
+<h2>Missing data imputation using Random Forest</h2>
+<p>We’ll use the missForest algorithm to impute missing values in
+covariates.</p>
+<pre class="r"><code># Select the covariates to impute
+covariates_to_impute &lt;- c(&quot;age&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;)
+
+# Create a subset for imputation
+df_cov &lt;- df[, covariates_to_impute]
+
+# Apply missForest for imputation (using default settings, which uses random forest)
+impute_result &lt;- missForest(df_cov, verbose = TRUE)</code></pre>
+<pre><code>##   missForest iteration 1 in progress...done!
+##     estimated error(s): 0.4263795 
+##     difference(s): 0.0004873576 
+##     time: 4.59 seconds
+## 
+##   missForest iteration 2 in progress...done!
+##     estimated error(s): 0.4263694 
+##     difference(s): 0.0004590606 
+##     time: 5.09 seconds
+## 
+##   missForest iteration 3 in progress...done!
+##     estimated error(s): 0.4262343 
+##     difference(s): 0.0004983446 
+##     time: 5.79 seconds</code></pre>
+<pre class="r"><code># Extract the imputed data
+df_cov_imputed &lt;- impute_result$ximp
+
+# Replace original covariates in the full dataset with the imputed values
+df_imputed &lt;- df
+df_imputed[, covariates_to_impute] &lt;- df_cov_imputed</code></pre>
+</div>
+<div id="diagnostics-after-imputation" class="section level2">
+<h2>Diagnostics after imputation</h2>
+<pre class="r"><code># Check that missingness in the imputed covariates is removed
+sapply(df_imputed[, covariates_to_impute], function(x) sum(is.na(x)))</code></pre>
+<pre><code>##          age baseline_gfr          bmi 
+##            0            0            0</code></pre>
+<pre class="r"><code># Confirm that the outcome variable remains with its original missingness pattern
+cat(&quot;Missing values in outcome (event):&quot;, sum(is.na(df_imputed$event)), &quot;\n&quot;)</code></pre>
+<pre><code>## Missing values in outcome (event): 3045</code></pre>
+<pre class="r"><code># Compare distributions before and after imputation
+par(mfrow = c(1, 3))
+
+# Age comparison
+hist(df$age, main = &quot;Original Age&quot;, col = &quot;lightblue&quot;, border = &quot;white&quot;, xlab = &quot;Age&quot;, na.rm = TRUE)
+hist(df_imputed$age, main = &quot;Imputed Age&quot;, col = &quot;lightcoral&quot;, border = &quot;white&quot;, xlab = &quot;Age&quot;)
+
+# GFR comparison
+hist(df$baseline_gfr, main = &quot;Original GFR&quot;, col = &quot;lightblue&quot;, border = &quot;white&quot;, 
+     xlab = &quot;Baseline GFR&quot;, na.rm = TRUE)</code></pre>
+<p><img src="case_study_AKI_files/figure-html/post-imputation-diagnostics-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>hist(df_imputed$baseline_gfr, main = &quot;Imputed GFR&quot;, col = &quot;lightcoral&quot;, border = &quot;white&quot;, 
+     xlab = &quot;Baseline GFR&quot;)
+
+# BMI comparison
+hist(df$bmi, main = &quot;Original BMI&quot;, col = &quot;lightblue&quot;, border = &quot;white&quot;, xlab = &quot;BMI&quot;, na.rm = TRUE)
+hist(df_imputed$bmi, main = &quot;Imputed BMI&quot;, col = &quot;lightcoral&quot;, border = &quot;white&quot;, xlab = &quot;BMI&quot;)</code></pre>
+<p><img src="case_study_AKI_files/figure-html/post-imputation-diagnostics-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>par(mfrow = c(1, 1))</code></pre>
+</div>
+<div id="save-the-imputed-dataset" class="section level2">
+<h2>Save the imputed dataset</h2>
+<pre class="r"><code># Save the imputed dataset
+write.csv(df_imputed, &quot;data/imputed_case_study_data.csv&quot;, row.names = FALSE)</code></pre>
+</div>
+</div>
+<div id="next-steps" class="section level1">
+<h1>Next Steps</h1>
+<p>This case study has: 1. Generated a simulated dataset with realistic
+features 2. Introduced missingness consistent with real-world patterns
+3. Explored the data and imputed missing values 4. Calculated the true
+causal effect for simulation validation</p>
+<p>The imputed dataset is now ready for causal inference analysis
+methods like: - G-computation - TMLE (Targeted Maximum Likelihood
+Estimation) - Inverse probability weighting - Hazard-based methods with
+outcome model adjustment</p>
+<p>Given the complete data generation process, we can compare the
+estimated causal effects from these methods with the</p>
 </div>
 
-<div id="notes" class="section level2" number="1">
-<h2><span class="header-section-number">1</span> NOTES</h2>
-<p>TO ADD</p>
-<p>Code currently isn’t runnable- editing in progress</p>
-</div>
-<div id="introduction" class="section level2" number="2">
-<h2><span class="header-section-number">2</span> Introduction</h2>
-<p>Real-world evidence (RWE) studies in pharma often rely on traditional
-regression methods to analyze outcomes. However, causal inference
-requires more than a p-value or an adjusted hazard ratio (HR). The
-<strong>causal inference roadmap</strong> provides a structured
-framework to design analyses that yield <strong>causally interpretable
-results</strong>.</p>
-<p>This tutorial will: - Explain what an <strong>estimand</strong> is
-and why it matters in causal inference. - Highlight <strong>limitations
-of the Cox proportional hazards model and HR</strong>. - Introduce
-alternative estimands and estimation methods (e.g., <strong>TMLE,
-G-computation</strong>). - Walk through a <strong>case study</strong> on
-Hepatitis C drug treatment and kidney injury. - Provide <strong>R
-code</strong> to execute causal inference analyses using propensity
-score methods, TMLE, and diagnostics.</p>
-</div>
-<div id="the-causal-inference-roadmap-estimand-selection"
-class="section level2" number="3">
-<h2><span class="header-section-number">3</span> The Causal Inference
-Roadmap &amp; Estimand Selection</h2>
-<p>Modern causal inference recommends designing studies like a
-<strong>target trial</strong> by clearly specifying: - <strong>Causal
-question</strong> (e.g., “Does Treatment X reduce 12-month kidney injury
-risk?”) - <strong>Estimand</strong> (e.g., <strong>absolute risk
-difference</strong>, survival probability, RMST) -
-<strong>Estimator</strong> (e.g., <strong>G-computation, TMLE, inverse
-probability weighting (IPW)</strong>)</p>
-<div id="defining-the-estimand" class="section level3" number="3.1">
-<h3><span class="header-section-number">3.1</span> Defining the
-Estimand</h3>
-<p><strong>Example:</strong> - “What is the <strong>12-month risk
-difference</strong> in kidney injury between treated vs. untreated
-patients?” - <strong>Estimand:</strong> Absolute risk difference
-(Risk[treated] - Risk[untreated]) - <strong>Estimators:</strong> TMLE,
-G-computation, IPW</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Example: Simulating hypothetical risk difference estimand</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>risk_treated <span class="ot">&lt;-</span> <span class="fl">0.05</span>  <span class="co"># 5% incidence</span></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>risk_untreated <span class="ot">&lt;-</span> <span class="fl">0.08</span> <span class="co"># 8% incidence</span></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>risk_difference <span class="ot">&lt;-</span> risk_treated <span class="sc">-</span> risk_untreated</span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>risk_difference</span></code></pre></div>
-</div>
-</div>
-<div id="issues-with-the-hazard-ratio-hr" class="section level2"
-number="4">
-<h2><span class="header-section-number">4</span> Issues with the Hazard
-Ratio (HR)</h2>
-<div id="why-hr-may-be-misleading" class="section level3" number="4.1">
-<h3><span class="header-section-number">4.1</span> Why HR May Be
-Misleading</h3>
-<ul>
-<li><strong>Assumes Proportional Hazards</strong>: HR is assumed
-constant over time.</li>
-<li><strong>Selection Bias</strong>: HRs condition on survival,
-introducing bias.</li>
-<li><strong>Lack of Interpretability</strong>: HR does not directly
-translate into <strong>risk reduction</strong>.</li>
-</ul>
-</div>
-</div>
-<div id="alternative-estimands-methods" class="section level2"
-number="5">
-<h2><span class="header-section-number">5</span> Alternative Estimands
-&amp; Methods</h2>
-<table>
-<colgroup>
-<col width="31%" />
-<col width="34%" />
-<col width="34%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><strong>Estimand</strong></th>
-<th><strong>Definition</strong></th>
-<th><strong>Use Case</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Risk Difference (RD)</strong></td>
-<td>Difference in cumulative incidence between groups</td>
-<td>Intuitive, direct impact on clinical decision-making</td>
-</tr>
-<tr class="even">
-<td><strong>Risk Ratio (RR)</strong></td>
-<td>Ratio of cumulative incidence between groups</td>
-<td>Epidemiologic comparisons</td>
-</tr>
-<tr class="odd">
-<td><strong>Restricted Mean Survival Time (RMST)</strong></td>
-<td>Difference in event-free time</td>
-<td>Non-proportional hazards settings</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div id="addressing-selection-bias-informative-censoring"
-class="section level2" number="6">
-<h2><span class="header-section-number">6</span> Addressing Selection
-Bias &amp; Informative Censoring</h2>
-<p>Selection bias occurs when loss to follow-up is related to
-<strong>both treatment and outcome</strong>. ### <strong>Inverse
-Probability of Censoring Weighting (IPCW)</strong></p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(ipw)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>censor_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(censor <span class="sc">~</span> age <span class="sc">+</span> diabetes <span class="sc">+</span> treatment, <span class="at">family =</span> binomial, <span class="at">data =</span> mydata)</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>mydata<span class="sc">$</span>weights <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> <span class="fu">predict</span>(censor_model, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span></code></pre></div>
-<div id="tmle-for-informative-censoring" class="section level3"
-number="6.1">
-<h3><span class="header-section-number">6.1</span> <strong>TMLE for
-Informative Censoring</strong></h3>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(survtmle)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>tmle_fit <span class="ot">&lt;-</span> <span class="fu">survtmle</span>(<span class="at">ftime =</span> mydata<span class="sc">$</span>time, <span class="at">ftype =</span> mydata<span class="sc">$</span>event, <span class="at">trt =</span> mydata<span class="sc">$</span>treat,</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                     <span class="at">adjustVars =</span> mydata[, <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;diabetes&quot;</span>)],</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                     <span class="at">t0 =</span> <span class="dv">730</span>,</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>                     <span class="at">glm.trt =</span> <span class="st">&quot;age + diabetes&quot;</span>,</span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>                     <span class="at">glm.ftime =</span> <span class="st">&quot;age + diabetes + treat&quot;</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>                     <span class="at">glm.ctime =</span> <span class="st">&quot;age + diabetes&quot;</span>)</span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">summary</span>(tmle_fit)</span></code></pre></div>
-</div>
-</div>
-<div id="implementing-targeted-learning-tmle-in-r"
-class="section level2" number="7">
-<h2><span class="header-section-number">7</span> Implementing Targeted
-Learning (TMLE) in R</h2>
-<div id="step-1-specify-super-learner-library" class="section level3"
-number="7.1">
-<h3><span class="header-section-number">7.1</span> <strong>Step 1:
-Specify Super Learner Library</strong></h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">library</span>(SuperLearner)</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>SL.library <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;SL.glm&quot;</span>, <span class="st">&quot;SL.glmnet&quot;</span>, <span class="st">&quot;SL.ranger&quot;</span>, <span class="st">&quot;SL.xgboost&quot;</span>)</span></code></pre></div>
-</div>
-<div id="step-2-tmle-analysis" class="section level3" number="7.2">
-<h3><span class="header-section-number">7.2</span> <strong>Step 2: TMLE
-Analysis</strong></h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">library</span>(tmle)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>tmle_fit <span class="ot">&lt;-</span> <span class="fu">tmle</span>(<span class="at">Y =</span> mydata<span class="sc">$</span>event, <span class="at">A =</span> mydata<span class="sc">$</span>treatment, <span class="at">W =</span> mydata[, <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;diabetes&quot;</span>)],</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                 <span class="at">family =</span> <span class="st">&quot;binomial&quot;</span>, <span class="at">Q.SL.library =</span> SL.library, <span class="at">g.SL.library =</span> SL.library)</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="fu">summary</span>(tmle_fit)</span></code></pre></div>
-</div>
-</div>
-<div id="diagnostics-for-tmle" class="section level2" number="8">
-<h2><span class="header-section-number">8</span> Diagnostics for
-TMLE</h2>
-<ul>
-<li><strong>Super Learner Model Weights</strong></li>
-</ul>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">print</span>(tmle_fit<span class="sc">$</span>g<span class="sc">$</span>SL.weights)</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">print</span>(tmle_fit<span class="sc">$</span>Q<span class="sc">$</span>SL.weights)</span></code></pre></div>
-<ul>
-<li><strong>Comparison with Propensity Score Methods</strong></li>
-</ul>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">library</span>(MatchIt)</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>ps_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> diabetes, <span class="at">data =</span> mydata, <span class="at">family =</span> binomial)</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>ps <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_model, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>match <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> diabetes, <span class="at">data =</span> mydata, <span class="at">method =</span> <span class="st">&quot;nearest&quot;</span>, <span class="at">caliper =</span> <span class="fl">0.2</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="fu">summary</span>(match)</span></code></pre></div>
-</div>
-<div id="conclusion" class="section level2" number="9">
-<h2><span class="header-section-number">9</span> Conclusion</h2>
-<ul>
-<li>Always <strong>define the estimand</strong> before choosing an
-estimation method.</li>
-<li>Avoid <strong>hazard ratios</strong> as primary causal
-estimands.</li>
-<li><strong>Use absolute risk measures</strong> (e.g., <strong>risk
-difference, RMST</strong>).</li>
-<li><strong>TMLE is robust</strong> to model misspecification and
-provides better efficiency.</li>
-</ul>
-</div>
-<div id="references" class="section level2" number="10">
-<h2><span class="header-section-number">10</span> References</h2>
-<ul>
-<li>Hernán MA. <em>The hazards of hazard ratios.</em> Epidemiology.
-2010.</li>
-<li>Snowden JM, Rose S, Mortimer KM. <em>G-computation for causal
-inference.</em> Am J Epidemiol. 2011.</li>
-<li>Gruber S, van der Laan MJ. <em>An R Package for Targeted Maximum
-Likelihood Estimation.</em></li>
-</ul>
-</div>
 
 
-
+</div>
+</div>
 
 </div>
 
@@ -641,7 +756,41 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
 
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
 <script>

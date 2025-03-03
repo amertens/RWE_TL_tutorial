@@ -1,0 +1,514 @@
+---
+title: "Propensity Score Analysis for HCV Treatment and Kidney Injury"
+author: "Causal Inference Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+  toc: true
+toc_float: true
+theme: cosmo
+highlight: tango
+code_folding: show
+fig.width: 10
+fig.height: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 10, fig.height = 6, fig.align = "center")
+```
+
+# Introduction
+
+This analysis examines the potential causal relationship between sofosbuvir (SOF)-containing direct-acting antiviral (DAA) regimens and acute kidney injury (AKI) in patients with Hepatitis C Virus (HCV) infection. We'll use propensity score matching to balance treatment groups and estimate the treatment effect.
+
+## Study Objective
+
+To assess whether patients with chronic HCV infection who were exposed to SOF-containing DAA regimens experience a higher rate of claims for AKI, compared to a cohort of propensity score-matched patients who were exposed to non-SOF-containing DAA regimens.
+
+## Load Required Libraries
+
+```{r load-libraries}
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(MatchIt)
+library(cobalt)
+library(tableone)
+library(survival)
+library(survminer)
+```
+
+# Data Loading and Preparation
+
+```{r load-data}
+# Load the imputed dataset
+# In a real-world scenario, we would use:
+# df <- read.csv("data/imputed_case_study_data.csv")
+
+# In this analysis, we'll use our simulated data
+set.seed(42)
+
+# Load simulated dataset if it exists, otherwise create it
+if(file.exists("data/imputed_case_study_data.csv")) {
+  df <- read.csv("data/imputed_case_study_data.csv")
+} else {
+  # We'll recreate a simplified version of our simulated dataset
+  n <- 5000
+
+  # Simulate baseline covariates
+  age <- rnorm(n, mean = 60, sd = 10)  # Age centered at 60
+  sex <- rbinom(n, 1, 0.5)  # Binary sex variable (0 or 1)
+  diabetes <- rbinom(n, 1, 0.3)  # 30% prevalence of diabetes
+  hypertension <- rbinom(n, 1, 0.4)  # 40% prevalence of hypertension
+  baseline_gfr <- rnorm(n, mean = 90, sd = 15)  # Baseline kidney function (eGFR)
+  bmi <- rnorm(n, mean = 28, sd = 5)  # BMI distribution
+
+  # Create some additional covariates
+  cirrhosis <- rbinom(n, 1, 0.2)
+  prev_aki <- rbinom(n, 1, 0.05)
+  heart_failure <- rbinom(n, 1, 0.1)
+  nsaid_use <- rbinom(n, 1, 0.3)
+
+  # Non-linearity in the relationship between age and treatment
+  age_effect <- exp(-0.05 * (age - 60)^2)
+
+  # Treatment assignment with some confounding
+  treatment_prob <- plogis(-1 + 0.02 * age + 0.4 * diabetes + 0.3 * hypertension +
+                             0.2 * sex + 0.01 * baseline_gfr + 0.02 * bmi - 0.5 * cirrhosis)
+  treatment <- rbinom(n, 1, treatment_prob)
+
+  # Outcome model
+  outcome_prob <- plogis(-4 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
+                           0.3 * sex - 0.015 * baseline_gfr + 0.025 * bmi +
+                           1.2 * prev_aki + 0.8 * heart_failure +
+                           0.6 * nsaid_use + 0.2 * treatment)
+
+  event <- rbinom(n, 1, outcome_prob)
+
+  # Simulate follow-up time (shorter for those with events)
+  time_to_event <- rexp(n, rate = 0.02 * (1 + outcome_prob))
+
+  # Censoring mechanism
+  censoring_time <- rexp(n, rate = 1/10)  # Administrative censoring at random times
+  observed_time <- pmin(time_to_event, censoring_time)
+  censored <- as.integer(time_to_event > censoring_time)
+
+  # Create dataframe
+  df <- data.frame(
+    age, sex, diabetes, hypertension, baseline_gfr, bmi,
+    cirrhosis, prev_aki, heart_failure, nsaid_use,
+    treatment, event, time_to_event, observed_time, censored
+  )
+
+  # Create a categorical/factor version of treatment for display
+  df$treatment_group <- factor(df$treatment,
+                               levels = c(0, 1),
+                               labels = c("non-SOF DAAs", "SOF-DAAs"))
+
+  # Save the dataset
+  dir.create("data", showWarnings = FALSE)
+  write.csv(df, "data/imputed_case_study_data.csv", row.names = FALSE)
+}
+
+# For demonstration, we'll create a categorical treatment variable if it doesn't exist
+if(!"treatment_group" %in% names(df)) {
+  df$treatment_group <- factor(df$treatment,
+                               levels = c(0, 1),
+                               labels = c("non-SOF DAAs", "SOF-DAAs"))
+}
+
+# Display summary of the dataset
+glimpse(df)
+```
+
+# Pre-Matching Exploratory Analysis
+
+## Patient Characteristics by Treatment Group
+
+```{r pre-match-table}
+# Define variable list for the table
+vars <- c("age", "sex", "diabetes", "hypertension", "baseline_gfr", "bmi",
+          "cirrhosis", "prev_aki", "heart_failure", "nsaid_use")
+
+# Create a table comparing characteristics by treatment group
+table1 <- CreateTableOne(vars = vars, strata = "treatment_group", data = df, test = TRUE)
+print(table1, smd = TRUE)
+```
+
+## Outcome Prevalence by Treatment Group
+
+```{r outcome-by-treatment}
+# Calculate outcome prevalence by treatment group
+outcome_table <- df %>%
+  group_by(treatment_group) %>%
+  summarise(
+    n_patients = n(),
+    n_events = sum(event),
+    event_rate = mean(event),
+    .groups = 'drop'
+  )
+
+knitr::kable(outcome_table, caption = "Outcome (AKI) by Treatment Group (Before Matching)")
+
+# Plot outcome prevalence
+ggplot(outcome_table, aes(x = treatment_group, y = event_rate, fill = treatment_group)) +
+  geom_col() +
+  geom_text(aes(label = sprintf("%.1f%%", 100 * event_rate)),
+            vjust = -0.5, size = 4) +
+  labs(
+    title = "Unadjusted Event Rate by Treatment Group",
+    x = "Treatment Group",
+    y = "Event Rate",
+    fill = "Treatment Group"
+  ) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, max(outcome_table$event_rate) * 1.2)) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+# Propensity Score Estimation
+
+## Estimating Propensity Scores
+
+```{r estimate-ps}
+# Estimate propensity scores using logistic regression
+ps_formula <- as.formula(
+  "treatment ~ age + sex + diabetes + hypertension + baseline_gfr + bmi +
+   cirrhosis + prev_aki + heart_failure + nsaid_use"
+)
+
+ps_model <- glm(ps_formula, data = df, family = binomial)
+summary(ps_model)
+
+# Add propensity scores to the dataframe
+df$ps <- predict(ps_model, type = "response")
+
+# Display propensity score distribution
+summary(df$ps)
+```
+
+## Propensity Score Distribution by Treatment Group
+
+```{r ps-distribution}
+# Visualize the distribution of propensity scores by treatment group
+ggplot(df, aes(x = ps, fill = treatment_group)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Propensity Score Distribution (Pre-Matching)",
+    x = "Propensity Score",
+    y = "Density",
+    fill = "Treatment Group"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1")
+```
+
+# Propensity Score Matching
+
+## Perform Matching
+
+```{r ps-matching}
+# Perform propensity score matching
+matchit_out <- matchit(
+  formula = ps_formula,
+  data = df,
+  method = "nearest",
+  caliper = 0.2,
+  ratio = 1
+)
+
+# Display matching summary
+summary(matchit_out)
+
+# Extract matched data
+matched_df <- match.data(matchit_out)
+
+# Number of matched pairs
+cat("Matched sample size:", nrow(matched_df), "\n")
+cat("Number of matched pairs:", nrow(matched_df) / 2, "\n")
+```
+
+## Post-Matching Assessment
+
+### Covariate Balance
+
+```{r balance-assessment}
+# Create a balance table
+bal_tab <- bal.tab(matchit_out, un = TRUE, m.threshold = 0.1)
+print(bal_tab)
+
+# Create a love plot to visualize balance improvement
+love.plot(bal_tab, threshold = 0.1, var.order = "unadjusted",
+          abs = TRUE, line = TRUE, colors = c("red", "blue"),
+          title = "Covariate Balance Before and After Matching")
+```
+
+### Propensity Score Distribution After Matching
+
+```{r ps-post-match}
+# Visualize the distribution of propensity scores after matching
+ggplot(matched_df, aes(x = ps, fill = treatment_group)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    title = "Propensity Score Distribution (Post-Matching)",
+    x = "Propensity Score",
+    y = "Density",
+    fill = "Treatment Group"
+  ) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1")
+```
+
+### Covariate Balance Table
+
+```{r covariate-balance-table}
+# Create a table comparing characteristics by treatment group after matching
+matched_table1 <- CreateTableOne(vars = vars, strata = "treatment_group",
+                                 data = matched_df, test = TRUE)
+print(matched_table1, smd = TRUE)
+```
+
+# Treatment Effect Estimation
+
+## Outcome Analysis After Matching
+
+```{r outcome-post-match}
+# Outcome rates in matched sample
+matched_outcome <- matched_df %>%
+  group_by(treatment_group) %>%
+  summarise(
+    n_patients = n(),
+    n_events = sum(event),
+    event_rate = mean(event),
+    .groups = 'drop'
+  )
+
+knitr::kable(matched_outcome, caption = "Outcome (AKI) by Treatment Group (After Matching)")
+
+# Risk difference and risk ratio
+ref_rate <- matched_outcome$event_rate[matched_outcome$treatment_group == "non-SOF DAAs"]
+exp_rate <- matched_outcome$event_rate[matched_outcome$treatment_group == "SOF-DAAs"]
+
+risk_difference <- exp_rate - ref_rate
+risk_difference_per_1000 <- risk_difference * 1000
+risk_ratio <- exp_rate / ref_rate
+
+# Display results
+results_df <- data.frame(
+  Measure = c("Risk in non-SOF DAAs", "Risk in SOF-DAAs",
+              "Risk Ratio", "Risk Difference", "Risk Difference per 1,000 patients"),
+  Value = c(ref_rate, exp_rate, risk_ratio, risk_difference, risk_difference_per_1000)
+)
+
+knitr::kable(results_df, digits = 4, caption = "Treatment Effect Estimates")
+```
+
+## Cox Proportional Hazards Model
+
+```{r cox-model}
+# Simple Cox model on matched data
+cox_simple <- coxph(Surv(observed_time, event) ~ treatment, data = matched_df)
+summary(cox_simple)
+
+# Fully adjusted Cox model
+cox_adjusted <- coxph(
+  Surv(observed_time, event) ~ treatment + age + sex + diabetes + hypertension +
+    baseline_gfr + bmi + cirrhosis + prev_aki + heart_failure + nsaid_use,
+  data = matched_df
+)
+summary(cox_adjusted)
+
+# Forest plot for Cox model results
+hr_simple <- round(exp(coef(cox_simple)["treatment"]), 2)
+hr_simple_lower <- round(exp(confint(cox_simple)["treatment", 1]), 2)
+hr_simple_upper <- round(exp(confint(cox_simple)["treatment", 2]), 2)
+
+hr_adjusted <- round(exp(coef(cox_adjusted)["treatment"]), 2)
+hr_adjusted_lower <- round(exp(confint(cox_adjusted)["treatment", 1]), 2)
+hr_adjusted_upper <- round(exp(confint(cox_adjusted)["treatment", 2]), 2)
+
+# Create data frame for forest plot
+forest_data <- data.frame(
+  Model = c("Unadjusted", "Fully Adjusted"),
+  HR = c(hr_simple, hr_adjusted),
+  Lower = c(hr_simple_lower, hr_adjusted_lower),
+  Upper = c(hr_simple_upper, hr_adjusted_upper)
+)
+
+# Plot forest plot
+ggplot(forest_data, aes(x = HR, y = Model)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = Lower, xmax = Upper), height = 0.2) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  labs(
+    title = "Hazard Ratios for Treatment Effect on AKI",
+    x = "Hazard Ratio (95% CI)",
+    y = ""
+  ) +
+  scale_x_continuous(limits = c(0, max(forest_data$Upper) * 1.1)) +
+  theme_minimal() +
+  geom_text(aes(label = paste0(HR, " (", Lower, "-", Upper, ")")), vjust = -0.5, hjust = 0.5)
+```
+
+## Survival Curves
+
+```{r survival-curves}
+# Create Kaplan-Meier curves
+km_fit <- survfit(Surv(observed_time, event) ~ treatment_group, data = matched_df)
+
+# Plot Kaplan-Meier curves
+ggsurvplot(
+  km_fit,
+  data = matched_df,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  pval = TRUE,
+  legend.labs = c("non-SOF DAAs", "SOF-DAAs"),
+  palette = c("blue", "red"),
+  title = "Kaplan-Meier Curves for AKI by Treatment Group",
+  xlab = "Time (days)",
+  ylab = "AKI-free Survival Probability",
+  risk.table.height = 0.25
+)
+```
+
+# Sensitivity Analyses
+
+## Varying Caliper Width
+
+```{r sensitivity-caliper}
+# Try matching with different calipers
+caliper_values <- c(0.1, 0.2, 0.3)
+caliper_results <- data.frame()
+
+for (cal in caliper_values) {
+  # Perform matching with current caliper
+  m_out <- matchit(ps_formula, data = df, method = "nearest", caliper = cal)
+
+  # Extract matched data
+  m_data <- match.data(m_out)
+
+  # Calculate treatment effect
+  model <- glm(event ~ treatment, data = m_data, family = binomial)
+
+  # Get odds ratio and confidence interval
+  or <- exp(coef(model)["treatment"])
+  ci <- exp(confint(model)["treatment", ])
+
+  # Add results to dataframe
+  caliper_results <- rbind(caliper_results,
+                           data.frame(Caliper = cal,
+                                      Matched_Pairs = nrow(m_data)/2,
+                                      OR = or,
+                                      Lower_CI = ci[1],
+                                      Upper_CI = ci[2]))
+}
+
+# Display results
+knitr::kable(caliper_results, digits = 3,
+             caption = "Sensitivity Analysis with Different Caliper Widths")
+
+# Plot results
+ggplot(caliper_results, aes(x = factor(Caliper), y = OR)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  labs(
+    title = "Treatment Effect Estimates with Different Caliper Widths",
+    x = "Caliper Width",
+    y = "Odds Ratio (95% CI)"
+  ) +
+  theme_minimal()
+```
+
+## Alternative Matching Methods
+
+```{r alternative-matching}
+# Try different matching methods
+match_methods <- c("nearest", "optimal", "full")
+method_results <- data.frame()
+
+for (method in match_methods) {
+  # Perform matching with current method
+  m_out <- matchit(ps_formula, data = df, method = method)
+
+  # Extract matched data
+  m_data <- match.data(m_out)
+
+  # Calculate treatment effect
+  model <- glm(event ~ treatment, data = m_data, family = binomial)
+
+  # Get odds ratio and confidence interval
+  or <- exp(coef(model)["treatment"])
+  ci <- exp(confint(model)["treatment", ])
+
+  # Add results to dataframe
+  method_results <- rbind(method_results,
+                          data.frame(Method = method,
+                                     Matched_Pairs = nrow(m_data)/2,
+                                     OR = or,
+                                     Lower_CI = ci[1],
+                                     Upper_CI = ci[2]))
+}
+
+# Display results
+knitr::kable(method_results, digits = 3,
+             caption = "Sensitivity Analysis with Different Matching Methods")
+
+# Plot results
+ggplot(method_results, aes(x = Method, y = OR)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  labs(
+    title = "Treatment Effect Estimates with Different Matching Methods",
+    x = "Matching Method",
+    y = "Odds Ratio (95% CI)"
+  ) +
+  theme_minimal()
+```
+
+# Proportional Hazards Assumption Check
+
+```{r ph-assumption}
+# Test proportional hazards assumption
+cox_model_test <- cox.zph(cox_adjusted)
+print(cox_model_test)
+
+# Plot Schoenfeld residuals
+plot(cox_model_test)
+```
+
+# Conclusion
+
+```{r}
+# Summarize key findings
+cat("Key findings:\n")
+cat("1. Pre-matching analysis showed significant differences between treatment groups\n")
+cat("2. Propensity score matching balanced covariates between groups\n")
+cat("3. The matched analysis produced a hazard ratio of", round(hr_simple, 2),
+    "(95% CI:", round(hr_simple_lower, 2), "-", round(hr_simple_upper, 2), ")\n")
+cat("4. After adjustment for covariates, the hazard ratio was", round(hr_adjusted, 2),
+    "(95% CI:", round(hr_adjusted_lower, 2), "-", round(hr_adjusted_upper, 2), ")\n")
+
+# Interpret results based on hazard ratio confidence interval
+if (hr_adjusted_lower <= 1 && hr_adjusted_upper >= 1) {
+  cat("5. The analysis does not provide evidence of an increased risk of AKI with SOF-containing DAAs\n")
+} else if (hr_adjusted_upper < 1) {
+  cat("5. The analysis suggests a potential protective effect of SOF-containing DAAs on AKI risk\n")
+} else {
+  cat("5. The analysis suggests a potential increased risk of AKI with SOF-containing DAAs\n")
+}
+```
+
+# Limitations
+
+This analysis has several limitations:
+
+  1. Propensity score matching can only balance observed covariates, and unmeasured confounding may still be present.
+2. The analysis is based on claims data, which may have limitations in capturing all relevant clinical information.
+3. Censoring assumptions may influence the results, especially if censoring is informative.
+4. The treatment effect may vary across subgroups, which is not explored in this primary analysis.
+5. The definition of AKI based on diagnosis codes may not capture all cases, leading to potential outcome misclassification.
+

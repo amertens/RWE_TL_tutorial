@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Causal Inference Analysis" />
+
+<meta name="date" content="2025-03-03" />
+
+<title>Inverse Probability Weighted Analysis for Observational Data</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } /* Alert */
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #204a87; } /* Attribute */
+code span.bn { color: #0000cf; } /* BaseN */
+code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4e9a06; } /* Char */
+code span.cn { color: #8f5902; } /* Constant */
+code span.co { color: #8f5902; font-style: italic; } /* Comment */
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code span.dt { color: #204a87; } /* DataType */
+code span.dv { color: #0000cf; } /* DecVal */
+code span.er { color: #a40000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #0000cf; } /* Float */
+code span.fu { color: #204a87; font-weight: bold; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code span.ot { color: #8f5902; } /* Other */
+code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+code span.ss { color: #4e9a06; } /* SpecialString */
+code span.st { color: #4e9a06; } /* String */
+code span.va { color: #000000; } /* Variable */
+code span.vs { color: #4e9a06; } /* VerbatimString */
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+
+.sourceCode .row {
+  width: 100%;
+}
+.sourceCode {
+  overflow-x: auto;
+}
+.code-folding-btn {
+  margin-right: -30px;
+}
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="IPW_analysis.html">Inverse probability weighted analysis</a>
+</li>
+<li>
+  <a href="TMLE_analysis.html">Targeted learning analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Inverse Probability Weighted Analysis for
+Observational Data</h1>
+<h4 class="author">Causal Inference Analysis</h4>
+<h4 class="date">March 3, 2025</h4>
+
+</div>
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>This document performs causal inference analysis using inverse
+probability weighting (IPW) methods on an observational dataset. The
+analysis adjusts for confounding by weighting observations based on
+their propensity to receive treatment, which helps to create a
+pseudo-randomized scenario from observational data.</p>
+<div id="loading-required-libraries" class="section level2">
+<h2>Loading Required Libraries</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Load necessary libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">library</span>(ipw)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">library</span>(survey)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="fu">library</span>(cobalt)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="fu">library</span>(tableone)</span></code></pre></div>
+</div>
+</div>
+<div id="data-preparation" class="section level1">
+<h1>Data Preparation</h1>
+<div id="loading-the-dataset" class="section level2">
+<h2>Loading the Dataset</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Load the cleaned and imputed dataset</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;data/imputed_case_study_data.csv&quot;</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co"># Display the structure of the dataset</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">str</span>(df)</span></code></pre></div>
+<pre><code>## &#39;data.frame&#39;:    5000 obs. of  16 variables:
+##  $ age            : num  73.7 54.4 63.6 66.3 64 ...
+##  $ sex            : int  1 1 1 0 1 1 0 1 0 0 ...
+##  $ diabetes       : int  0 1 0 0 0 0 0 0 1 0 ...
+##  $ hypertension   : int  1 0 0 1 0 0 0 0 1 0 ...
+##  $ baseline_gfr   : num  83.9 76.1 113 93.4 59 ...
+##  $ bmi            : num  35.6 34.3 29 27.7 20.7 ...
+##  $ cirrhosis      : int  0 1 0 0 1 1 1 0 0 0 ...
+##  $ prev_aki       : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ heart_failure  : int  1 0 1 0 0 0 0 0 0 0 ...
+##  $ nsaid_use      : int  1 0 1 1 0 0 1 1 0 1 ...
+##  $ treatment      : int  1 1 1 0 0 1 1 0 1 1 ...
+##  $ event          : int  1 0 1 1 0 0 1 0 0 0 ...
+##  $ time_to_event  : num  28.63 6.12 47.45 21.11 142.57 ...
+##  $ observed_time  : num  6.96 6.12 7.33 7.46 7.56 ...
+##  $ censored       : int  1 0 1 1 1 1 1 1 1 1 ...
+##  $ treatment_group: chr  &quot;SOF-DAAs&quot; &quot;SOF-DAAs&quot; &quot;SOF-DAAs&quot; &quot;non-SOF DAAs&quot; ...</code></pre>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Show the first few rows</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">head</span>(df)</span></code></pre></div>
+<pre><code>##        age sex diabetes hypertension baseline_gfr      bmi cirrhosis prev_aki
+## 1 73.70958   1        0            1     83.85757 35.63937         0        0
+## 2 54.35302   1        1            0     76.06443 34.34018         1        0
+## 3 63.63128   1        0            0    113.02098 28.95903         0        0
+## 4 66.32863   0        0            1     93.36407 27.65028         0        0
+## 5 64.04268   1        0            0     58.95216 20.65748         1        0
+## 6 58.93875   1        0            0    105.38469 28.24013         1        0
+##   heart_failure nsaid_use treatment event time_to_event observed_time censored
+## 1             1         1         1     1      28.62642      6.956893        1
+## 2             0         0         1     0       6.11821      6.118210        0
+## 3             1         1         1     1      47.45312      7.325702        1
+## 4             0         1         0     1      21.10529      7.456482        1
+## 5             0         0         0     0     142.56770      7.557075        1
+## 6             0         0         1     0      54.83833     13.763138        1
+##   treatment_group
+## 1        SOF-DAAs
+## 2        SOF-DAAs
+## 3        SOF-DAAs
+## 4    non-SOF DAAs
+## 5    non-SOF DAAs
+## 6        SOF-DAAs</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Summary statistics</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">summary</span>(df[, <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;baseline_gfr&quot;</span>, <span class="st">&quot;bmi&quot;</span>, <span class="st">&quot;treatment&quot;</span>, <span class="st">&quot;event&quot;</span>)])</span></code></pre></div>
+<pre><code>##       age         baseline_gfr         bmi          treatment     
+##  Min.   :26.28   Min.   : 38.41   Min.   :10.23   Min.   :0.0000  
+##  1st Qu.:53.15   1st Qu.: 80.09   1st Qu.:24.54   1st Qu.:1.0000  
+##  Median :59.89   Median : 90.22   Median :28.08   Median :1.0000  
+##  Mean   :59.86   Mean   : 90.02   Mean   :28.03   Mean   :0.8614  
+##  3rd Qu.:66.60   3rd Qu.:100.13   3rd Qu.:31.52   3rd Qu.:1.0000  
+##  Max.   :95.85   Max.   :144.94   Max.   :44.13   Max.   :1.0000  
+##      event       
+##  Min.   :0.0000  
+##  1st Qu.:0.0000  
+##  Median :0.0000  
+##  Mean   :0.1586  
+##  3rd Qu.:0.0000  
+##  Max.   :1.0000</code></pre>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Check for missing values</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="fu">colSums</span>(<span class="fu">is.na</span>(df))</span></code></pre></div>
+<pre><code>##             age             sex        diabetes    hypertension    baseline_gfr 
+##               0               0               0               0               0 
+##             bmi       cirrhosis        prev_aki   heart_failure       nsaid_use 
+##               0               0               0               0               0 
+##       treatment           event   time_to_event   observed_time        censored 
+##               0               0               0               0               0 
+## treatment_group 
+##               0</code></pre>
+</div>
+</div>
+<div id="exploratory-data-analysis" class="section level1">
+<h1>Exploratory Data Analysis</h1>
+<p>Before diving into the causal analysis, let’s explore the dataset to
+understand the distribution of key variables and their relationships
+with treatment assignment.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Distribution of treatment</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">table</span>(df<span class="sc">$</span>treatment)</span></code></pre></div>
+<pre><code>## 
+##    0    1 
+##  693 4307</code></pre>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(df<span class="sc">$</span>treatment))</span></code></pre></div>
+<pre><code>## 
+##      0      1 
+## 0.1386 0.8614</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Distribution of outcome by treatment group</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="fu">table</span>(df<span class="sc">$</span>treatment, df<span class="sc">$</span>event)</span></code></pre></div>
+<pre><code>##    
+##        0    1
+##   0  606   87
+##   1 3601  706</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(df<span class="sc">$</span>treatment, df<span class="sc">$</span>event), <span class="at">margin =</span> <span class="dv">1</span>)</span></code></pre></div>
+<pre><code>##    
+##             0         1
+##   0 0.8744589 0.1255411
+##   1 0.8360808 0.1639192</code></pre>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># Create balance table before any weighting</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;baseline_gfr&quot;</span>, <span class="st">&quot;bmi&quot;</span>, <span class="st">&quot;sex&quot;</span>, <span class="st">&quot;diabetes&quot;</span>, <span class="st">&quot;hypertension&quot;</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>baseline_table <span class="ot">&lt;-</span> <span class="fu">CreateTableOne</span>(<span class="at">vars =</span> covariates, <span class="at">strata =</span> <span class="st">&quot;treatment&quot;</span>, <span class="at">data =</span> df, <span class="at">test =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="fu">print</span>(baseline_table, <span class="at">smd =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<pre><code>##                           Stratified by treatment
+##                            0             1             p      test SMD   
+##   n                          693          4307                           
+##   age (mean (SD))          58.46 (10.33) 60.08 (9.99)  &lt;0.001       0.159
+##   baseline_gfr (mean (SD)) 87.98 (14.89) 90.34 (15.18) &lt;0.001       0.157
+##   bmi (mean (SD))          27.55 (5.08)  28.11 (5.00)   0.007       0.111
+##   sex (mean (SD))           0.48 (0.50)   0.51 (0.50)   0.082       0.071
+##   diabetes (mean (SD))      0.22 (0.41)   0.31 (0.46)  &lt;0.001       0.197
+##   hypertension (mean (SD))  0.33 (0.47)   0.41 (0.49)  &lt;0.001       0.166</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Visualize the distribution of key continuous variables by treatment</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="co"># Age distribution</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> age, <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Age Distribution by Treatment Group&quot;</span>, </span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Age&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Density&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/visualization-1.png" width="3000" /></p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Baseline GFR distribution</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> baseline_gfr, <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Baseline GFR Distribution by Treatment Group&quot;</span>, </span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Baseline GFR&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Density&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/visualization-2.png" width="3000" /></p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># BMI distribution</span></span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> bmi, <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;BMI Distribution by Treatment Group&quot;</span>, </span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;BMI&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Density&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/visualization-3.png" width="3000" /></p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># Categorical variables</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="co"># Sex distribution</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(sex), <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">&quot;dodge&quot;</span>) <span class="sc">+</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Sex Distribution by Treatment Group&quot;</span>, </span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Sex (1 = Male, 0 = Female)&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Count&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/visualization-4.png" width="3000" /></p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="co"># Diabetes distribution</span></span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(diabetes), <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">&quot;dodge&quot;</span>) <span class="sc">+</span></span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Diabetes Distribution by Treatment Group&quot;</span>, </span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Diabetes (1 = Yes, 0 = No)&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Count&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/visualization-5.png" width="3000" /></p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="co"># Hypertension distribution</span></span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(hypertension), <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">&quot;dodge&quot;</span>) <span class="sc">+</span></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Hypertension Distribution by Treatment Group&quot;</span>, </span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Hypertension (1 = Yes, 0 = No)&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Count&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/visualization-6.png" width="3000" /></p>
+</div>
+<div id="step-1-estimating-the-propensity-score" class="section level1">
+<h1>Step 1: Estimating the Propensity Score</h1>
+<p>We’ll use logistic regression to model the probability of receiving
+the treatment given the observed covariates.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="co"># Model treatment as a function of key covariates using logistic regression</span></span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>ps_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension,</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>                <span class="at">data =</span> df, <span class="at">family =</span> binomial)</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a><span class="co"># Summary of the propensity score model</span></span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a><span class="fu">summary</span>(ps_model)</span></code></pre></div>
+<pre><code>## 
+## Call:
+## glm(formula = treatment ~ age + baseline_gfr + bmi + sex + diabetes + 
+##     hypertension, family = binomial, data = df)
+## 
+## Coefficients:
+##               Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  -1.090914   0.423146  -2.578 0.009934 ** 
+## age           0.017129   0.004127   4.150 3.32e-05 ***
+## baseline_gfr  0.010631   0.002741   3.878 0.000105 ***
+## bmi           0.022445   0.008228   2.728 0.006377 ** 
+## sex           0.159683   0.082676   1.931 0.053429 .  
+## diabetes      0.463615   0.098143   4.724 2.31e-06 ***
+## hypertension  0.355562   0.087255   4.075 4.60e-05 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 4024.1  on 4999  degrees of freedom
+## Residual deviance: 3942.5  on 4993  degrees of freedom
+## AIC: 3956.5
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="co"># Obtain the predicted propensity scores (P(A=1|X))</span></span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>df<span class="sc">$</span>pscore <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_model, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="co"># Visualize propensity score distribution by treatment group</span></span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> pscore, <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Propensity Score Distribution by Treatment Group&quot;</span>,</span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Propensity Score&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Density&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/propensity-score-1.png" width="3000" /></p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="co"># Check for positivity (common support)</span></span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a><span class="co"># Create bins of propensity scores</span></span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>df<span class="sc">$</span>ps_bin <span class="ot">&lt;-</span> <span class="fu">cut</span>(df<span class="sc">$</span>pscore, <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="fl">0.1</span>))</span>
+<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a>counts <span class="ot">&lt;-</span> <span class="fu">table</span>(df<span class="sc">$</span>ps_bin, df<span class="sc">$</span>treatment)</span>
+<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>prop_table <span class="ot">&lt;-</span> <span class="fu">prop.table</span>(counts, <span class="at">margin =</span> <span class="dv">1</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a><span class="fu">print</span>(counts)</span></code></pre></div>
+<pre><code>##            
+##                0    1
+##   (0,0.1]      0    0
+##   (0.1,0.2]    0    0
+##   (0.2,0.3]    0    0
+##   (0.3,0.4]    0    0
+##   (0.4,0.5]    0    0
+##   (0.5,0.6]    0    0
+##   (0.6,0.7]    0    3
+##   (0.7,0.8]  113  355
+##   (0.8,0.9]  497 3032
+##   (0.9,1]     83  917</code></pre>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a><span class="fu">print</span>(prop_table)</span></code></pre></div>
+<pre><code>##            
+##                     0         1
+##   (0,0.1]                      
+##   (0.1,0.2]                    
+##   (0.2,0.3]                    
+##   (0.3,0.4]                    
+##   (0.4,0.5]                    
+##   (0.5,0.6]                    
+##   (0.6,0.7] 0.0000000 1.0000000
+##   (0.7,0.8] 0.2414530 0.7585470
+##   (0.8,0.9] 0.1408331 0.8591669
+##   (0.9,1]   0.0830000 0.9170000</code></pre>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a><span class="co"># Visualize overlap</span></span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> ps_bin, <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">&quot;stack&quot;</span>) <span class="sc">+</span></span>
+<span id="cb33-4"><a href="#cb33-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Treatment Assignment by Propensity Score Bins&quot;</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Propensity Score Bins&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Count&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb33-6"><a href="#cb33-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb33-7"><a href="#cb33-7" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/propensity-score-2.png" width="3000" /></p>
+</div>
+<div id="step-2-calculate-stabilized-weights" class="section level1">
+<h1>Step 2: Calculate Stabilized Weights</h1>
+<p>Stabilized weights help reduce the variance of the estimator compared
+to unstabilized weights.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="co"># Compute the marginal probability of treatment assignment</span></span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>pA1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(df<span class="sc">$</span>treatment <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" tabindex="-1"></a>pA0 <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> pA1</span>
+<span id="cb34-4"><a href="#cb34-4" tabindex="-1"></a></span>
+<span id="cb34-5"><a href="#cb34-5" tabindex="-1"></a><span class="co"># Calculate stabilized weights:</span></span>
+<span id="cb34-6"><a href="#cb34-6" tabindex="-1"></a><span class="co"># For treated: weight = P(A=1) / pscore</span></span>
+<span id="cb34-7"><a href="#cb34-7" tabindex="-1"></a><span class="co"># For controls: weight = P(A=0) / (1 - pscore)</span></span>
+<span id="cb34-8"><a href="#cb34-8" tabindex="-1"></a>df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb34-9"><a href="#cb34-9" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">stab_weight =</span> <span class="fu">ifelse</span>(treatment <span class="sc">==</span> <span class="dv">1</span>, pA1 <span class="sc">/</span> pscore, pA0 <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> pscore)))</span>
+<span id="cb34-10"><a href="#cb34-10" tabindex="-1"></a></span>
+<span id="cb34-11"><a href="#cb34-11" tabindex="-1"></a><span class="co"># Examine summary of weights</span></span>
+<span id="cb34-12"><a href="#cb34-12" tabindex="-1"></a><span class="fu">summary</span>(df<span class="sc">$</span>stab_weight)</span></code></pre></div>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  0.4682  0.9560  0.9908  1.0003  1.0345  3.2672</code></pre>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a><span class="co"># Assess the distribution of weights</span></span>
+<span id="cb36-2"><a href="#cb36-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> stab_weight)) <span class="sc">+</span></span>
+<span id="cb36-3"><a href="#cb36-3" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">binwidth =</span> <span class="fl">0.5</span>, <span class="at">fill =</span> <span class="st">&quot;blue&quot;</span>, <span class="at">color =</span> <span class="st">&quot;black&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb36-4"><a href="#cb36-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Distribution of Stabilized Weights&quot;</span>, </span>
+<span id="cb36-5"><a href="#cb36-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Stabilized Weight&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Frequency&quot;</span>) <span class="sc">+</span></span>
+<span id="cb36-6"><a href="#cb36-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/stabilized-weights-1.png" width="3000" /></p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" tabindex="-1"></a><span class="co"># Check for extreme weights</span></span>
+<span id="cb37-2"><a href="#cb37-2" tabindex="-1"></a>df <span class="sc">%&gt;%</span></span>
+<span id="cb37-3"><a href="#cb37-3" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb37-4"><a href="#cb37-4" tabindex="-1"></a>    <span class="at">Mean_Weight =</span> <span class="fu">mean</span>(stab_weight),</span>
+<span id="cb37-5"><a href="#cb37-5" tabindex="-1"></a>    <span class="at">SD_Weight =</span> <span class="fu">sd</span>(stab_weight),</span>
+<span id="cb37-6"><a href="#cb37-6" tabindex="-1"></a>    <span class="at">Median_Weight =</span> <span class="fu">median</span>(stab_weight),</span>
+<span id="cb37-7"><a href="#cb37-7" tabindex="-1"></a>    <span class="at">Min_Weight =</span> <span class="fu">min</span>(stab_weight),</span>
+<span id="cb37-8"><a href="#cb37-8" tabindex="-1"></a>    <span class="at">Max_Weight =</span> <span class="fu">max</span>(stab_weight),</span>
+<span id="cb37-9"><a href="#cb37-9" tabindex="-1"></a>    <span class="at">Q1 =</span> <span class="fu">quantile</span>(stab_weight, <span class="fl">0.25</span>),</span>
+<span id="cb37-10"><a href="#cb37-10" tabindex="-1"></a>    <span class="at">Q3 =</span> <span class="fu">quantile</span>(stab_weight, <span class="fl">0.75</span>)</span>
+<span id="cb37-11"><a href="#cb37-11" tabindex="-1"></a>  )</span></code></pre></div>
+<pre><code>##   Mean_Weight SD_Weight Median_Weight Min_Weight Max_Weight        Q1      Q3
+## 1    1.000267 0.1393922     0.9907522  0.4681504    3.26723 0.9559808 1.03448</code></pre>
+<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" tabindex="-1"></a><span class="co"># Visualize weights by treatment group</span></span>
+<span id="cb39-2"><a href="#cb39-2" tabindex="-1"></a><span class="fu">ggplot</span>(df, <span class="fu">aes</span>(<span class="at">x =</span> stab_weight, <span class="at">fill =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb39-3"><a href="#cb39-3" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb39-4"><a href="#cb39-4" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Distribution of Stabilized Weights by Treatment Group&quot;</span>, </span>
+<span id="cb39-5"><a href="#cb39-5" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Stabilized Weight&quot;</span>, <span class="at">y =</span> <span class="st">&quot;Density&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb39-6"><a href="#cb39-6" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/stabilized-weights-2.png" width="3000" /></p>
+</div>
+<div id="step-3-diagnostics-for-weighting" class="section level1">
+<h1>Step 3: Diagnostics for Weighting</h1>
+<div id="assess-covariate-balance-after-weighting"
+class="section level2">
+<h2>3.1: Assess Covariate Balance After Weighting</h2>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a><span class="co"># Create a survey design object using the stabilized weights</span></span>
+<span id="cb40-2"><a href="#cb40-2" tabindex="-1"></a>design <span class="ot">&lt;-</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">data =</span> df, <span class="at">weights =</span> <span class="sc">~</span>stab_weight)</span>
+<span id="cb40-3"><a href="#cb40-3" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" tabindex="-1"></a><span class="co"># Compare covariate balance before weighting using tableone</span></span>
+<span id="cb40-5"><a href="#cb40-5" tabindex="-1"></a>covariates <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;baseline_gfr&quot;</span>, <span class="st">&quot;bmi&quot;</span>, <span class="st">&quot;sex&quot;</span>, <span class="st">&quot;diabetes&quot;</span>, <span class="st">&quot;hypertension&quot;</span>)</span>
+<span id="cb40-6"><a href="#cb40-6" tabindex="-1"></a>table1_before <span class="ot">&lt;-</span> <span class="fu">CreateTableOne</span>(<span class="at">vars =</span> covariates, <span class="at">strata =</span> <span class="st">&quot;treatment&quot;</span>, <span class="at">data =</span> df, <span class="at">test =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb40-7"><a href="#cb40-7" tabindex="-1"></a><span class="fu">print</span>(table1_before, <span class="at">smd =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<pre><code>##                           Stratified by treatment
+##                            0             1             SMD   
+##   n                          693          4307               
+##   age (mean (SD))          58.46 (10.33) 60.08 (9.99)   0.159
+##   baseline_gfr (mean (SD)) 87.98 (14.89) 90.34 (15.18)  0.157
+##   bmi (mean (SD))          27.55 (5.08)  28.11 (5.00)   0.111
+##   sex (mean (SD))           0.48 (0.50)   0.51 (0.50)   0.071
+##   diabetes (mean (SD))      0.22 (0.41)   0.31 (0.46)   0.197
+##   hypertension (mean (SD))  0.33 (0.47)   0.41 (0.49)   0.166</code></pre>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" tabindex="-1"></a><span class="co"># Assess balance after weighting using cobalt</span></span>
+<span id="cb42-2"><a href="#cb42-2" tabindex="-1"></a>bal_tab <span class="ot">&lt;-</span> <span class="fu">bal.tab</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb42-3"><a href="#cb42-3" tabindex="-1"></a>                  <span class="at">data =</span> df, <span class="at">weights =</span> df<span class="sc">$</span>stab_weight, <span class="at">estimand =</span> <span class="st">&quot;ATE&quot;</span>)</span>
+<span id="cb42-4"><a href="#cb42-4" tabindex="-1"></a><span class="fu">print</span>(bal_tab)</span></code></pre></div>
+<pre><code>## Balance Measures
+##                 Type Diff.Adj
+## age          Contin.  -0.0128
+## baseline_gfr Contin.  -0.0040
+## bmi          Contin.  -0.0131
+## sex           Binary  -0.0011
+## diabetes      Binary   0.0028
+## hypertension  Binary  -0.0044
+## 
+## Effective sample sizes
+##            Control Treated
+## Unadjusted  693.   4307.  
+## Adjusted    617.24 4295.33</code></pre>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" tabindex="-1"></a><span class="co"># Visualize balance with a love plot</span></span>
+<span id="cb44-2"><a href="#cb44-2" tabindex="-1"></a><span class="fu">love.plot</span>(bal_tab, <span class="at">threshold =</span> <span class="fl">0.1</span>, <span class="at">var.order =</span> <span class="st">&quot;unadjusted&quot;</span>, </span>
+<span id="cb44-3"><a href="#cb44-3" tabindex="-1"></a>          <span class="at">abs =</span> <span class="cn">TRUE</span>, <span class="at">line =</span> <span class="cn">TRUE</span>, <span class="at">colors =</span> <span class="fu">c</span>(<span class="st">&quot;red&quot;</span>, <span class="st">&quot;blue&quot;</span>),</span>
+<span id="cb44-4"><a href="#cb44-4" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">&quot;Covariate Balance Before and After Weighting&quot;</span>)</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/balance-assessment-1.png" width="3000" /></p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a><span class="co"># Create weighted means for each variable</span></span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>weighted_means <span class="ot">&lt;-</span> <span class="fu">svyby</span>(<span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb45-3"><a href="#cb45-3" tabindex="-1"></a>                       <span class="sc">~</span>treatment, design, svymean)</span>
+<span id="cb45-4"><a href="#cb45-4" tabindex="-1"></a><span class="fu">print</span>(weighted_means)</span></code></pre></div>
+<pre><code>##   treatment      age baseline_gfr      bmi       sex  diabetes hypertension
+## 0         0 59.99095     90.07473 28.09753 0.5078707 0.2909374    0.4006351
+## 1         1 59.86084     90.01523 28.03164 0.5067976 0.2937156    0.3962705
+##      se.age se.baseline_gfr     se.bmi      se.sex se.diabetes se.hypertension
+## 0 0.4221871       0.6220492 0.20924287 0.020101262 0.019834621     0.020389183
+## 1 0.1527220       0.2320781 0.07648545 0.007630176 0.006866424     0.007427699</code></pre>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" tabindex="-1"></a><span class="co"># Calculate standardized mean differences after weighting</span></span>
+<span id="cb47-2"><a href="#cb47-2" tabindex="-1"></a><span class="fu">bal.tab</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb47-3"><a href="#cb47-3" tabindex="-1"></a>       <span class="at">data =</span> df, <span class="at">weights =</span> df<span class="sc">$</span>stab_weight, <span class="at">estimand =</span> <span class="st">&quot;ATE&quot;</span>, </span>
+<span id="cb47-4"><a href="#cb47-4" tabindex="-1"></a>       <span class="at">method =</span> <span class="st">&quot;weighting&quot;</span>, <span class="at">disp =</span> <span class="fu">c</span>(<span class="st">&quot;means&quot;</span>, <span class="st">&quot;sds&quot;</span>, <span class="st">&quot;sdiffs&quot;</span>))</span></code></pre></div>
+<pre><code>## Balance Measures
+##                 Type M.0.Adj SD.0.Adj M.1.Adj SD.1.Adj Diff.Adj
+## age          Contin. 59.9910  10.2822 59.8608   9.9965  -0.0128
+## baseline_gfr Contin. 90.0747  15.0421 90.0152  15.1948  -0.0040
+## bmi          Contin. 28.0975   5.1169 28.0316   5.0085  -0.0131
+## sex           Binary  0.5079        .  0.5068        .  -0.0011
+## diabetes      Binary  0.2909        .  0.2937        .   0.0028
+## hypertension  Binary  0.4006        .  0.3963        .  -0.0044
+## 
+## Effective sample sizes
+##            Control Treated
+## Unadjusted  693.   4307.  
+## Adjusted    617.24 4295.33</code></pre>
+<div class="sourceCode" id="cb49"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" tabindex="-1"></a><span class="co"># Balance plot for each covariate</span></span>
+<span id="cb49-2"><a href="#cb49-2" tabindex="-1"></a><span class="fu">bal.plot</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb49-3"><a href="#cb49-3" tabindex="-1"></a>        <span class="at">data =</span> df, <span class="at">weights =</span> df<span class="sc">$</span>stab_weight, <span class="at">var.name =</span> <span class="st">&quot;age&quot;</span>)</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/balance-assessment-2.png" width="3000" /></p>
+<div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" tabindex="-1"></a><span class="fu">bal.plot</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb50-2"><a href="#cb50-2" tabindex="-1"></a>        <span class="at">data =</span> df, <span class="at">weights =</span> df<span class="sc">$</span>stab_weight, <span class="at">var.name =</span> <span class="st">&quot;baseline_gfr&quot;</span>)</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/balance-assessment-3.png" width="3000" /></p>
+<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" tabindex="-1"></a><span class="fu">bal.plot</span>(treatment <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb51-2"><a href="#cb51-2" tabindex="-1"></a>        <span class="at">data =</span> df, <span class="at">weights =</span> df<span class="sc">$</span>stab_weight, <span class="at">var.name =</span> <span class="st">&quot;bmi&quot;</span>)</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/balance-assessment-4.png" width="3000" /></p>
+</div>
+</div>
+<div id="step-4-fit-the-weighted-outcome-model" class="section level1">
+<h1>Step 4: Fit the Weighted Outcome Model</h1>
+<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" tabindex="-1"></a><span class="co"># Use the survey design to fit a weighted logistic regression model for the outcome</span></span>
+<span id="cb52-2"><a href="#cb52-2" tabindex="-1"></a>weighted_model <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(event <span class="sc">~</span> treatment, <span class="at">design =</span> design, <span class="at">family =</span> binomial)</span>
+<span id="cb52-3"><a href="#cb52-3" tabindex="-1"></a><span class="fu">summary</span>(weighted_model)</span></code></pre></div>
+<pre><code>## 
+## Call:
+## svyglm(formula = event ~ treatment, design = design, family = binomial)
+## 
+## Survey design:
+## svydesign(ids = ~1, data = df, weights = ~stab_weight)
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  -1.8251     0.1220 -14.960   &lt;2e-16 ***
+## treatment     0.1798     0.1288   1.396    0.163    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1.0002)
+## 
+## Number of Fisher Scoring iterations: 3</code></pre>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" tabindex="-1"></a><span class="co"># Extract coefficients and calculate odds ratio</span></span>
+<span id="cb54-2"><a href="#cb54-2" tabindex="-1"></a>coef_summary <span class="ot">&lt;-</span> <span class="fu">summary</span>(weighted_model)</span>
+<span id="cb54-3"><a href="#cb54-3" tabindex="-1"></a>odds_ratio <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">coef</span>(weighted_model)[<span class="st">&quot;treatment&quot;</span>])</span>
+<span id="cb54-4"><a href="#cb54-4" tabindex="-1"></a>or_ci <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">confint</span>(weighted_model)[<span class="st">&quot;treatment&quot;</span>, ])</span>
+<span id="cb54-5"><a href="#cb54-5" tabindex="-1"></a></span>
+<span id="cb54-6"><a href="#cb54-6" tabindex="-1"></a><span class="co"># Display odds ratio and confidence interval</span></span>
+<span id="cb54-7"><a href="#cb54-7" tabindex="-1"></a>or_result <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb54-8"><a href="#cb54-8" tabindex="-1"></a>  <span class="at">Odds_Ratio =</span> odds_ratio,</span>
+<span id="cb54-9"><a href="#cb54-9" tabindex="-1"></a>  <span class="at">Lower_CI =</span> or_ci[<span class="dv">1</span>],</span>
+<span id="cb54-10"><a href="#cb54-10" tabindex="-1"></a>  <span class="at">Upper_CI =</span> or_ci[<span class="dv">2</span>]</span>
+<span id="cb54-11"><a href="#cb54-11" tabindex="-1"></a>)</span>
+<span id="cb54-12"><a href="#cb54-12" tabindex="-1"></a><span class="fu">print</span>(or_result)</span></code></pre></div>
+<pre><code>##           Odds_Ratio Lower_CI Upper_CI
+## treatment   1.196932 0.929894 1.540655</code></pre>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" tabindex="-1"></a><span class="co"># Optional: Calculate risk differences and risk ratios</span></span>
+<span id="cb56-2"><a href="#cb56-2" tabindex="-1"></a><span class="co"># Create a function to compute predicted probabilities</span></span>
+<span id="cb56-3"><a href="#cb56-3" tabindex="-1"></a>get_predicted_probs <span class="ot">&lt;-</span> <span class="cf">function</span>(model, newdata) {</span>
+<span id="cb56-4"><a href="#cb56-4" tabindex="-1"></a>  pred <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">newdata =</span> newdata, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb56-5"><a href="#cb56-5" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">mean</span>(pred))</span>
+<span id="cb56-6"><a href="#cb56-6" tabindex="-1"></a>}</span>
+<span id="cb56-7"><a href="#cb56-7" tabindex="-1"></a></span>
+<span id="cb56-8"><a href="#cb56-8" tabindex="-1"></a><span class="co"># Calculate risk for treated</span></span>
+<span id="cb56-9"><a href="#cb56-9" tabindex="-1"></a>risk_treated <span class="ot">&lt;-</span> <span class="fu">get_predicted_probs</span>(weighted_model, </span>
+<span id="cb56-10"><a href="#cb56-10" tabindex="-1"></a>                                   <span class="fu">data.frame</span>(<span class="at">treatment =</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">nrow</span>(df))))</span>
+<span id="cb56-11"><a href="#cb56-11" tabindex="-1"></a></span>
+<span id="cb56-12"><a href="#cb56-12" tabindex="-1"></a><span class="co"># Calculate risk for untreated</span></span>
+<span id="cb56-13"><a href="#cb56-13" tabindex="-1"></a>risk_untreated <span class="ot">&lt;-</span> <span class="fu">get_predicted_probs</span>(weighted_model, </span>
+<span id="cb56-14"><a href="#cb56-14" tabindex="-1"></a>                                     <span class="fu">data.frame</span>(<span class="at">treatment =</span> <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">nrow</span>(df))))</span>
+<span id="cb56-15"><a href="#cb56-15" tabindex="-1"></a></span>
+<span id="cb56-16"><a href="#cb56-16" tabindex="-1"></a><span class="co"># Calculate risk difference and risk ratio</span></span>
+<span id="cb56-17"><a href="#cb56-17" tabindex="-1"></a>risk_difference <span class="ot">&lt;-</span> risk_treated <span class="sc">-</span> risk_untreated</span>
+<span id="cb56-18"><a href="#cb56-18" tabindex="-1"></a>risk_ratio <span class="ot">&lt;-</span> risk_treated <span class="sc">/</span> risk_untreated</span>
+<span id="cb56-19"><a href="#cb56-19" tabindex="-1"></a></span>
+<span id="cb56-20"><a href="#cb56-20" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb56-21"><a href="#cb56-21" tabindex="-1"></a>  <span class="at">Risk_Treated =</span> risk_treated,</span>
+<span id="cb56-22"><a href="#cb56-22" tabindex="-1"></a>  <span class="at">Risk_Untreated =</span> risk_untreated,</span>
+<span id="cb56-23"><a href="#cb56-23" tabindex="-1"></a>  <span class="at">Risk_Difference =</span> risk_difference,</span>
+<span id="cb56-24"><a href="#cb56-24" tabindex="-1"></a>  <span class="at">Risk_Ratio =</span> risk_ratio</span>
+<span id="cb56-25"><a href="#cb56-25" tabindex="-1"></a>)</span>
+<span id="cb56-26"><a href="#cb56-26" tabindex="-1"></a><span class="fu">print</span>(results)</span></code></pre></div>
+<pre><code>##   Risk_Treated Risk_Untreated Risk_Difference Risk_Ratio
+## 1    0.1617429      0.1388256      0.02291728    1.16508</code></pre>
+</div>
+<div id="step-5-sensitivity-analyses" class="section level1">
+<h1>Step 5: Sensitivity Analyses</h1>
+<div id="truncate-extreme-weights" class="section level2">
+<h2>5.1 Truncate Extreme Weights</h2>
+<div class="sourceCode" id="cb58"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" tabindex="-1"></a><span class="co"># Truncate weights at the 1st and 99th percentiles</span></span>
+<span id="cb58-2"><a href="#cb58-2" tabindex="-1"></a>lower_bound<span class="ot">=</span><span class="fl">0.01</span></span>
+<span id="cb58-3"><a href="#cb58-3" tabindex="-1"></a>upper_bound<span class="ot">=</span><span class="fl">0.99</span></span>
+<span id="cb58-4"><a href="#cb58-4" tabindex="-1"></a>df <span class="ot">&lt;-</span>  df <span class="sc">%&gt;%</span></span>
+<span id="cb58-5"><a href="#cb58-5" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">trunc_weight =</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(stab_weight, lower_bound), upper_bound))</span>
+<span id="cb58-6"><a href="#cb58-6" tabindex="-1"></a></span>
+<span id="cb58-7"><a href="#cb58-7" tabindex="-1"></a><span class="co"># Summary of truncated weights</span></span>
+<span id="cb58-8"><a href="#cb58-8" tabindex="-1"></a><span class="fu">summary</span>(df<span class="sc">$</span>trunc_weight)</span></code></pre></div>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##  0.4682  0.9560  0.9900  0.9596  0.9900  0.9900</code></pre>
+<div class="sourceCode" id="cb60"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" tabindex="-1"></a><span class="co"># Compare original and truncated weights</span></span>
+<span id="cb60-2"><a href="#cb60-2" tabindex="-1"></a><span class="fu">ggplot</span>(df) <span class="sc">+</span></span>
+<span id="cb60-3"><a href="#cb60-3" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">x =</span> stab_weight, <span class="at">y =</span> trunc_weight, <span class="at">color =</span> <span class="fu">factor</span>(treatment))) <span class="sc">+</span></span>
+<span id="cb60-4"><a href="#cb60-4" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">slope =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="st">&quot;dashed&quot;</span>) <span class="sc">+</span></span>
+<span id="cb60-5"><a href="#cb60-5" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">&quot;Original vs. Truncated Weights&quot;</span>,</span>
+<span id="cb60-6"><a href="#cb60-6" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">&quot;Original Stabilized Weights&quot;</span>, </span>
+<span id="cb60-7"><a href="#cb60-7" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">&quot;Truncated Weights&quot;</span>,</span>
+<span id="cb60-8"><a href="#cb60-8" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">&quot;Treatment&quot;</span>) <span class="sc">+</span></span>
+<span id="cb60-9"><a href="#cb60-9" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code></pre></div>
+<p><img src="IPW_analysis_files/figure-html/truncated-weights-1.png" width="3000" /></p>
+<div class="sourceCode" id="cb61"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" tabindex="-1"></a><span class="co"># Refit the model with truncated weights</span></span>
+<span id="cb61-2"><a href="#cb61-2" tabindex="-1"></a>design_trunc <span class="ot">&lt;-</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">data =</span> df, <span class="at">weights =</span> <span class="sc">~</span>trunc_weight)</span>
+<span id="cb61-3"><a href="#cb61-3" tabindex="-1"></a>weighted_model_trunc <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(event <span class="sc">~</span> treatment, <span class="at">design =</span> design_trunc, <span class="at">family =</span> binomial)</span>
+<span id="cb61-4"><a href="#cb61-4" tabindex="-1"></a><span class="fu">summary</span>(weighted_model_trunc)</span></code></pre></div>
+<pre><code>## 
+## Call:
+## svyglm(formula = event ~ treatment, design = design_trunc, family = binomial)
+## 
+## Survey design:
+## svydesign(ids = ~1, data = df, weights = ~trunc_weight)
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  -1.8841     0.1157 -16.284   &lt;2e-16 ***
+## treatment     0.2478     0.1228   2.018   0.0437 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1.0002)
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<div class="sourceCode" id="cb63"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" tabindex="-1"></a><span class="co"># Compare the results of original and truncated weights models</span></span>
+<span id="cb63-2"><a href="#cb63-2" tabindex="-1"></a>original_coef <span class="ot">&lt;-</span> <span class="fu">coef</span>(weighted_model)[<span class="st">&quot;treatment&quot;</span>]</span>
+<span id="cb63-3"><a href="#cb63-3" tabindex="-1"></a>original_ci <span class="ot">&lt;-</span> <span class="fu">confint</span>(weighted_model)[<span class="st">&quot;treatment&quot;</span>, ]</span>
+<span id="cb63-4"><a href="#cb63-4" tabindex="-1"></a>original_se <span class="ot">&lt;-</span> <span class="fu">summary</span>(weighted_model)<span class="sc">$</span>coefficients[<span class="st">&quot;treatment&quot;</span>, <span class="st">&quot;Std. Error&quot;</span>]</span>
+<span id="cb63-5"><a href="#cb63-5" tabindex="-1"></a></span>
+<span id="cb63-6"><a href="#cb63-6" tabindex="-1"></a>trunc_coef <span class="ot">&lt;-</span> <span class="fu">coef</span>(weighted_model_trunc)[<span class="st">&quot;treatment&quot;</span>]</span>
+<span id="cb63-7"><a href="#cb63-7" tabindex="-1"></a>trunc_ci <span class="ot">&lt;-</span> <span class="fu">confint</span>(weighted_model_trunc)[<span class="st">&quot;treatment&quot;</span>, ]</span>
+<span id="cb63-8"><a href="#cb63-8" tabindex="-1"></a>trunc_se <span class="ot">&lt;-</span> <span class="fu">summary</span>(weighted_model_trunc)<span class="sc">$</span>coefficients[<span class="st">&quot;treatment&quot;</span>, <span class="st">&quot;Std. Error&quot;</span>]</span>
+<span id="cb63-9"><a href="#cb63-9" tabindex="-1"></a></span>
+<span id="cb63-10"><a href="#cb63-10" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb63-11"><a href="#cb63-11" tabindex="-1"></a>  <span class="at">Model =</span> <span class="fu">c</span>(<span class="st">&quot;Original&quot;</span>, <span class="st">&quot;Truncated&quot;</span>),</span>
+<span id="cb63-12"><a href="#cb63-12" tabindex="-1"></a>  <span class="at">Coefficient =</span> <span class="fu">c</span>(original_coef, trunc_coef),</span>
+<span id="cb63-13"><a href="#cb63-13" tabindex="-1"></a>  <span class="at">SE =</span> <span class="fu">c</span>(original_se, trunc_se),</span>
+<span id="cb63-14"><a href="#cb63-14" tabindex="-1"></a>  <span class="at">Lower_CI =</span> <span class="fu">c</span>(original_ci[<span class="dv">1</span>], trunc_ci[<span class="dv">1</span>]),</span>
+<span id="cb63-15"><a href="#cb63-15" tabindex="-1"></a>  <span class="at">Upper_CI =</span> <span class="fu">c</span>(original_ci[<span class="dv">2</span>], trunc_ci[<span class="dv">2</span>]),</span>
+<span id="cb63-16"><a href="#cb63-16" tabindex="-1"></a>  <span class="at">OR =</span> <span class="fu">c</span>(<span class="fu">exp</span>(original_coef), <span class="fu">exp</span>(trunc_coef)),</span>
+<span id="cb63-17"><a href="#cb63-17" tabindex="-1"></a>  <span class="at">OR_Lower_CI =</span> <span class="fu">c</span>(<span class="fu">exp</span>(original_ci[<span class="dv">1</span>]), <span class="fu">exp</span>(trunc_ci[<span class="dv">1</span>])),</span>
+<span id="cb63-18"><a href="#cb63-18" tabindex="-1"></a>  <span class="at">OR_Upper_CI =</span> <span class="fu">c</span>(<span class="fu">exp</span>(original_ci[<span class="dv">2</span>]), <span class="fu">exp</span>(trunc_ci[<span class="dv">2</span>]))</span>
+<span id="cb63-19"><a href="#cb63-19" tabindex="-1"></a>)</span>
+<span id="cb63-20"><a href="#cb63-20" tabindex="-1"></a><span class="fu">print</span>(comparison)</span></code></pre></div>
+<pre><code>##       Model Coefficient        SE     Lower_CI Upper_CI       OR OR_Lower_CI
+## 1  Original   0.1797616 0.1287703 -0.072684726 0.432208 1.196932    0.929894
+## 2 Truncated   0.2477940 0.1228102  0.007032033 0.488556 1.281196    1.007057
+##   OR_Upper_CI
+## 1    1.540655
+## 2    1.629961</code></pre>
+</div>
+<div id="using-standardized-mortality-ratio-smr-weights"
+class="section level2">
+<h2>5.2 Using Standardized Mortality Ratio (SMR) Weights</h2>
+<p>As seen in the WIHS cohort analysis, SMR weights can be used as an
+alternative weighting approach.</p>
+<div class="sourceCode" id="cb65"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" tabindex="-1"></a><span class="co"># Calculate SMR weights (weighting to the overall population)</span></span>
+<span id="cb65-2"><a href="#cb65-2" tabindex="-1"></a><span class="co"># For treated: weight = 1</span></span>
+<span id="cb65-3"><a href="#cb65-3" tabindex="-1"></a><span class="co"># For controls: weight = pscore / (1 - pscore)</span></span>
+<span id="cb65-4"><a href="#cb65-4" tabindex="-1"></a>df <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb65-5"><a href="#cb65-5" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">smr_weight =</span> <span class="fu">ifelse</span>(treatment <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span>, pscore <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> pscore)))</span>
+<span id="cb65-6"><a href="#cb65-6" tabindex="-1"></a></span>
+<span id="cb65-7"><a href="#cb65-7" tabindex="-1"></a><span class="co"># Examine summary of SMR weights</span></span>
+<span id="cb65-8"><a href="#cb65-8" tabindex="-1"></a><span class="fu">summary</span>(df<span class="sc">$</span>smr_weight)</span></code></pre></div>
+<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   1.000   1.000   1.000   1.725   1.000  22.573</code></pre>
+<div class="sourceCode" id="cb67"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" tabindex="-1"></a><span class="co"># Create a survey design object using the SMR weights</span></span>
+<span id="cb67-2"><a href="#cb67-2" tabindex="-1"></a>design_smr <span class="ot">&lt;-</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">data =</span> df, <span class="at">weights =</span> <span class="sc">~</span>smr_weight)</span>
+<span id="cb67-3"><a href="#cb67-3" tabindex="-1"></a></span>
+<span id="cb67-4"><a href="#cb67-4" tabindex="-1"></a><span class="co"># Fit the weighted outcome model using SMR weights</span></span>
+<span id="cb67-5"><a href="#cb67-5" tabindex="-1"></a>weighted_model_smr <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(event <span class="sc">~</span> treatment, <span class="at">design =</span> design_smr, <span class="at">family =</span> binomial)</span>
+<span id="cb67-6"><a href="#cb67-6" tabindex="-1"></a><span class="fu">summary</span>(weighted_model_smr)</span></code></pre></div>
+<pre><code>## 
+## Call:
+## svyglm(formula = event ~ treatment, design = design_smr, family = binomial)
+## 
+## Survey design:
+## svydesign(ids = ~1, data = df, weights = ~smr_weight)
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  -1.8074     0.1242 -14.553   &lt;2e-16 ***
+## treatment     0.1780     0.1308   1.361    0.174    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1.0002)
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+<div class="sourceCode" id="cb69"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" tabindex="-1"></a><span class="co"># Add SMR results to the comparison table</span></span>
+<span id="cb69-2"><a href="#cb69-2" tabindex="-1"></a>smr_coef <span class="ot">&lt;-</span> <span class="fu">coef</span>(weighted_model_smr)[<span class="st">&quot;treatment&quot;</span>]</span>
+<span id="cb69-3"><a href="#cb69-3" tabindex="-1"></a>smr_ci <span class="ot">&lt;-</span> <span class="fu">confint</span>(weighted_model_smr)[<span class="st">&quot;treatment&quot;</span>, ]</span>
+<span id="cb69-4"><a href="#cb69-4" tabindex="-1"></a>smr_se <span class="ot">&lt;-</span> <span class="fu">summary</span>(weighted_model_smr)<span class="sc">$</span>coefficients[<span class="st">&quot;treatment&quot;</span>, <span class="st">&quot;Std. Error&quot;</span>]</span>
+<span id="cb69-5"><a href="#cb69-5" tabindex="-1"></a></span>
+<span id="cb69-6"><a href="#cb69-6" tabindex="-1"></a>comparison_extended <span class="ot">&lt;-</span> <span class="fu">rbind</span>(comparison, </span>
+<span id="cb69-7"><a href="#cb69-7" tabindex="-1"></a>                           <span class="fu">data.frame</span>(</span>
+<span id="cb69-8"><a href="#cb69-8" tabindex="-1"></a>                             <span class="at">Model =</span> <span class="st">&quot;SMR&quot;</span>,</span>
+<span id="cb69-9"><a href="#cb69-9" tabindex="-1"></a>                             <span class="at">Coefficient =</span> smr_coef,</span>
+<span id="cb69-10"><a href="#cb69-10" tabindex="-1"></a>                             <span class="at">SE =</span> smr_se,</span>
+<span id="cb69-11"><a href="#cb69-11" tabindex="-1"></a>                             <span class="at">Lower_CI =</span> smr_ci[<span class="dv">1</span>],</span>
+<span id="cb69-12"><a href="#cb69-12" tabindex="-1"></a>                             <span class="at">Upper_CI =</span> smr_ci[<span class="dv">2</span>],</span>
+<span id="cb69-13"><a href="#cb69-13" tabindex="-1"></a>                             <span class="at">OR =</span> <span class="fu">exp</span>(smr_coef),</span>
+<span id="cb69-14"><a href="#cb69-14" tabindex="-1"></a>                             <span class="at">OR_Lower_CI =</span> <span class="fu">exp</span>(smr_ci[<span class="dv">1</span>]),</span>
+<span id="cb69-15"><a href="#cb69-15" tabindex="-1"></a>                             <span class="at">OR_Upper_CI =</span> <span class="fu">exp</span>(smr_ci[<span class="dv">2</span>])</span>
+<span id="cb69-16"><a href="#cb69-16" tabindex="-1"></a>                           ))</span>
+<span id="cb69-17"><a href="#cb69-17" tabindex="-1"></a><span class="fu">print</span>(comparison_extended)</span></code></pre></div>
+<pre><code>##               Model Coefficient        SE     Lower_CI  Upper_CI       OR
+## 1          Original   0.1797616 0.1287703 -0.072684726 0.4322080 1.196932
+## 2         Truncated   0.2477940 0.1228102  0.007032033 0.4885560 1.281196
+## treatment       SMR   0.1780062 0.1308383 -0.078494163 0.4345067 1.194833
+##           OR_Lower_CI OR_Upper_CI
+## 1           0.9298940    1.540655
+## 2           1.0070568    1.629961
+## treatment   0.9245075    1.544201</code></pre>
+</div>
+<div id="augmented-inverse-probability-weighting-aipw"
+class="section level2">
+<h2>5.3 Augmented Inverse Probability Weighting (AIPW)</h2>
+<p>Following the approach in the causalRisk examples, we can implement
+an AIPW estimator that combines IPW with an outcome model.</p>
+</div>
+</div>
+<div id="to-do-debug-and-run-the-code-below" class="section level1">
+<h1>To do: debug and run the code below!</h1>
+<div class="sourceCode" id="cb71"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" tabindex="-1"></a><span class="co"># This is a simplified version of AIPW</span></span>
+<span id="cb71-2"><a href="#cb71-2" tabindex="-1"></a><span class="co"># First, fit outcome models for each treatment group</span></span>
+<span id="cb71-3"><a href="#cb71-3" tabindex="-1"></a>outcome_model_treated <span class="ot">&lt;-</span> <span class="fu">glm</span>(event <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb71-4"><a href="#cb71-4" tabindex="-1"></a>                           <span class="at">data =</span> <span class="fu">subset</span>(df, treatment <span class="sc">==</span> <span class="dv">1</span>), <span class="at">family =</span> binomial)</span>
+<span id="cb71-5"><a href="#cb71-5" tabindex="-1"></a>outcome_model_control <span class="ot">&lt;-</span> <span class="fu">glm</span>(event <span class="sc">~</span> age <span class="sc">+</span> baseline_gfr <span class="sc">+</span> bmi <span class="sc">+</span> sex <span class="sc">+</span> diabetes <span class="sc">+</span> hypertension, </span>
+<span id="cb71-6"><a href="#cb71-6" tabindex="-1"></a>                           <span class="at">data =</span> <span class="fu">subset</span>(df, treatment <span class="sc">==</span> <span class="dv">0</span>), <span class="at">family =</span> binomial)</span>
+<span id="cb71-7"><a href="#cb71-7" tabindex="-1"></a></span>
+<span id="cb71-8"><a href="#cb71-8" tabindex="-1"></a><span class="co"># Predict outcomes for all individuals under both treatment scenarios</span></span>
+<span id="cb71-9"><a href="#cb71-9" tabindex="-1"></a>df<span class="sc">$</span>y1_pred <span class="sc">%&gt;%</span></span>
+<span id="cb71-10"><a href="#cb71-10" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb71-11"><a href="#cb71-11" tabindex="-1"></a>    <span class="at">aipw_y1 =</span> <span class="fu">ifelse</span>(treatment <span class="sc">==</span> <span class="dv">1</span>, </span>
+<span id="cb71-12"><a href="#cb71-12" tabindex="-1"></a>                    event <span class="sc">+</span> (stab_weight <span class="sc">*</span> (event <span class="sc">-</span> y1_pred)), </span>
+<span id="cb71-13"><a href="#cb71-13" tabindex="-1"></a>                    y1_pred),</span>
+<span id="cb71-14"><a href="#cb71-14" tabindex="-1"></a>    <span class="at">aipw_y0 =</span> <span class="fu">ifelse</span>(treatment <span class="sc">==</span> <span class="dv">0</span>, </span>
+<span id="cb71-15"><a href="#cb71-15" tabindex="-1"></a>                    event <span class="sc">+</span> (stab_weight <span class="sc">*</span> (event <span class="sc">-</span> y0_pred)), </span>
+<span id="cb71-16"><a href="#cb71-16" tabindex="-1"></a>                    y0_pred)</span>
+<span id="cb71-17"><a href="#cb71-17" tabindex="-1"></a>  )</span>
+<span id="cb71-18"><a href="#cb71-18" tabindex="-1"></a></span>
+<span id="cb71-19"><a href="#cb71-19" tabindex="-1"></a><span class="co"># Calculate AIPW treatment effect</span></span>
+<span id="cb71-20"><a href="#cb71-20" tabindex="-1"></a>aipw_risk_treated <span class="ot">&lt;-</span> <span class="fu">mean</span>(df<span class="sc">$</span>aipw_y1)</span>
+<span id="cb71-21"><a href="#cb71-21" tabindex="-1"></a>aipw_risk_untreated <span class="ot">&lt;-</span> <span class="fu">mean</span>(df<span class="sc">$</span>aipw_y0)</span>
+<span id="cb71-22"><a href="#cb71-22" tabindex="-1"></a>aipw_risk_diff <span class="ot">&lt;-</span> aipw_risk_treated <span class="sc">-</span> aipw_risk_untreated</span>
+<span id="cb71-23"><a href="#cb71-23" tabindex="-1"></a>aipw_risk_ratio <span class="ot">&lt;-</span> aipw_risk_treated <span class="sc">/</span> aipw_risk_untreated</span>
+<span id="cb71-24"><a href="#cb71-24" tabindex="-1"></a></span>
+<span id="cb71-25"><a href="#cb71-25" tabindex="-1"></a>aipw_results <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb71-26"><a href="#cb71-26" tabindex="-1"></a>  <span class="at">Risk_Treated =</span> aipw_risk_treated,</span>
+<span id="cb71-27"><a href="#cb71-27" tabindex="-1"></a>  <span class="at">Risk_Untreated =</span> aipw_risk_untreated,</span>
+<span id="cb71-28"><a href="#cb71-28" tabindex="-1"></a>  <span class="at">Risk_Difference =</span> aipw_risk_diff,</span>
+<span id="cb71-29"><a href="#cb71-29" tabindex="-1"></a>  <span class="at">Risk_Ratio =</span> aipw_risk_ratio</span>
+<span id="cb71-30"><a href="#cb71-30" tabindex="-1"></a>)</span>
+<span id="cb71-31"><a href="#cb71-31" tabindex="-1"></a><span class="fu">print</span>(aipw_results)</span>
+<span id="cb71-32"><a href="#cb71-32" tabindex="-1"></a></span>
+<span id="cb71-33"><a href="#cb71-33" tabindex="-1"></a><span class="co"># Compare with IPW results</span></span>
+<span id="cb71-34"><a href="#cb71-34" tabindex="-1"></a>comparison_methods <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb71-35"><a href="#cb71-35" tabindex="-1"></a>  <span class="at">Method =</span> <span class="fu">c</span>(<span class="st">&quot;IPW&quot;</span>, <span class="st">&quot;AIPW&quot;</span>),</span>
+<span id="cb71-36"><a href="#cb71-36" tabindex="-1"></a>  <span class="at">Risk_Treated =</span> <span class="fu">c</span>(risk_treated, aipw_risk_treated),</span>
+<span id="cb71-37"><a href="#cb71-37" tabindex="-1"></a>  <span class="at">Risk_Untreated =</span> <span class="fu">c</span>(risk_untreated, aipw_risk_untreated),</span>
+<span id="cb71-38"><a href="#cb71-38" tabindex="-1"></a>  <span class="at">Risk_Difference =</span> <span class="fu">c</span>(risk_difference, aipw_risk_diff),</span>
+<span id="cb71-39"><a href="#cb71-39" tabindex="-1"></a>  <span class="at">Risk_Ratio =</span> <span class="fu">c</span>(risk_ratio, aipw_risk_ratio)</span>
+<span id="cb71-40"><a href="#cb71-40" tabindex="-1"></a>)</span>
+<span id="cb71-41"><a href="#cb71-41" tabindex="-1"></a><span class="fu">print</span>(comparison_methods)</span></code></pre></div>
+</div>
+<div id="step-6-additional-analyses---competing-risks"
+class="section level1">
+<h1>Step 6: Additional Analyses - Competing Risks</h1>
+<p>Based on the WIHS cohort analysis, we can implement competing risks
+analysis. In our context, we’ll assume that death or loss to follow-up
+could be competing risks with our primary event.</p>
+</div>
+<div id="to-do-debug-the-code-below" class="section level1">
+<h1>To do: debug the code below!</h1>
+<div class="sourceCode" id="cb72"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" tabindex="-1"></a><span class="co"># Create an example competing risk scenario</span></span>
+<span id="cb72-2"><a href="#cb72-2" tabindex="-1"></a><span class="co"># Let&#39;s assume we have a variable called &quot;competing_event&quot; that represents death or loss to follow-up</span></span>
+<span id="cb72-3"><a href="#cb72-3" tabindex="-1"></a><span class="co"># For demonstration purposes, we&#39;ll create it</span></span>
+<span id="cb72-4"><a href="#cb72-4" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb72-5"><a href="#cb72-5" tabindex="-1"></a>df<span class="sc">$</span>competing_event <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(<span class="fu">nrow</span>(df), <span class="dv">1</span>, <span class="fl">0.1</span>) <span class="co"># 10% chance of a competing event</span></span>
+<span id="cb72-6"><a href="#cb72-6" tabindex="-1"></a></span>
+<span id="cb72-7"><a href="#cb72-7" tabindex="-1"></a><span class="co"># For subjects with both main event and competing event, we&#39;ll prioritize the one that came first</span></span>
+<span id="cb72-8"><a href="#cb72-8" tabindex="-1"></a><span class="co"># We&#39;ll assume competing events happened first for a random subset</span></span>
+<span id="cb72-9"><a href="#cb72-9" tabindex="-1"></a>overlap_indices <span class="ot">&lt;-</span> <span class="fu">which</span>(df<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;</span> df<span class="sc">$</span>competing_event <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb72-10"><a href="#cb72-10" tabindex="-1"></a>first_competing <span class="ot">&lt;-</span> <span class="fu">sample</span>(overlap_indices, <span class="at">size =</span> <span class="fu">floor</span>(<span class="fu">length</span>(overlap_indices) <span class="sc">/</span> <span class="dv">2</span>))</span>
+<span id="cb72-11"><a href="#cb72-11" tabindex="-1"></a>df<span class="sc">$</span>event[first_competing] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb72-12"><a href="#cb72-12" tabindex="-1"></a></span>
+<span id="cb72-13"><a href="#cb72-13" tabindex="-1"></a><span class="co"># Create a composite event indicator (1 for primary event, 2 for competing event, 0 for no event)</span></span>
+<span id="cb72-14"><a href="#cb72-14" tabindex="-1"></a>df<span class="sc">$</span>composite_event <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span>, <span class="fu">ifelse</span>(df<span class="sc">$</span>competing_event <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>))</span>
+<span id="cb72-15"><a href="#cb72-15" tabindex="-1"></a><span class="fu">table</span>(df<span class="sc">$</span>composite_event)</span>
+<span id="cb72-16"><a href="#cb72-16" tabindex="-1"></a></span>
+<span id="cb72-17"><a href="#cb72-17" tabindex="-1"></a><span class="co"># Use multinomial regression for the competing risks analysis</span></span>
+<span id="cb72-18"><a href="#cb72-18" tabindex="-1"></a><span class="fu">library</span>(nnet)</span>
+<span id="cb72-19"><a href="#cb72-19" tabindex="-1"></a>competing_model %</span>
+<span id="cb72-20"><a href="#cb72-20" tabindex="-1"></a>  <span class="fu">group_by</span>(treatment) <span class="sc">%&gt;%</span></span>
+<span id="cb72-21"><a href="#cb72-21" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb72-22"><a href="#cb72-22" tabindex="-1"></a>    <span class="at">Primary_Event_Rate =</span> <span class="fu">mean</span>(event),</span>
+<span id="cb72-23"><a href="#cb72-23" tabindex="-1"></a>    <span class="at">Competing_Event_Rate =</span> <span class="fu">mean</span>(competing_event),</span>
+<span id="cb72-24"><a href="#cb72-24" tabindex="-1"></a>    <span class="at">Pred_Primary_Rate =</span> <span class="fu">mean</span>(prob_event),</span>
+<span id="cb72-25"><a href="#cb72-25" tabindex="-1"></a>    <span class="at">Pred_Competing_Rate =</span> <span class="fu">mean</span>(prob_competing)</span>
+<span id="cb72-26"><a href="#cb72-26" tabindex="-1"></a>  )</span></code></pre></div>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>In this analysis, we’ve performed a comprehensive inverse probability
+weighted (IPW) analysis to estimate the causal effect of treatment on
+the outcome, adjusting for observed confounding. The key steps
+included:</p>
+<ol style="list-style-type: decimal">
+<li>Estimating propensity scores</li>
+<li>Calculating stabilized weights</li>
+<li>Assessing covariate balance before and after weighting</li>
+<li>Fitting weighted outcome models</li>
+<li>Conducting sensitivity analyses with truncated weights and SMR
+weights</li>
+<li>Advanced analyses including AIPW and competing risks (conceptual
+examples)</li>
+</ol>
+<p>The results demonstrate the importance of proper adjustment for
+confounding in observational studies and the utility of IPW methods in
+causal inference.</p>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
