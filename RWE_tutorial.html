@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Andrew Mertens" />
+
+
+<title>Integrating the Causal Inference Roadmap in RWE: Estimand Selection for Time-to-Event Outcomes</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } /* Alert */
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #204a87; } /* Attribute */
+code span.bn { color: #0000cf; } /* BaseN */
+code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4e9a06; } /* Char */
+code span.cn { color: #8f5902; } /* Constant */
+code span.co { color: #8f5902; font-style: italic; } /* Comment */
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code span.dt { color: #204a87; } /* DataType */
+code span.dv { color: #0000cf; } /* DecVal */
+code span.er { color: #a40000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #0000cf; } /* Float */
+code span.fu { color: #204a87; font-weight: bold; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code span.ot { color: #8f5902; } /* Other */
+code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+code span.ss { color: #4e9a06; } /* SpecialString */
+code span.st { color: #4e9a06; } /* String */
+code span.va { color: #000000; } /* Variable */
+code span.vs { color: #4e9a06; } /* VerbatimString */
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="getting_sophisticated.html">Getting Sophisticated</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Integrating the Causal Inference Roadmap in
+RWE: Estimand Selection for Time-to-Event Outcomes</h1>
+<h4 class="author">Andrew Mertens</h4>
+
+</div>
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Real-world evidence (RWE) studies in pharma often rely on familiar
+regression methods to analyze outcomes. However, to answer causal
+questions (e.g. “Does Treatment X <em>cause</em> better outcomes than no
+treatment?”), we need more than a p-value or an adjusted hazard ratio.
+The <strong>causal inference roadmap</strong> provides a structured
+approach to design analyses that yield <strong>causally interpretable
+results</strong>. A key first step in this roadmap is <strong>estimand
+selection</strong> – defining <em>what</em> effect we aim to estimate.
+In time-to-event studies (e.g. time to kidney injury), choosing the
+right estimand is crucial for meaningful interpretation.</p>
+<p>This tutorial is for MPH-level epidemiologists and other researchers
+transitioning from traditional regression to causal inference in RWE. We
+will:</p>
+<ul>
+<li>Explain what an estimand is and why it matters in causal
+inference.</li>
+<li>Highlight limitations of the Cox proportional hazards model and the
+hazard ratio (HR) as a causal effect measure in time-to-event
+analysis.</li>
+<li>Introduce alternative estimands and estimation methods (like
+Targeted Maximum Likelihood Estimation (TMLE) and G-computation) that
+align better with causal questions.</li>
+<li>Walk through a case study of an HCV drug and kidney injury to
+illustrate these concepts in practice.</li>
+<li>Provide a summary table of different estimands and when to use
+them.</li>
+<li>Include example R code snippets (kept simple) for those interested
+in running these analyses.</li>
+</ul>
+<p>By the end, you should understand how to integrate the causal
+inference roadmap into your RWE studies, especially how to define and
+estimate the right estimand for time-to-event outcomes.</p>
+</div>
+<div id="the-causal-inference-roadmap-and-estimand-selection"
+class="section level2">
+<h2>The Causal Inference Roadmap and Estimand Selection</h2>
+<p>Modern causal inference encourages researchers to think like they are
+designing a “target trial.” This means explicitly stating the causal
+question, the population, the treatment strategies to compare, and the
+outcome – before looking at data. A central part of this planning is
+choosing an estimand, which is the specific quantity that answers your
+causal question. In simple terms, the estimand is <em>what you want to
+estimate</em> (e.g. a risk difference, a risk ratio, a survival
+probability at 1 year, etc.). It should align with the question
+stakeholders care about. For example, “By how much would 12-month kidney
+injury risk decrease if all patients took the new HCV drug versus if
+none did?” is a causal question whose estimand could be the 12-month
+risk difference in kidney injury between treatment strategies.</p>
+<p>Why focus on estimands? Defining the estimand upfront clarifies the
+study goal and guides the analysis. It ensures that everyone (analysts,
+clinicians, regulators) interprets the result the same way. Regulatory
+guidance (ICH E9 (R1) addendum) now emphasizes pre-specifying estimands
+in clinical research. In the causal roadmap framework, Step 1 is to
+define the causal question and causal estimand. This step is crucial
+because every analysis choice (study design, model, etc.) should follow
+from what you’re trying to estimate. As a recent paper on the causal
+roadmap noted, “precise definition of the causal question and estimand…
+is crucial for specifying a study design and analysis plan to provide
+the best possible effect estimate”. In other words, if we don’t clearly
+define what effect we’re after, we can’t be sure our analysis will
+answer the right question.</p>
+<div id="estimand-vs.-estimator-vs.-estimate" class="section level3">
+<h3>Estimand vs. Estimator vs. Estimate</h3>
+<ul>
+<li><strong>Estimand</strong>: The target causal quantity we want
+(e.g. risk difference in 1-year incidence between treated
+vs. untreated).</li>
+<li><strong>Estimator</strong>: The statistical method or formula we use
+to compute an estimate of the estimand from data (e.g. a regression
+model, TMLE algorithm, etc.).</li>
+<li><strong>Estimate</strong>: The result we get from the estimator
+applied to our data (e.g. an estimated 1-year risk difference of -3%,
+meaning 3% fewer injuries with treatment).</li>
+</ul>
+<p>By first nailing down the estimand, we ensure the estimator and
+resulting estimate are meaningful for the policy or clinical
+question.</p>
+</div>
+</div>
+<div id="time-to-event-outcomes-common-estimands-and-pitfalls"
+class="section level2">
+<h2>Time-to-Event Outcomes: Common Estimands and Pitfalls</h2>
+<p>In time-to-event (survival) analysis, a common practice is to report
+a hazard ratio from a Cox proportional hazards (PH) model. While hazard
+ratios are popular, we need to understand their limitations for causal
+interpretation. Let’s unpack what estimands are possible in
+time-to-event studies and why the hazard ratio may fall short.</p>
+<div id="what-estimand-are-we-getting-from-a-cox-model"
+class="section level3">
+<h3>What Estimand Are We Getting from a Cox Model?</h3>
+<p>The Cox PH model gives a hazard ratio – roughly, the ratio of
+instantaneous event rates between two groups (exposed vs. unexposed) at
+any given time. If you include covariates, the Cox model yields an
+adjusted hazard ratio (often interpreted as the effect of treatment
+<em>holding confounders constant</em>). Many epidemiologic studies
+report only this HR as the measure of effect.</p>
+<p>However, the hazard ratio is <strong>not a direct probability, risk,
+or survival difference</strong>. Importantly, a hazard ratio from an
+observational Cox model is a conditional measure (conditional on
+covariates and on surviving up to a given time). It does not directly
+answer questions like “how many more/fewer patients have the event by 12
+months if treated vs. untreated?”. In fact, the hazard ratio “does not
+correspond to a clearly defined causal effect” on its own. It’s a rate
+ratio averaged over follow-up and, unless hazards are proportional and
+no other biases, it isn’t straightforward to interpret causally.</p>
+</div>
+<div id="pitfalls-of-the-hazard-ratio" class="section level3">
+<h3>Pitfalls of the Hazard Ratio:</h3>
+<ul>
+<li><p><strong>Assumes Proportional Hazards</strong>: Cox models assume
+the hazard ratio is constant over time. In reality, treatment effects
+may start strong and wane, or vice-versa. If the HR is not constant, the
+single number reported is some complex average of time-varying effects.
+For example, a treatment might increase early risk but improve long-term
+outcomes, yielding an average HR ~1.0 – masking important time patterns.
+Reporting only an “average” HR can be misleading if effects change over
+follow-up.</p></li>
+<li><p><strong>Built-in Selection Bias (Survivor Bias)</strong>: The
+hazard at time t is among those who have not yet had the event by t. If
+treatment affects who remains event-free, the treated and untreated
+groups at later times become inherently different (“depletion of
+susceptibles”). Miguel Hernán pointed out that period-specific hazard
+ratios have a “built-in selection bias”. For instance, if susceptible
+individuals in the treatment arm experience the event early, the
+remaining treated patients are a healthier subset, which can make the
+hazard ratio appear to favor treatment later regardless of true
+long-term effect. This is one reason a treatment with no real long-term
+benefit could show an HR &lt; 1 in later years purely by selection of
+who’s left.</p></li>
+<li><p><strong>Lack of Collapsibility</strong>: Hazard ratios (like odds
+ratios) are non-collapsible, meaning the adjusted HR is not equal to any
+simple ratio of marginal (population-level) risks. Even if there is no
+confounding, conditioning on covariates can change the numerical value
+of an HR. This makes it hard to interpret the adjusted HR as a
+population effect. In contrast, measures like risk differences are
+collapsible (they can be aggregated without distortion).</p></li>
+<li><p><strong>Clinical Interpretation</strong>: Physicians and
+policymakers often find absolute probabilities more intuitive (e.g. “5%
+of patients had kidney injury with drug vs 8% without”). A hazard ratio
+of 0.7 does imply a relative reduction, but it’s not obvious how that
+translates to absolute risk reduction without additional calculations.
+As the CONSORT guidelines note, reporting both absolute and relative
+measures is ideal, “as neither alone gives a complete picture”. An HR
+alone doesn’t tell you baseline risk or NNT (number needed to
+treat).</p></li>
+</ul>
+<p>Bottom line: A hazard ratio from a Cox model is a useful associative
+measure, but endowing it with a causal interpretation is tricky.
+Hernán’s article “The Hazards of Hazard Ratios” cautioned that treating
+HR as <em>the</em> causal effect measure is risky. It may obscure
+time-varying effects and introduce bias due to the very way it’s defined
+over time at risk. Indeed, one review bluntly states that an HR from a
+Cox model “may be estimated… but does not correspond to a clearly
+defined causal effect”.</p>
+</div>
+<div id="illustrative-example-hazard-ratio-vs.-absolute-risk"
+class="section level3">
+<h3>Illustrative Example: Hazard Ratio vs. Absolute Risk</h3>
+<p>Consider a hypothetical (but inspired by real data) example: In a
+cohort of patients with chronic HCV infection, suppose we compare those
+treated with a new antiviral vs. those untreated, and we observe a
+hazard ratio of 0.70 for developing chronic kidney disease (CKD). In
+fact, a published real-world study found about a 30% hazard reduction in
+CKD risk with HCV treatment (HR 0.70, 95% CI 0.55–0.88). This suggests
+the treatment is beneficial. But what does HR = 0.70 mean in tangible
+terms?</p>
+<ul>
+<li>If the 5-year cumulative incidence of CKD in untreated patients is,
+say, 5%, an HR of 0.70 might correspond to roughly a 3.5% 5-year
+incidence in treated patients. That’s an absolute risk reduction of ~1.5
+percentage points (5% vs 3.5%).</li>
+<li>If untreated risk is higher, e.g. 15% over 5 years, HR 0.70 might
+correspond to ~10.5% in treated – an absolute reduction of 4.5%.</li>
+</ul>
+<p>The hazard ratio alone doesn’t tell us these absolute risks. In the
+HCV example, the authors reported incidence rates: untreated patients
+had about 10.8 CKD cases per 1000 person-years versus 6.7 per 1000 PY in
+effectively treated patients. Over a few years of follow-up, that
+implies only a few percent of patients developed CKD in either group. So
+the HR=0.70, while showing a relative benefit, translates to a modest
+absolute risk difference (a few fewer cases per 100 patients treated).
+This absolute effect size might matter for cost-benefit or clinical
+decisions, but it’s not apparent from the HR alone.</p>
+<p>Takeaway: Especially in RWE settings with relatively low event rates,
+an impressive HR can correspond to a small absolute risk reduction. To
+fully answer our causal question (“should we treat HCV to prevent
+CKD?”), we likely want to know the absolute benefit (e.g. percentage of
+patients spared CKD over X years by treating). That is why careful
+estimand selection is needed – perhaps we want our estimand to be the
+risk difference at 5 years, rather than a hazard ratio.</p>
+</div>
+</div>
+<div id="choosing-a-causal-estimand-for-time-to-event-data"
+class="section level2">
+<h2>Choosing a Causal Estimand for Time-to-Event Data</h2>
+<p>Given the pitfalls above, how should we define our estimand for
+time-to-event outcomes? The estimand should align with a meaningful
+causal contrast. Common choices include measures of survival probability
+or cumulative incidence at a certain time, or contrasts of survival
+distributions. Here are some estimand options:</p>
+<ul>
+<li><p><strong>Absolute Risk (Cumulative Incidence) at time <span
+class="math inline">\(t\)</span></strong>: e.g. “Probability of being
+event-free through 12 months.” From this we can derive risk difference
+or risk ratio between groups at time <span
+class="math inline">\(t\)</span>.</p></li>
+<li><p><strong>Survival Curve Difference</strong>: Comparing the entire
+survival curves over time between treatment and control (e.g. showing
+adjusted Kaplan-Meier curves). This can be summarized at specific time
+points (risk at 1 year, 2 years, etc.) or by an area/difference
+measure.</p></li>
+<li><p><strong>Restricted Mean Survival Time (RMST)</strong>: The
+average time without the event up to a milestone time (the area under
+the survival curve up to <span class="math inline">\(t\)</span>). The
+difference in RMST between groups is an estimand (how much longer, on
+average, patients survive without the event with treatment vs. control,
+within a fixed horizon). This is an alternative summary that is often
+more interpretable when hazards are non-proportional.</p></li>
+<li><p><strong>Hazard-based estimands</strong>: If truly the hazard
+function itself is of interest, one could define estimands like a
+time-specific hazard ratio at a certain time, or the average hazard
+ratio over follow-up. However, as discussed, these are harder to
+interpret causally, so they are less commonly chosen as target estimands
+in a causal analysis (they might be more a by-product of a
+model).</p></li>
+</ul>
+<p>The key is to pick an estimand that directly answers the causal
+question. Often for decision-making, risks and risk differences are very
+useful estimands:</p>
+<ul>
+<li><p><strong>Risk difference at time <span
+class="math inline">\(t\)</span></strong> (also known as absolute risk
+reduction): Tells how much the treatment changes the probability of the
+outcome by time <span class="math inline">\(t\)</span>. It’s easy to
+interpret (e.g. “treatment reduces 1-year event risk by 5 percentage
+points”) and can be translated to Number Needed to Treat (NNT = 1/(risk
+difference)).</p></li>
+<li><p><strong>Risk ratio at time <span
+class="math inline">\(t\)</span></strong> (or relative risk): Tells how
+many times more or less likely the outcome is by time <span
+class="math inline">\(t\)</span> in one group vs. the other (e.g. “0.5
+times as likely at 1 year” meaning a 50% relative reduction). Some
+prefer relative measures for their stability across
+populations.</p></li>
+<li><p><strong>RMST difference</strong>: Tells the average gain or loss
+in event-free time within a certain period due to the treatment
+(e.g. “on average, patients lived 2 months longer without kidney failure
+over a 3-year period with treatment”). This can be very intuitive in
+some contexts (like quality of life or survival time gained).</p></li>
+<li><p><strong>Hazard ratio</strong>: as discussed, it’s a relative
+measure of hazard rates. It’s commonly reported but should be linked to
+a causal estimand if used. For example, one might define the estimand as
+something like “the hazard ratio if the treatment were applied to
+everyone vs to no one, under PH assumption”. However, because of its
+issues, many causal analyses de-emphasize the HR as the primary
+estimand. Instead, they might report HR as a secondary analysis,
+acknowledging its limitations.</p></li>
+</ul>
+<p>Below is a summary table of different estimands for time-to-event
+outcomes and when you might use them:</p>
+<table>
+<caption>Common estimands for time-to-event outcomes and their
+interpretations. Each estimand answers a slightly different question.
+Generally, for causal inference in RWE, absolute risk measures (risk
+differences) are recommended to convey real-world impact, often
+alongside a relative measure.</caption>
+<colgroup>
+<col width="20%" />
+<col width="25%" />
+<col width="54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Estimand</th>
+<th>Definition</th>
+<th>Use Case &amp; Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Risk (Survival) at time <span class="math inline">\(t\)</span></td>
+<td>Probability of having (or not having) the event by a specific time
+<span class="math inline">\(t\)</span> under a given treatment strategy.
+Often expressed as cumulative incidence.</td>
+<td>Useful for clear time-bound outcomes (e.g. 1-year event risk).
+Directly interpretable. Can compare risk in Treatment vs. Control to get
+risk difference or ratio.</td>
+</tr>
+<tr class="even">
+<td>Risk Difference at <span class="math inline">\(t\)</span></td>
+<td>Difference in cumulative incidence by time <span
+class="math inline">\(t\)</span> between two strategies (e.g. treated
+minus untreated risk).</td>
+<td>Best for communicating absolute effect. Answers “How many fewer (or
+more) events by <span class="math inline">\(t\)</span> if everyone
+treated vs. no one treated?”. Policy-friendly (can compute NNT).</td>
+</tr>
+<tr class="odd">
+<td>Risk Ratio at <span class="math inline">\(t\)</span></td>
+<td>Ratio of cumulative incidences by time <span
+class="math inline">\(t\)</span> between two strategies.</td>
+<td>A relative measure at a concrete time point. Interpretation:
+“Patients treated have 0.xx times the risk by 12 months compared to
+untreated.” Useful for epidemiologic comparison; still fairly intuitive
+if communicated as “% reduction”.</td>
+</tr>
+<tr class="even">
+<td>Hazard Ratio (over follow-up)</td>
+<td>Ratio of hazard rates (instantaneous event risk) between groups,
+typically assumed constant in Cox PH model. It’s a conditional relative
+measure, averaged over the follow-up period.</td>
+<td>Common in literature, but caution: does not directly translate to
+absolute risk. Use when PH assumption is reasonable and when a relative
+rate measure is needed. Always consider also presenting absolute
+measures. Not a pure causal estimand unless proportional hazards and no
+confounding (in RCT).</td>
+</tr>
+<tr class="odd">
+<td>Restricted Mean Survival Time (RMST) Difference</td>
+<td>Difference in the area under the survival curve up to time <span
+class="math inline">\(t\)</span> between two groups. Equivalently, the
+difference in average event-free time by <span
+class="math inline">\(t\)</span>.</td>
+<td>Good when timing of events matters or when hazards are
+non-proportional. E.g., “Over 5 years, treatment A gives 3 months more
+event-free survival on average than treatment B.” Clinically intuitive
+in many settings (time gained).</td>
+</tr>
+<tr class="even">
+<td>Median Survival Time Difference (if applicable)</td>
+<td>Difference in median time to event between groups (or ratio of
+medians).</td>
+<td>Sometimes used in oncology (e.g. median survival). Requires enough
+events to estimate median. Interpretation: how much longer median
+survival is with treatment. Could be considered if PH fails and median
+is of interest.</td>
+</tr>
+</tbody>
+</table>
+<p>Choosing the estimand depends on the question: For example, if
+stakeholders care about “how many events are prevented by treatment
+within 1 year,” the estimand should be a 1-year risk difference. If they
+care about long-term prognosis, perhaps a 5-year survival probability or
+RMST difference is appropriate. The estimand should be decided first;
+the statistical approach comes next to estimate that estimand.</p>
+</div>
+<div id="time-varying-treatments-and-dynamic-causal-effects"
+class="section level2">
+<h2>Time-Varying Treatments and Dynamic Causal Effects</h2>
+<div id="why-consider-time-varying-treatments" class="section level3">
+<h3>Why Consider Time-Varying Treatments?</h3>
+<p>Many real-world treatments are not assigned at baseline and held
+constant. Patients may switch treatments, discontinue therapy, or start
+new medications based on disease progression. In such cases, using
+baseline treatment as the sole exposure variable leads to biased effect
+estimates.</p>
+<p>Example:</p>
+<ul>
+<li>A patient with HCV may initially start treatment with Drug A but
+switch to Drug B due to side effects. If we analyze only the baseline
+treatment, we ignore treatment changes over time, introducing bias.</li>
+</ul>
+</div>
+<div id="challenges-in-analyzing-time-varying-treatments"
+class="section level3">
+<h3>Challenges in Analyzing Time-Varying Treatments</h3>
+<ol style="list-style-type: decimal">
+<li>Time-Dependent Confounding:
+<ul>
+<li>Some confounders (e.g., blood sugar levels in diabetes) are affected
+by past treatment and also influence future treatment decisions.</li>
+<li>Example: A diabetes patient on insulin may experience weight gain,
+making them more likely to switch medications.</li>
+</ul></li>
+<li>Selection Bias from Treatment Switching:
+<ul>
+<li>Patients who switch treatments may differ systematically from those
+who do not.</li>
+<li>If sicker patients are more likely to switch, analyzing treatment as
+if it were assigned at baseline will overestimate the effectiveness of
+the original treatment.</li>
+</ul></li>
+</ol>
+</div>
+<div id="how-to-address-time-varying-treatment-in-causal-inference"
+class="section level3">
+<h3>How to Address Time-Varying Treatment in Causal Inference</h3>
+<p>To estimate the causal effect of dynamic treatment regimens, we can
+use:</p>
+<ol style="list-style-type: decimal">
+<li>Marginal Structural Models (MSMs) with Inverse Probability Weighting
+(IPW)
+<ul>
+<li>MSMs account for time-dependent confounders by reweighting data
+using stabilized weights.</li>
+<li>This allows us to compare treatment strategies over time while
+adjusting for confounding.</li>
+</ul></li>
+</ol>
+<p>Example R Code for IPW with Time-Varying Treatments</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(ipw)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>ipw_model <span class="ot">&lt;-</span> <span class="fu">ipwpoint</span>(<span class="at">exposure =</span> treatment, <span class="at">family =</span> <span class="st">&quot;binomial&quot;</span>, </span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>               <span class="at">link =</span> <span class="st">&quot;logit&quot;</span>, <span class="at">numerator =</span> <span class="sc">~</span><span class="dv">1</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>               <span class="at">denominator =</span> <span class="sc">~</span> age <span class="sc">+</span> diabetes <span class="sc">+</span> past_treatment,</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>               <span class="at">data =</span> mydata)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>mydata<span class="sc">$</span>ipw_weights <span class="ot">&lt;-</span> ipw_model<span class="sc">$</span>weights</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co"># Fit MSM using weighted Cox model</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="fu">library</span>(survival)</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>cox_msm <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event) <span class="sc">~</span> treatment, <span class="at">weights =</span> </span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>                  mydata<span class="sc">$</span>ipw_weights, <span class="at">data =</span> mydata)</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="fu">summary</span>(cox_msm)</span></code></pre></div>
+<ol start="2" style="list-style-type: decimal">
+<li>TMLE for Time-Varying Treatments
+<ul>
+<li>TMLE can be extended to estimate dynamic treatment effects by
+incorporating both treatment models and time-varying confounder
+models.</li>
+</ul></li>
+</ol>
+<p>Key Takeaways: * In RWE, treatment often changes over time, requiring
+MSMs or TMLE to estimate causal effects of dynamic treatment strategies.
+* Inverse probability weighting (IPW) can correct for time-dependent
+confounding, but TMLE offers better efficiency and robustness.</p>
+</div>
+</div>
+<div id="limitations-of-traditional-cox-regression-for-causal-inference"
+class="section level2">
+<h2>Limitations of Traditional Cox Regression for Causal Inference</h2>
+<p>Let’s explicitly address why a standard Cox regression analysis might
+not deliver the causal estimand you want:</p>
+<ul>
+<li><p><strong>Cox gives conditional effects</strong>: A multivariable
+Cox model adjusts for covariates, yielding a hazard ratio conditional on
+those covariates. This is a subject-specific or conditional effect, not
+the marginal (population-average) effect we’d get from a randomized
+trial comparison. In causal inference, we usually aim for the marginal
+effect (e.g. the average difference if everyone treated vs everyone
+untreated). If the treatment effect is not constant across covariate
+subgroups or if the measure is non-collapsible, the Cox model’s
+coefficient doesn’t equal the marginal effect. In contrast, methods like
+standardization or weighting can directly estimate the marginal causal
+effect.</p></li>
+<li><p><strong>Consequence</strong>: An adjusted HR from Cox might
+answer “what is the instantaneous risk ratio between treated and
+untreated for an individual with given covariates?”, which is not as
+policy-relevant as “what is the average reduction in risk in the
+population if we treat vs. not treat?”.</p></li>
+<li><p><strong>No direct path to estimand like risk difference</strong>:
+Cox models focus on hazards. To get, say, a 1-year risk difference from
+a Cox model, you’d have to compute survival curves (e.g. using the
+baseline hazard and covariate means, etc.). It’s doable, but not
+straightforward, especially with time-dependent covariates or complex
+censoring. Many observational studies stop at reporting the HR, because
+producing adjusted survival curves or risk differences requires
+additional modeling or assumptions. However, as Hernán emphasized, the
+solution to the “hazards of hazard ratios” is to report adjusted
+survival curves or other direct summaries. In randomized trials, it’s
+common to show Kaplan-Meier curves and give risk at specific time
+points, precisely because they are more interpretable. We should aim to
+do similarly in observational studies (using appropriate adjustment for
+confounders).</p></li>
+<li><p><strong>Misinterpretation is common</strong>: Because HR is the
+default output of Cox, analysts might be tempted to treat it as if it
+were a causal effect measure without scrutinizing the assumptions. For
+example, saying “Treatment X reduced the risk of kidney injury by 30%”
+based solely on HR=0.70 is only valid if the HR is roughly constant and
+there’s a causal interpretation. It’s safer to convert that into a risk
+reduction over a time period (the estimand) and then state the result.
+This ensures clarity about what was actually estimated.</p></li>
+</ul>
+<p>In summary, Cox regression is a powerful tool for association, but to
+integrate it into the causal inference roadmap, one must be careful. If
+you use a Cox model, use it as a tool to estimate a well-defined
+estimand (e.g. use it to derive adjusted survival probabilities). Don’t
+let the model’s convenience dictate the estimand; instead, define the
+estimand first and tailor the analysis to it.</p>
+</div>
+<div id="addressing-selection-bias-in-causal-inference"
+class="section level2">
+<h2>Addressing Selection Bias in Causal Inference</h2>
+<p>Selection bias is a critical challenge in real-world evidence (RWE)
+studies, particularly in time-to-event analyses where censoring occurs.
+If patients drop out of the study (e.g., loss to follow-up,
+administrative censoring, competing risks), and if this dropout is
+related to both treatment and the outcome, then the estimated treatment
+effect may be biased.</p>
+<div id="what-is-selection-bias-due-to-informative-censoring"
+class="section level3">
+<h3>What is Selection Bias Due to Informative Censoring?</h3>
+<p>Selection bias arises when the probability of remaining in the study
+is correlated with both the exposure (treatment) and the outcome.</p>
+<ul>
+<li><p><strong>Example</strong>: Suppose we analyze whether an HCV drug
+reduces the risk of chronic kidney disease (CKD), but patients with
+deteriorating kidney function are more likely to drop out of the study.
+If those with CKD are more likely to be censored, the analysis may
+overestimate the benefit of the treatment, since the group remaining in
+the study is healthier than the full population.</p></li>
+<li><p><strong>Survival Analysis Issue</strong>: Cox regression assumes
+that censoring is independent of the outcome, conditional on covariates.
+If this assumption is violated, the hazard ratio may be biased.</p></li>
+</ul>
+</div>
+<div id="methods-to-address-selection-bias" class="section level3">
+<h3>Methods to Address Selection Bias</h3>
+<p>To correct for informative censoring, we need to adjust for the
+censoring mechanism in our analysis. There are three key methods:</p>
+<ol style="list-style-type: decimal">
+<li>Inverse Probability of Censoring Weighting (IPCW)
+<ul>
+<li>IPCW estimates the probability that a patient remains uncensored
+given their covariates.</li>
+<li>Patients who are more likely to be censored receive higher weights
+to account for their missing information.</li>
+<li>Example: If a patient with severe kidney disease has a high chance
+of dropping out, their weight in the analysis is increased, ensuring
+they contribute to the estimation.</li>
+</ul></li>
+</ol>
+<p>IPCW Implementation in R:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(ipw)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>censor_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(censor <span class="sc">~</span> age <span class="sc">+</span> diabetes <span class="sc">+</span> treatment, <span class="at">family =</span> binomial, <span class="at">data =</span> mydata)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>mydata<span class="sc">$</span>weights <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> <span class="fu">predict</span>(censor_model, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>) </span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># Fit weighted Cox model</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="fu">library</span>(survival)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>cox_model <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event) <span class="sc">~</span> treatment, <span class="at">weights =</span> mydata<span class="sc">$</span>weights, <span class="at">data =</span> mydata)</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">summary</span>(cox_model)</span></code></pre></div>
+<ol start="2" style="list-style-type: decimal">
+<li>Targeted Learning for Informative Censoring: TMLE with Censoring
+Adjustment
+<ul>
+<li>Targeted Maximum Likelihood Estimation (TMLE) can directly
+incorporate the probability of censoring into its targeting step, making
+it doubly robust (i.e., valid if either the censoring or outcome model
+is correctly specified).</li>
+<li>TMLE updates the initial outcome model based on censoring patterns
+to provide unbiased survival estimates.</li>
+</ul></li>
+</ol>
+<p>TMLE Implementation for Censored Data:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(survtmle)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>tmle_fit <span class="ot">&lt;-</span> <span class="fu">survtmle</span>(<span class="at">ftime =</span> mydata<span class="sc">$</span>time, <span class="at">ftype =</span> mydata<span class="sc">$</span>event, <span class="at">trt =</span> mydata<span class="sc">$</span>treat,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                <span class="at">adjustVars =</span> mydata[, <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;diabetes&quot;</span>)],</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                <span class="at">t0 =</span> <span class="dv">730</span>, <span class="co"># Estimate risk at 2 years</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>                <span class="at">glm.trt =</span> <span class="st">&quot;age + diabetes&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>                <span class="at">glm.ftime =</span> <span class="st">&quot;age + diabetes + treat&quot;</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>                <span class="at">glm.ctime =</span> <span class="st">&quot;age + diabetes&quot;</span>) <span class="co"># Censoring model</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">summary</span>(tmle_fit)</span></code></pre></div>
+<p>This ensures that patients differentially lost to follow-up do not
+bias the estimated treatment effect.</p>
+<ol start="3" style="list-style-type: decimal">
+<li>Imputation-Based Approaches
+<ul>
+<li>Multiple Imputation (MI) is sometimes used to “fill in” missing
+outcomes for censored patients based on observed data.</li>
+<li>While MI is not directly causal, it can supplement analyses where
+other methods are impractical.</li>
+</ul></li>
+</ol>
+<p>Key Takeaways: * If censoring is informative, standard Cox regression
+will be biased. * IPCW and TMLE provide solutions by accounting for the
+censoring mechanism. * TMLE is more efficient than IPCW and provides
+valid confidence intervals even under model misspecification.</p>
+</div>
+</div>
+<div id="causal-estimation-methods-beyond-cox-g-computation-and-tmle"
+class="section level2">
+<h2>Causal Estimation Methods Beyond Cox: G-Computation and TMLE</h2>
+<p>Now that we have our estimand in mind (for example, a risk difference
+at a certain time), how do we estimate it from observational data? The
+causal roadmap suggests using methods that can account for confounding
+and directly target the estimand of interest. Two such approaches are
+G-computation and Targeted Maximum Likelihood Estimation (TMLE). We’ll
+introduce each and discuss their advantages. (We will assume our data
+have measured all the confounders needed for a causal analysis – an
+assumption of no unmeasured confounding – as well as other standard
+assumptions like positivity and correct model specification for these
+methods to give valid results.)</p>
+<div id="g-computation-parametric-g-formula-standardization"
+class="section level3">
+<h3>G-Computation (Parametric G-formula / Standardization)</h3>
+<p>What it is: G-computation is essentially a way to emulate what a
+randomized trial would find, using a combination of modeling and
+averaging. It’s also known as the parametric g-formula or simply
+standardization. The idea is:</p>
+<ol style="list-style-type: decimal">
+<li><p>Outcome model: Fit a regression model for the outcome (or
+survival) as a function of treatment and confounders. This could be a
+logistic regression for risk by time <span
+class="math inline">\(t\)</span>, or a survival model, etc.</p></li>
+<li><p>Prediction under each scenario: Use that model to predict the
+outcome probability for each individual if treated and if
+untreated.</p></li>
+<li><p>Average to get marginal risks: Take the average of those
+predicted probabilities in the population. This gives you the marginal
+outcome risk under each scenario (everyone treated vs everyone
+untreated).</p></li>
+<li><p>Calculate contrast: Compute the estimand – e.g. difference or
+ratio of these two risks. This is your causal effect estimate (assuming
+the model was correct and adjusted for confounders).</p></li>
+</ol>
+<p>In formula form, if <span class="math inline">\(Y\)</span> is
+outcome, <span class="math inline">\(A\)</span> treatment, <span
+class="math inline">\(W\)</span> confounders, g-computation estimates:
+<span class="math display">\[P(Y=1 \mid A=1) = E_W[ P(Y=1 \mid A=1, W)
+]\]</span> <span class="math display">\[P(Y=1 \mid A=0) = E_W[ P(Y=1
+\mid A=0, W) ]\]</span></p>
+<p>then takes the difference. This is exactly what you’d do in a
+randomized trial: calculate outcome risk in each arm. Here we use the
+model to simulate those arms.</p>
+<p>Example: If our estimand is 2-year risk difference of kidney injury
+(treated vs untreated): * We could fit a logistic regression for “event
+by 2 years” ~ treatment + confounders. * Then use that model to predict
+each patient’s probability of 2-year event if treated (set treatment=1)
+and if untreated (treatment=0). * Average those probabilities to get
+population risk with vs. without treatment. * Risk difference = treated
+risk – untreated risk.</p>
+<p>Why it’s useful: G-computation directly gives marginal effects by
+design. It answers the question “what would happen if everyone got
+treatment vs not” (under model assumptions). It’s very transparent and
+connects nicely to the “target trial” concept. It can estimate risk
+differences, ratios, survival curves, etc., depending on how you
+implement the outcome model. It’s also relatively easy to implement with
+standard regression tools.</p>
+<p>Limitations: The correctness of g-computation depends on correctly
+specifying the outcome model. If your regression model is wrong or too
+simplistic (e.g. misses non-linearities or interactions), your estimates
+may be biased. In other words, it’s sensitive to model misspecification.
+It’s also an “one-step” approach in the sense that if that model is
+wrong, there’s no safety net. Later we’ll see TMLE tries to improve
+robustness. Additionally, if there are many confounders or complex
+relationships, a simple parametric model may struggle (though one can
+use machine learning in the outcome model as well). Despite these,
+g-computation is a good starting point for causal estimation and is much
+closer to the causal estimand than a naive Cox HR.</p>
+<p>R Example – G-Computation via Standardization: Suppose mydata has
+variables: time, event (time-to-event outcome), treat (treatment
+indicator), and some confounders (conf1, conf2, …). We want the 2-year
+risk difference. For simplicity, we’ll assume few censored before 2
+years or treat censoring as non-informative. We can do:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Create an indicator for event by 2 years (730 days), counting censor as no event by 2 years</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>mydata<span class="sc">$</span>event2yr <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(mydata<span class="sc">$</span>time <span class="sc">&lt;=</span> <span class="dv">730</span> <span class="sc">&amp;</span> mydata<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co"># Fit an outcome model: logistic regression for having the event by 2 years</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>outcome_model <span class="ot">&lt;-</span> <span class="fu">glm</span>(event2yr <span class="sc">~</span> treat <span class="sc">+</span> conf1 <span class="sc">+</span> conf2, <span class="at">data =</span> mydata, <span class="at">family =</span> binomial)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co"># Predict 2-year risk under each scenario for each person:</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>pred_treated <span class="ot">&lt;-</span> <span class="fu">predict</span>(outcome_model, <span class="at">newdata =</span> <span class="fu">transform</span>(mydata, <span class="at">treat =</span> <span class="dv">1</span>), <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>pred_untreated <span class="ot">&lt;-</span> <span class="fu">predict</span>(outcome_model, <span class="at">newdata =</span> <span class="fu">transform</span>(mydata, <span class="at">treat =</span> <span class="dv">0</span>), <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co"># Average predicted risks:</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>mean_risk_treated <span class="ot">&lt;-</span> <span class="fu">mean</span>(pred_treated)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>mean_risk_untreated <span class="ot">&lt;-</span> <span class="fu">mean</span>(pred_untreated)</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>risk_difference <span class="ot">&lt;-</span> mean_risk_treated <span class="sc">-</span> mean_risk_untreated</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>risk_ratio <span class="ot">&lt;-</span> mean_risk_treated <span class="sc">/</span> mean_risk_untreated</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Estimated 2-year risk (treated) =&quot;</span>, <span class="fu">round</span>(mean_risk_treated,<span class="dv">3</span>),</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>    <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Estimated 2-year risk (untreated) =&quot;</span>, <span class="fu">round</span>(mean_risk_untreated,<span class="dv">3</span>),</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>    <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Risk difference =&quot;</span>, <span class="fu">round</span>(risk_difference,<span class="dv">3</span>),</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>    <span class="st">&quot;</span><span class="sc">\n</span><span class="st">Risk ratio =&quot;</span>, <span class="fu">round</span>(risk_ratio,<span class="dv">3</span>))</span></code></pre></div>
+<p>This code fits a logistic model and then does predicted value
+standardization to get the marginal risks. The result might show, for
+example, treated risk = 0.07 (7%), untreated risk = 0.10 (10%), so risk
+difference = -0.03 (–3 percentage points) and risk ratio ~0.7. Those
+numbers would match the interpretation of an HR ~0.7 in our hypothetical
+scenario, but now we have the actual estimand (risk difference) and its
+size. You could also get a confidence interval via bootstrap or using R
+packages that implement standardization.</p>
+<p>(Note: If censoring is substantial by 2 years, a refinement is
+needed: one can model the survival time or use weighting for censoring.
+For didactic clarity, we keep it simple here.)</p>
+</div>
+<div id="targeted-maximum-likelihood-estimation-tmle"
+class="section level3">
+<h3>Targeted Maximum Likelihood Estimation (TMLE)</h3>
+<p>What it is: TMLE is an advanced estimation framework that combines
+ideas from G-computation and propensity score weighting in a clever way.
+It’s part of the “targeted learning” approach developed by van der Laan
+and colleagues. TMLE is designed to estimate causal effects (like an ATE
+or risk difference) while being robust to model misspecification and
+allowing the use of machine learning for parts of the model. In short,
+TMLE does the following:</p>
+<ul>
+<li>It starts with initial estimates of the outcome model (like in
+g-computation) and the treatment model (propensity score).</li>
+<li>It then performs a targeting step that adjusts the outcome
+prediction in a way that specifically improves the estimate of the
+causal parameter (the estimand), using information from the treatment
+model. This ensures the final estimate respects the observed data
+structure and target parameter.</li>
+<li>The result is an estimate of (for example) the risk difference that
+is doubly robust and efficient.</li>
+</ul>
+<p>Doubly robust means TMLE will give an asymptotically unbiased
+estimate if either the outcome model or the treatment model is correctly
+specified (not necessarily both). This is a big advantage: even if you
+guess one model wrong, you still get a consistent estimate so long as
+the other model was right. In contrast, simple g-computation needs the
+outcome model right, and simple IPTW (weighting by propensity) needs the
+treatment model right. TMLE combines both and thus has this robustness.
+It’s also typically locally efficient, meaning it achieves the smallest
+possible variance for an unbiased estimator (when models are
+correct).</p>
+<p>In practice, what does TMLE give you? It can give you the estimated
+treatment effect (risk difference, risk ratio, OR, etc. depending on
+what you target) and a valid confidence interval. TMLE can handle
+complex data situations (censoring, time-varying treatments, etc. with
+extensions) and can incorporate machine learning algorithms instead of
+parametric models to improve estimation of nuisance parts (propensity
+and outcome). This is attractive in high-dimensional RWE contexts.</p>
+</div>
+<div id="why-use-tmle" class="section level3">
+<h3>Why use TMLE?</h3>
+<ul>
+<li><strong>Causal parameter focus</strong>: It targets the estimand
+directly. If you want the 1-year risk difference, it will give an
+estimate tailored to that.</li>
+<li><strong>Reduced bias</strong>: Through its targeting step, TMLE
+often corrects small biases that remain in initial estimates. For
+example, if your outcome model was slightly misfit, TMLE can often
+adjust for that using information from the propensity score.</li>
+<li><strong>Uses all data efficiently</strong>: Rather than discarding
+observations (as matching might) or relying on one model, it uses both
+models to extract information, often leading to better precision.</li>
+<li><strong>Automated with software</strong>: While the theory is
+complex, there are R packages that implement TMLE. You don’t have to
+code the algorithm from scratch. For point exposure (one-time treatment)
+causal effects, the tmle package (for binary outcomes) and survtmle
+package (for survival outcomes) are available.</li>
+</ul>
+<p>Limitations: TMLE is relatively complex under the hood. It may be
+less familiar to analysts, and setting it up correctly (especially for
+survival outcomes with censoring) requires some learning. Sometimes,
+TMLE procedures can face convergence issues in small samples or extreme
+propensity cases (if few treated or extreme weights). In large samples,
+with reasonable overlap, it tends to work well. Because it’s a newer
+method (in epidemiology terms), reviewers or colleagues might need
+explanation of what it is – but by now, TMLE has been used in many
+publications, including pharmacoepidemiology.</p>
+<p>For our context (time-to-event, single treatment at baseline), TMLE
+would typically involve: modeling the treatment assignment (propensity
+of HCV treatment given confounders) and the outcome (survival
+probability or hazard), then executing the targeting step to estimate
+(for example) the 2-year survival in each group and the difference.</p>
+<p>R Example – TMLE for 2-year Risk Difference: We can use the survtmle
+package by Benkeser et al. to estimate the 2-year incidence under
+treatment and no treatment. Here’s how it might look:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">library</span>(survtmle)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co"># Using survtmle for a single time-point analysis (t0 = 730 days)</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># ftime = follow-up time, ftype = event status (1 for event, 0 for censor, in this package&#39;s logic)</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># trt = treatment indicator, adjustVars = data frame of confounders</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>tmle_fit <span class="ot">&lt;-</span> <span class="fu">survtmle</span>(<span class="at">ftime =</span> mydata<span class="sc">$</span>time, <span class="at">ftype =</span> mydata<span class="sc">$</span>event, <span class="at">trt =</span> mydata<span class="sc">$</span>treat,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>                <span class="at">adjustVars =</span> mydata[, <span class="fu">c</span>(<span class="st">&quot;conf1&quot;</span>,<span class="st">&quot;conf2&quot;</span>)],</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>                <span class="at">t0 =</span> <span class="dv">730</span>, <span class="co"># time horizon of interest</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>                <span class="at">method =</span> <span class="st">&quot;mean&quot;</span>, <span class="co"># target the mean outcome (risk) at t0 for each group</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>                <span class="at">glm.trt =</span> <span class="st">&quot;conf1 + conf2&quot;</span>, <span class="co"># (optionally specify propensity model)</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>                <span class="at">glm.ftime =</span> <span class="st">&quot;conf1 + conf2 + trt&quot;</span>,<span class="co"># (optionally specify outcome model; can also use SuperLearner)</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>                <span class="at">glm.ctime =</span> <span class="st">&quot;conf1 + conf2&quot;</span>) <span class="co"># censoring model if needed</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co"># Results:</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>tmle_fit <span class="co"># this will print estimated survival probabilities at 730 days for trt=0 and trt=1, and their difference</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co"># We can extract the estimates:</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">summary</span>(tmle_fit)</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>estimates<span class="sc">$</span>est <span class="co"># might contain Psi_Treated, Psi_Untreated, and Psi_diff (risk difference)</span></span></code></pre></div>
+<p>(Note: In survtmle, ftime/ftype format handles censoring and possibly
+competing risks; here assume ftype=1 means event of interest and ftype=0
+means censor. We specify models as formula strings or leave them for
+machine learning by using SuperLearner.)</p>
+<p>The output will give you something like: estimated 2-year event
+probability in untreated, in treated, and the difference (and maybe log
+RR or other scale if requested). For example, you might get untreated =
+0.10, treated = 0.07, difference = -0.03 (with confidence interval, say
+-0.05 to -0.01), indicating a statistically significant 3% reduction in
+2-year risk due to treatment. This approach directly answers the
+question: what is the effect on 2-year risk?</p>
+<p>Advantages in our case study context: TMLE would use both the
+propensity score for HCV treatment and an outcome model for CKD
+incidence. Even if one model is slightly off, TMLE can still
+consistently estimate the risk difference. It also provides inference
+(standard errors that account for the nuisance estimation). This is
+particularly useful if we wanted to adjust for many confounders
+potentially using machine learning (like regression trees or random
+forests) – TMLE can incorporate that via the SuperLearner framework and
+still give a valid CI.</p>
+</div>
+</div>
+<div id="other-causal-methods-briefly" class="section level2">
+<h2>Other Causal Methods (Briefly)</h2>
+<p>Besides G-computation and TMLE, you may encounter:</p>
+<ul>
+<li><p><strong>Inverse Probability Weighting (IPW)</strong>: Create
+weights = 1/Pr(Treatment|Conf) for treated (and similar for untreated)
+to create a pseudo-population where treatment is unconfounded. Then
+estimate effects (like risk difference or HR) by weighted analysis. IPW
+is straightforward for marginal effects but can be inefficient or
+unstable if extreme weights. TMLE often improves on IPW by also modeling
+outcome.</p></li>
+<li><p><strong>Augmented IPW (AIPW)</strong>: Another doubly robust
+method (very similar spirit to TMLE) where you add a correction term to
+IPW using an outcome model. It gives similar results to TMLE if done
+right.</p></li>
+<li><p><strong>Structural models for hazards</strong>: e.g. Marginal
+Structural Cox Models use IPW to estimate a marginal hazard ratio. These
+address time-dependent confounding typically. They provide a weighted
+Cox HR, which is marginal. However, as we discussed, even a marginal HR
+can be hard to interpret if non-PH, so one might prefer to convert it to
+other measures.</p></li>
+<li><p><strong>Accelerated Failure Time (AFT) models</strong>: A
+parametric alternative to Cox that directly models survival time
+(log-time usually). The estimand from an AFT could be a time ratio or
+difference (e.g. treatment multiplies the event time by 1.5, meaning 50%
+longer time to event). Hernán suggested comparing survival distributions
+via AFT when HR is problematic. AFT can sometimes be more interpretable
+(e.g. “treatment delays median onset by 6 months”). But AFT models make
+parametric assumptions about the survival distribution (exponential,
+Weibull, etc.), which might not hold. They are less often used in causal
+contexts than g-computation/TMLE/weighting, but worth knowing.</p></li>
+</ul>
+<p>For our purposes, focusing on standardization (g-formula) and TMLE
+will cover a lot of ground. They both aim to estimate things like risk
+differences in a way that aligns with the causal question.</p>
+</div>
+<div id="refining-the-super-learner-library-for-tmle"
+class="section level2">
+<h2>Refining the Super Learner Library for TMLE</h2>
+<p>The Super Learner (SL) algorithm is a core component of TMLE, as it
+optimally combines multiple prediction models to estimate the propensity
+score and outcome regression models. Choosing an appropriate SL library
+is critical to improving model accuracy, robustness, and efficiency.</p>
+<p>The PracticalSL paper provides key recommendations for constructing a
+well-specified SL library, including:</p>
+<ul>
+<li><strong>Diversity of Algorithms</strong>: Include models with
+different strengths (e.g., linear models, tree-based models, and
+non-parametric approaches).</li>
+<li><strong>Cross-Validation Strategy</strong>: Use V-fold
+cross-validation (typically V = 5 or 10) to evaluate learner
+performance.</li>
+<li><strong>Computational Feasibility</strong>: Balance library
+complexity with runtime constraints, especially in large datasets.</li>
+<li><strong>Handling High-Dimensional Data</strong>: Consider screening
+methods or dimension reduction strategies for datasets with many
+predictors.</li>
+<li><strong>Discrete vs. Ensemble Super Learner</strong>: Evaluate if
+the best individual learner (discrete SL) outperforms the full ensemble
+(ensemble SL).</li>
+</ul>
+</div>
+<div
+id="case-study-hcv-antiviral-and-kidney-injury-applying-the-framework"
+class="section level2">
+<h2>Case Study: HCV Antiviral and Kidney Injury – Applying the
+Framework</h2>
+<p>Let’s tie everything together with the case study mentioned: an
+analysis of an HCV drug and subsequent kidney injury (e.g. CKD or acute
+kidney injury). Suppose our real-world data come from a claims or EHR
+database, where some patients with Hepatitis C Virus (HCV) infection
+received the new direct-acting antiviral (DAA) treatment and others did
+not. We want to know if treating HCV reduces the risk of kidney
+injury.</p>
+<div id="step-1-causal-question-and-estimand" class="section level3">
+<h3>Step 1: Causal Question and Estimand</h3>
+<ul>
+<li><strong>Causal Question</strong>: “Does treating HCV infection with
+the new DAA (vs. no treatment) causally reduce the incidence of kidney
+injury over a 2-year follow-up in HCV-infected patients?”</li>
+<li><strong>Population</strong>: HCV-infected adult patients eligible
+for treatment, with no prior kidney injury at baseline.</li>
+<li><strong>Interventions (Treatment vs Comparison)</strong>: Initiation
+of the DAA vs. deferral/absence of antiviral treatment. (We assume in a
+target trial we’d give everyone either treat or not treat at baseline
+and follow them; in our observational data, we’ll emulate that by
+comparing those who happened to be treated vs not.)</li>
+<li><strong>Outcome</strong>: Onset of kidney injury (we could define
+this as a diagnosis of CKD, or a significant drop in GFR, etc., within 2
+years).</li>
+<li><strong>Estimand</strong>: We decide that the most clinically
+relevant measure is the 2-year risk difference in kidney injury between
+treating vs. not treating. That is, we want to estimate: <span
+class="math inline">\(\text{Risk}_{2yr}(Treatment) -
+\text{Risk}_{2yr}(No\ Treatment)\)</span> in the target population.
+We’ll also look at the risk ratio, but the risk difference will tell us
+the absolute benefit. We might also be interested secondarily in the
+hazard ratio (since previous studies reported it), but we acknowledge
+the HR is not our primary estimand.</li>
+</ul>
+<p>By clearly defining this, we set ourselves up to choose an approach
+that can estimate the 2-year risks under each scenario.</p>
+</div>
+<div id="step-2-data-and-assumptions" class="section level3">
+<h3>Step 2: Data and Assumptions</h3>
+<p>We identify confounders: factors affecting both likelihood of getting
+the HCV treatment and risk of kidney injury. These might include age,
+baseline kidney function, diabetes, hypertension, liver disease
+severity, etc. We assume we have measured these. We draw a causal DAG
+(mentally or on paper) where HCV treatment is the exposure, kidney
+injury is the outcome, and these confounders have arrows into both.
+Perhaps HCV treatment is less likely in patients with very poor kidney
+function due to concerns about drug toxicity – that’s confounding we
+must adjust for, because those untreated patients have higher inherent
+risk of kidney problems. We also consider follow-up time and censoring
+(some patients may be lost or die before 2 years – we assume
+non-informative censoring or we can adjust for censoring via weighting
+if needed).</p>
+</div>
+<div id="step-3-estimation-plan" class="section level3">
+<h3>Step 3: Estimation Plan</h3>
+<p>To estimate the 2-year risk difference, we decide to use two
+approaches:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Cox PH model approach (for comparison)</strong>: We’ll
+fit a Cox model for time to kidney injury with treatment and
+confounders. This will give us an adjusted hazard ratio. We know this
+isn’t our target estimand, but it’s the conventional analysis, so we
+want to see what it gives and then translate it.</p></li>
+<li><p><strong>G-computation or TMLE approach (causal
+approach)</strong>: We will estimate 2-year cumulative incidence in each
+group using standardization or TMLE. This directly targets our estimand.
+Specifically, we might use a logistic model for 2-year outcome as in the
+earlier code, or use survtmle to account for censoring and get the
+estimate.</p></li>
+</ol>
+</div>
+<div id="step-4-execution-and-results" class="section level3">
+<h3>Step 4: Execution and Results</h3>
+<ul>
+<li><p><strong>Cox model result</strong>: Suppose after adjusting for
+age, diabetes, etc., the Cox model gives HR = 0.72 (28% hazard
+reduction) with 95% CI 0.60–0.85. This is similar to what prior studies
+found. On its face, this suggests treatment lowers the hazard of kidney
+injury. But to interpret: we check the proportional hazards assumption
+(perhaps using Schoenfeld residuals). If it holds reasonably, fine. If
+not (say hazards diverge more after 1 year), we note that the HR is an
+average effect. We plan to translate this into a 2-year risk difference
+for clarity.</p></li>
+<li><p><strong>Causal estimand result via standardization</strong>:
+Using g-computation, we get: estimated 2-year kidney injury incidence =
+8% in untreated vs 5% in treated (these are plausible numbers given an
+incidence of ~10 per 1000 PY). That yields a risk difference of -3
+percentage points (0.05 - 0.08 = -0.03) and a risk ratio of 0.62. The
+TMLE approach might give a very similar estimate, say -3.0% with a 95%
+CI (-4.5%, -1.5%) indicating a significant reduction. We thus find that
+treating HCV would prevent about 3 kidney injury cases per 100 patients
+over 2 years. The number needed to treat is ~33 to prevent one case in 2
+years. This is the kind of summary a clinician or policymaker can
+use.</p></li>
+<li><p><strong>Comparing to Cox HR</strong>: Does HR=0.72 align with ~5%
+vs 8% risk? Let’s check: The survival curves implied by those risks:
+untreated ~92% event-free, treated ~95% event-free at 2 years. The
+hazard ratio of 0.72 is roughly consistent with that level of risk
+reduction (though not exact, because HR is constant hazard ratio
+assumption). The Cox model alone wouldn’t have told us “3% absolute
+reduction,” but by doing the g-computation, we extracted that
+information. We also notice that if the hazards were not proportional,
+the Cox HR might not perfectly predict the 2-year risk ratio. Our
+approach doesn’t rely on PH assumption; we directly estimated the
+cumulative incidence. Indeed, if we suspect that most of the benefit of
+treatment comes after, say, the first year (perhaps it takes time for
+the kidney to benefit from HCV clearance), we could even estimate the
+1-year and 2-year risks separately. Maybe at 1 year the difference was
+only 1%, and by 2 years it grew to 3%. These nuances are lost in a
+single HR but captured by our estimand-centric approach.</p></li>
+</ul>
+</div>
+<div id="step-5-interpretation" class="section level3">
+<h3>Step 5: Interpretation</h3>
+<p>We would report results in a way that directly answers the question:
+“In this real-world cohort, initiating HCV DAA therapy was associated
+with a X% absolute reduction in 2-year risk of kidney injury compared to
+no treatment.” We might say: “The 2-year cumulative incidence of kidney
+injury was 5% among treated patients, vs. 8% among observationally
+similar untreated patients, an absolute risk difference of -3% (relative
+risk ~0.65).” We would likely still mention the hazard ratio for
+comparison with other studies (HR 0.72, 95% CI 0.60–0.85), but with a
+caveat that this HR is an average over time and we prefer the risk
+difference for clarity. Our causal interpretation hinges on assuming no
+unmeasured confounding etc. We would also perhaps plot adjusted survival
+curves: they might show two curves diverging slightly over time (with
+most divergence after 1 year, for example).</p>
+</div>
+<div id="step-6-sensitivity-stakeholders" class="section level3">
+<h3>Step 6: Sensitivity &amp; Stakeholders</h3>
+<p>Since the roadmap is iterative, we’d consider if this estimand truly
+meets stakeholder needs. If a nephrologist actually cares about
+longer-term outcomes (say 5-year CKD risk), maybe 2-year was too short.
+Or if regulators want a relative measure, we ensure we also provide the
+risk ratio or HR. The key is we can always translate our results because
+we have both absolute and relative metrics now.</p>
+<p>We also might assess how robust the finding is: perhaps do a
+propensity score weighted KM curve as a sensitivity check (which should
+roughly agree). We would check if any violation of positivity (did we
+have patients across confounder spectrum in both groups?) – if not, the
+causal estimate might rely on extrapolation.</p>
+<p>In summary, using the causal inference roadmap for this case study
+led us to define a clear estimand (risk difference) and apply
+appropriate methods (g-computation, TMLE) to estimate it. This provided
+a more interpretable answer than a hazard ratio alone. We found that
+treating HCV likely causally reduces kidney injury risk in this
+population, and we quantified that effect in absolute terms.</p>
+</div>
+</div>
+<div id="summary-and-key-takeaways" class="section level2">
+<h2>Summary and Key Takeaways</h2>
+<ul>
+<li><p><strong>Always start with the causal question and
+estimand</strong>: Before running models, articulate what effect you
+want to estimate. For time-to-event outcomes, decide if you care about
+an absolute risk, a relative risk at a certain time, survival time
+gained, etc. This estimand will drive your analysis choices. It improves
+clarity and communication of RWE findings.</p></li>
+<li><p><strong>Be cautious with hazard ratios</strong>: Cox models and
+HRs are standard in epidemiology, but an HR is not always the best
+expression of a causal effect. HRs can obscure how effects change over
+time and do not directly convey absolute risk. Use HRs with awareness of
+the proportional hazards assumption and consider presenting other
+measures. As a rule, accompany hazard ratios with absolute measures
+(e.g. event rates or risk differences) whenever possible.</p></li>
+<li><p><strong>Consider alternative estimands</strong>: Often,
+stakeholders care about risk over a period of time. Reporting, for
+example, “Treatment lowered 1-year event risk from 10% to 7%” is very
+informative. Risk differences, risk ratios at a fixed time, or RMST
+differences are often more interpretable for decision-making than an
+abstract HR. The choice depends on the context: risk difference for
+absolute impact, risk ratio for relative effect, RMST for average time
+benefit, etc. (See table above for guidance.)</p></li>
+<li><p><strong>Use appropriate methods to estimate your
+estimand</strong>: If you choose a risk difference, use methods like
+g-computation or TMLE that naturally provide that. These methods
+properly adjust for confounding while targeting the estimand.
+G-computation (standardization) is conceptually straightforward and
+directly computes population risks. TMLE offers double robustness and
+often better statistical properties, reducing bias if either the outcome
+or treatment model is correct. Both can leverage modern computing
+(e.g. machine learning) to handle many covariates or non-linear
+relationships. There are user-friendly R packages (e.g. riskstandard or
+DIY with regression for g-comp, tmle/survtmle for TMLE).</p></li>
+<li><p><strong>Interpret results in context of assumptions</strong>: In
+observational RWE, remember the causal interpretation hinges on
+assumptions: no unmeasured confounders, correct model spec, etc. The
+roadmap encourages explicit stating of these. If using TMLE or g-comp,
+state that you adjusted for XYZ confounders and assumed no others. If
+there’s censoring, mention how you handled it. This transparency builds
+trust in the evidence.</p></li>
+<li><p><strong>Communication</strong>: By adopting estimand-focused
+analysis, your reporting will naturally become clearer. Instead of just
+“HR=0.72,” you’ll be able to say “the treatment reduced 2-year incidence
+by 3% (from 8% to 5%).” This is easier for interdisciplinary teams to
+understand and for decision-makers to use. It’s aligned with regulatory
+thinking too (ICH E9’s estimand framework likes to see clear description
+of treatment effect measures).</p></li>
+</ul>
+<p>In conclusion, integrating the causal inference roadmap into RWE
+practice means planning analyses more like trials: define the question
+and measure of effect (estimand) first, then use appropriate methods to
+estimate it. For time-to-event outcomes, this often means looking beyond
+the hazard ratio. Cox regression is not “bad” – it can be part of the
+toolset – but it should be applied in service of estimating the quantity
+we truly care about, rather than being the default analysis without
+question. Methods like TMLE and g-computation empower us to estimate
+causal effects in a way that aligns with the questions we want to
+answer, providing results that are both scientifically valid (under
+assumptions) and practically interpretable.</p>
+<p>By following this approach, your RWE team can produce analyses that
+stand up to scrutiny and genuinely inform decisions, bridging the gap
+between traditional epidemiologic results and a causal understanding of
+treatment effects in the real world.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References:</h2>
+<p>(Key sources that informed this tutorial)</p>
+<ul>
+<li><p>Hernán MA. The hazards of hazard ratios. Epidemiology.
+2010;21(1):13–15. <a href="doi:10.1097/EDE.0b013e3181c1ea43"
+class="uri">doi:10.1097/EDE.0b013e3181c1ea43</a></p></li>
+<li><p>The Causal Roadmap framework – Dang et al. A causal roadmap for
+generating high-quality real-world evidence. Clin Trials. 2023.</p></li>
+<li><p>Snowden JM, Rose S, Mortimer KM. Implementation of G-computation
+on a simulated data set: Demonstration of a causal inference technique.
+Am J Epidemiol. 2011.</p></li>
+<li><p>Westreich D, Cole SR. Invited commentary: positivity in practice.
+Am J Epidemiol. 2010. (Positivity assumption in causal
+inference).</p></li>
+<li><p>Gruber S, van der Laan MJ. An R Package for Targeted Maximum
+Likelihood Estimation. UC Berkeley Div of Biostatistics Working Paper
+Series. 2011. (tmle package documentation).</p></li>
+<li><p>Benkeser D, et al. survtmle: Targeted Learning for Survival
+Analysis. R package version 1.1.2.</p></li>
+<li><p>Park H, et al. Chronic HCV increases risk of CKD while HCV
+treatment decreases incidence of CKD. Hepatology. 2018;67(2):492-504.
+(HCV and CKD example study)</p></li>
+</ul>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

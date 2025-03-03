@@ -1,0 +1,462 @@
+---
+title: "Integrating the Causal Inference Roadmap in RWE: Estimand Selection for Time-to-Event Outcomes"
+author: "Andrew Mertens"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+Real-world evidence (RWE) studies in pharma often rely on familiar regression methods to analyze outcomes. However, to answer causal questions (e.g. "Does Treatment X *cause* better outcomes than no treatment?"), we need more than a p-value or an adjusted hazard ratio. The **causal inference roadmap** provides a structured approach to design analyses that yield **causally interpretable results**. A key first step in this roadmap is **estimand selection** – defining *what* effect we aim to estimate. In time-to-event studies (e.g. time to kidney injury), choosing the right estimand is crucial for meaningful interpretation.
+
+This tutorial is for MPH-level epidemiologists and other researchers transitioning from traditional regression to causal inference in RWE. We will:
+
+* Explain what an estimand is and why it matters in causal inference.
+* Highlight limitations of the Cox proportional hazards model and the hazard ratio (HR) as a causal effect measure in time-to-event analysis.
+* Introduce alternative estimands and estimation methods (like Targeted Maximum Likelihood Estimation (TMLE) and G-computation) that align better with causal questions.
+* Walk through a case study of an HCV drug and kidney injury to illustrate these concepts in practice.
+* Provide a summary table of different estimands and when to use them.
+* Include example R code snippets (kept simple) for those interested in running these analyses.
+
+By the end, you should understand how to integrate the causal inference roadmap into your RWE studies, especially how to define and estimate the right estimand for time-to-event outcomes.
+
+## The Causal Inference Roadmap and Estimand Selection
+
+Modern causal inference encourages researchers to think like they are designing a "target trial." This means explicitly stating the causal question, the population, the treatment strategies to compare, and the outcome – before looking at data. A central part of this planning is choosing an estimand, which is the specific quantity that answers your causal question. In simple terms, the estimand is *what you want to estimate* (e.g. a risk difference, a risk ratio, a survival probability at 1 year, etc.). It should align with the question stakeholders care about. For example, "By how much would 12-month kidney injury risk decrease if all patients took the new HCV drug versus if none did?" is a causal question whose estimand could be the 12-month risk difference in kidney injury between treatment strategies.
+
+Why focus on estimands? Defining the estimand upfront clarifies the study goal and guides the analysis. It ensures that everyone (analysts, clinicians, regulators) interprets the result the same way. Regulatory guidance (ICH E9 (R1) addendum) now emphasizes pre-specifying estimands in clinical research. In the causal roadmap framework, Step 1 is to define the causal question and causal estimand. This step is crucial because every analysis choice (study design, model, etc.) should follow from what you're trying to estimate. As a recent paper on the causal roadmap noted, "precise definition of the causal question and estimand... is crucial for specifying a study design and analysis plan to provide the best possible effect estimate". In other words, if we don't clearly define what effect we're after, we can't be sure our analysis will answer the right question.
+
+### Estimand vs. Estimator vs. Estimate
+
+* **Estimand**: The target causal quantity we want (e.g. risk difference in 1-year incidence between treated vs. untreated).
+* **Estimator**: The statistical method or formula we use to compute an estimate of the estimand from data (e.g. a regression model, TMLE algorithm, etc.).
+* **Estimate**: The result we get from the estimator applied to our data (e.g. an estimated 1-year risk difference of -3%, meaning 3% fewer injuries with treatment).
+
+By first nailing down the estimand, we ensure the estimator and resulting estimate are meaningful for the policy or clinical question.
+
+## Time-to-Event Outcomes: Common Estimands and Pitfalls
+
+In time-to-event (survival) analysis, a common practice is to report a hazard ratio from a Cox proportional hazards (PH) model. While hazard ratios are popular, we need to understand their limitations for causal interpretation. Let's unpack what estimands are possible in time-to-event studies and why the hazard ratio may fall short.
+
+### What Estimand Are We Getting from a Cox Model?
+
+The Cox PH model gives a hazard ratio – roughly, the ratio of instantaneous event rates between two groups (exposed vs. unexposed) at any given time. If you include covariates, the Cox model yields an adjusted hazard ratio (often interpreted as the effect of treatment *holding confounders constant*). Many epidemiologic studies report only this HR as the measure of effect.
+
+However, the hazard ratio is **not a direct probability, risk, or survival difference**. Importantly, a hazard ratio from an observational Cox model is a conditional measure (conditional on covariates and on surviving up to a given time). It does not directly answer questions like "how many more/fewer patients have the event by 12 months if treated vs. untreated?". In fact, the hazard ratio "does not correspond to a clearly defined causal effect" on its own. It's a rate ratio averaged over follow-up and, unless hazards are proportional and no other biases, it isn't straightforward to interpret causally.
+
+### Pitfalls of the Hazard Ratio:
+
+* **Assumes Proportional Hazards**: Cox models assume the hazard ratio is constant over time. In reality, treatment effects may start strong and wane, or vice-versa. If the HR is not constant, the single number reported is some complex average of time-varying effects. For example, a treatment might increase early risk but improve long-term outcomes, yielding an average HR ~1.0 – masking important time patterns. Reporting only an "average" HR can be misleading if effects change over follow-up.
+
+* **Built-in Selection Bias (Survivor Bias)**: The hazard at time t is among those who have not yet had the event by t. If treatment affects who remains event-free, the treated and untreated groups at later times become inherently different ("depletion of susceptibles"). Miguel Hernán pointed out that period-specific hazard ratios have a "built-in selection bias". For instance, if susceptible individuals in the treatment arm experience the event early, the remaining treated patients are a healthier subset, which can make the hazard ratio appear to favor treatment later regardless of true long-term effect. This is one reason a treatment with no real long-term benefit could show an HR < 1 in later years purely by selection of who's left.
+
+* **Lack of Collapsibility**: Hazard ratios (like odds ratios) are non-collapsible, meaning the adjusted HR is not equal to any simple ratio of marginal (population-level) risks. Even if there is no confounding, conditioning on covariates can change the numerical value of an HR. This makes it hard to interpret the adjusted HR as a population effect. In contrast, measures like risk differences are collapsible (they can be aggregated without distortion).
+
+* **Clinical Interpretation**: Physicians and policymakers often find absolute probabilities more intuitive (e.g. "5% of patients had kidney injury with drug vs 8% without"). A hazard ratio of 0.7 does imply a relative reduction, but it's not obvious how that translates to absolute risk reduction without additional calculations. As the CONSORT guidelines note, reporting both absolute and relative measures is ideal, "as neither alone gives a complete picture". An HR alone doesn't tell you baseline risk or NNT (number needed to treat).
+
+Bottom line: A hazard ratio from a Cox model is a useful associative measure, but endowing it with a causal interpretation is tricky. Hernán's article "The Hazards of Hazard Ratios" cautioned that treating HR as *the* causal effect measure is risky. It may obscure time-varying effects and introduce bias due to the very way it's defined over time at risk. Indeed, one review bluntly states that an HR from a Cox model "may be estimated... but does not correspond to a clearly defined causal effect".
+
+### Illustrative Example: Hazard Ratio vs. Absolute Risk
+
+Consider a hypothetical (but inspired by real data) example: In a cohort of patients with chronic HCV infection, suppose we compare those treated with a new antiviral vs. those untreated, and we observe a hazard ratio of 0.70 for developing chronic kidney disease (CKD). In fact, a published real-world study found about a 30% hazard reduction in CKD risk with HCV treatment (HR 0.70, 95% CI 0.55–0.88). This suggests the treatment is beneficial. But what does HR = 0.70 mean in tangible terms?
+
+* If the 5-year cumulative incidence of CKD in untreated patients is, say, 5%, an HR of 0.70 might correspond to roughly a 3.5% 5-year incidence in treated patients. That's an absolute risk reduction of ~1.5 percentage points (5% vs 3.5%).
+* If untreated risk is higher, e.g. 15% over 5 years, HR 0.70 might correspond to ~10.5% in treated – an absolute reduction of 4.5%.
+
+The hazard ratio alone doesn't tell us these absolute risks. In the HCV example, the authors reported incidence rates: untreated patients had about 10.8 CKD cases per 1000 person-years versus 6.7 per 1000 PY in effectively treated patients. Over a few years of follow-up, that implies only a few percent of patients developed CKD in either group. So the HR=0.70, while showing a relative benefit, translates to a modest absolute risk difference (a few fewer cases per 100 patients treated). This absolute effect size might matter for cost-benefit or clinical decisions, but it's not apparent from the HR alone.
+
+Takeaway: Especially in RWE settings with relatively low event rates, an impressive HR can correspond to a small absolute risk reduction. To fully answer our causal question ("should we treat HCV to prevent CKD?"), we likely want to know the absolute benefit (e.g. percentage of patients spared CKD over X years by treating). That is why careful estimand selection is needed – perhaps we want our estimand to be the risk difference at 5 years, rather than a hazard ratio.
+
+## Choosing a Causal Estimand for Time-to-Event Data
+
+Given the pitfalls above, how should we define our estimand for time-to-event outcomes? The estimand should align with a meaningful causal contrast. Common choices include measures of survival probability or cumulative incidence at a certain time, or contrasts of survival distributions. Here are some estimand options:
+
+* **Absolute Risk (Cumulative Incidence) at time $t$**: e.g. "Probability of being event-free through 12 months." From this we can derive risk difference or risk ratio between groups at time $t$.
+
+* **Survival Curve Difference**: Comparing the entire survival curves over time between treatment and control (e.g. showing adjusted Kaplan-Meier curves). This can be summarized at specific time points (risk at 1 year, 2 years, etc.) or by an area/difference measure.
+
+* **Restricted Mean Survival Time (RMST)**: The average time without the event up to a milestone time (the area under the survival curve up to $t$). The difference in RMST between groups is an estimand (how much longer, on average, patients survive without the event with treatment vs. control, within a fixed horizon). This is an alternative summary that is often more interpretable when hazards are non-proportional.
+
+* **Hazard-based estimands**: If truly the hazard function itself is of interest, one could define estimands like a time-specific hazard ratio at a certain time, or the average hazard ratio over follow-up. However, as discussed, these are harder to interpret causally, so they are less commonly chosen as target estimands in a causal analysis (they might be more a by-product of a model).
+
+The key is to pick an estimand that directly answers the causal question. Often for decision-making, risks and risk differences are very useful estimands:
+
+* **Risk difference at time $t$** (also known as absolute risk reduction): Tells how much the treatment changes the probability of the outcome by time $t$. It's easy to interpret (e.g. "treatment reduces 1-year event risk by 5 percentage points") and can be translated to Number Needed to Treat (NNT = 1/(risk difference)).
+
+* **Risk ratio at time $t$** (or relative risk): Tells how many times more or less likely the outcome is by time $t$ in one group vs. the other (e.g. "0.5 times as likely at 1 year" meaning a 50% relative reduction). Some prefer relative measures for their stability across populations.
+
+* **RMST difference**: Tells the average gain or loss in event-free time within a certain period due to the treatment (e.g. "on average, patients lived 2 months longer without kidney failure over a 3-year period with treatment"). This can be very intuitive in some contexts (like quality of life or survival time gained).
+
+* **Hazard ratio**: as discussed, it's a relative measure of hazard rates. It's commonly reported but should be linked to a causal estimand if used. For example, one might define the estimand as something like "the hazard ratio if the treatment were applied to everyone vs to no one, under PH assumption". However, because of its issues, many causal analyses de-emphasize the HR as the primary estimand. Instead, they might report HR as a secondary analysis, acknowledging its limitations.
+
+Below is a summary table of different estimands for time-to-event outcomes and when you might use them:
+
+| Estimand | Definition | Use Case & Interpretation |
+|----------|------------|--------------------------|
+| Risk (Survival) at time $t$ | Probability of having (or not having) the event by a specific time $t$ under a given treatment strategy. Often expressed as cumulative incidence. | Useful for clear time-bound outcomes (e.g. 1-year event risk). Directly interpretable. Can compare risk in Treatment vs. Control to get risk difference or ratio. |
+| Risk Difference at $t$ | Difference in cumulative incidence by time $t$ between two strategies (e.g. treated minus untreated risk). | Best for communicating absolute effect. Answers "How many fewer (or more) events by $t$ if everyone treated vs. no one treated?". Policy-friendly (can compute NNT). |
+| Risk Ratio at $t$ | Ratio of cumulative incidences by time $t$ between two strategies. | A relative measure at a concrete time point. Interpretation: "Patients treated have 0.xx times the risk by 12 months compared to untreated." Useful for epidemiologic comparison; still fairly intuitive if communicated as "% reduction". |
+| Hazard Ratio (over follow-up) | Ratio of hazard rates (instantaneous event risk) between groups, typically assumed constant in Cox PH model. It's a conditional relative measure, averaged over the follow-up period. | Common in literature, but caution: does not directly translate to absolute risk. Use when PH assumption is reasonable and when a relative rate measure is needed. Always consider also presenting absolute measures. Not a pure causal estimand unless proportional hazards and no confounding (in RCT). |
+| Restricted Mean Survival Time (RMST) Difference | Difference in the area under the survival curve up to time $t$ between two groups. Equivalently, the difference in average event-free time by $t$. | Good when timing of events matters or when hazards are non-proportional. E.g., "Over 5 years, treatment A gives 3 months more event-free survival on average than treatment B." Clinically intuitive in many settings (time gained). |
+| Median Survival Time Difference (if applicable) | Difference in median time to event between groups (or ratio of medians). | Sometimes used in oncology (e.g. median survival). Requires enough events to estimate median. Interpretation: how much longer median survival is with treatment. Could be considered if PH fails and median is of interest. |
+
+Table: Common estimands for time-to-event outcomes and their interpretations. Each estimand answers a slightly different question. Generally, for causal inference in RWE, absolute risk measures (risk differences) are recommended to convey real-world impact, often alongside a relative measure.
+
+Choosing the estimand depends on the question: For example, if stakeholders care about "how many events are prevented by treatment within 1 year," the estimand should be a 1-year risk difference. If they care about long-term prognosis, perhaps a 5-year survival probability or RMST difference is appropriate. The estimand should be decided first; the statistical approach comes next to estimate that estimand.
+
+## Time-Varying Treatments and Dynamic Causal Effects
+
+### Why Consider Time-Varying Treatments?
+
+Many real-world treatments are not assigned at baseline and held constant. Patients may switch treatments, discontinue therapy, or start new medications based on disease progression. In such cases, using baseline treatment as the sole exposure variable leads to biased effect estimates.
+
+Example:
+
+* A patient with HCV may initially start treatment with Drug A but switch to Drug B due to side effects. If we analyze only the baseline treatment, we ignore treatment changes over time, introducing bias.
+
+### Challenges in Analyzing Time-Varying Treatments
+
+1. Time-Dependent Confounding:
+   * Some confounders (e.g., blood sugar levels in diabetes) are affected by past treatment and also influence future treatment decisions.
+   * Example: A diabetes patient on insulin may experience weight gain, making them more likely to switch medications.
+
+2. Selection Bias from Treatment Switching:
+   * Patients who switch treatments may differ systematically from those who do not.
+   * If sicker patients are more likely to switch, analyzing treatment as if it were assigned at baseline will overestimate the effectiveness of the original treatment.
+
+### How to Address Time-Varying Treatment in Causal Inference
+
+To estimate the causal effect of dynamic treatment regimens, we can use:
+
+1. Marginal Structural Models (MSMs) with Inverse Probability Weighting (IPW)
+   * MSMs account for time-dependent confounders by reweighting data using stabilized weights.
+   * This allows us to compare treatment strategies over time while adjusting for confounding.
+
+Example R Code for IPW with Time-Varying Treatments
+
+```{r}
+library(ipw)
+ipw_model <- ipwpoint(exposure = treatment, family = "binomial", 
+               link = "logit", numerator = ~1,
+               denominator = ~ age + diabetes + past_treatment,
+               data = mydata)
+
+mydata$ipw_weights <- ipw_model$weights
+
+# Fit MSM using weighted Cox model
+library(survival)
+cox_msm <- coxph(Surv(time, event) ~ treatment, weights = 
+                  mydata$ipw_weights, data = mydata)
+summary(cox_msm)
+```
+
+2. TMLE for Time-Varying Treatments
+   * TMLE can be extended to estimate dynamic treatment effects by incorporating both treatment models and time-varying confounder models.
+
+Key Takeaways:
+   * In RWE, treatment often changes over time, requiring MSMs or TMLE to estimate causal effects of dynamic treatment strategies.
+   * Inverse probability weighting (IPW) can correct for time-dependent confounding, but TMLE offers better efficiency and robustness.
+
+## Limitations of Traditional Cox Regression for Causal Inference
+
+Let's explicitly address why a standard Cox regression analysis might not deliver the causal estimand you want:
+
+* **Cox gives conditional effects**: A multivariable Cox model adjusts for covariates, yielding a hazard ratio conditional on those covariates. This is a subject-specific or conditional effect, not the marginal (population-average) effect we'd get from a randomized trial comparison. In causal inference, we usually aim for the marginal effect (e.g. the average difference if everyone treated vs everyone untreated). If the treatment effect is not constant across covariate subgroups or if the measure is non-collapsible, the Cox model's coefficient doesn't equal the marginal effect. In contrast, methods like standardization or weighting can directly estimate the marginal causal effect.
+
+* **Consequence**: An adjusted HR from Cox might answer "what is the instantaneous risk ratio between treated and untreated for an individual with given covariates?", which is not as policy-relevant as "what is the average reduction in risk in the population if we treat vs. not treat?".
+
+* **No direct path to estimand like risk difference**: Cox models focus on hazards. To get, say, a 1-year risk difference from a Cox model, you'd have to compute survival curves (e.g. using the baseline hazard and covariate means, etc.). It's doable, but not straightforward, especially with time-dependent covariates or complex censoring. Many observational studies stop at reporting the HR, because producing adjusted survival curves or risk differences requires additional modeling or assumptions. However, as Hernán emphasized, the solution to the "hazards of hazard ratios" is to report adjusted survival curves or other direct summaries. In randomized trials, it's common to show Kaplan-Meier curves and give risk at specific time points, precisely because they are more interpretable. We should aim to do similarly in observational studies (using appropriate adjustment for confounders).
+
+* **Misinterpretation is common**: Because HR is the default output of Cox, analysts might be tempted to treat it as if it were a causal effect measure without scrutinizing the assumptions. For example, saying "Treatment X reduced the risk of kidney injury by 30%" based solely on HR=0.70 is only valid if the HR is roughly constant and there's a causal interpretation. It's safer to convert that into a risk reduction over a time period (the estimand) and then state the result. This ensures clarity about what was actually estimated.
+
+In summary, Cox regression is a powerful tool for association, but to integrate it into the causal inference roadmap, one must be careful. If you use a Cox model, use it as a tool to estimate a well-defined estimand (e.g. use it to derive adjusted survival probabilities). Don't let the model's convenience dictate the estimand; instead, define the estimand first and tailor the analysis to it.
+
+## Addressing Selection Bias in Causal Inference
+
+Selection bias is a critical challenge in real-world evidence (RWE) studies, particularly in time-to-event analyses where censoring occurs. If patients drop out of the study (e.g., loss to follow-up, administrative censoring, competing risks), and if this dropout is related to both treatment and the outcome, then the estimated treatment effect may be biased.
+
+### What is Selection Bias Due to Informative Censoring?
+
+Selection bias arises when the probability of remaining in the study is correlated with both the exposure (treatment) and the outcome.
+
+* **Example**: Suppose we analyze whether an HCV drug reduces the risk of chronic kidney disease (CKD), but patients with deteriorating kidney function are more likely to drop out of the study. If those with CKD are more likely to be censored, the analysis may overestimate the benefit of the treatment, since the group remaining in the study is healthier than the full population.
+
+* **Survival Analysis Issue**: Cox regression assumes that censoring is independent of the outcome, conditional on covariates. If this assumption is violated, the hazard ratio may be biased.
+
+### Methods to Address Selection Bias
+
+To correct for informative censoring, we need to adjust for the censoring mechanism in our analysis. There are three key methods:
+
+1. Inverse Probability of Censoring Weighting (IPCW)
+   * IPCW estimates the probability that a patient remains uncensored given their covariates.
+   * Patients who are more likely to be censored receive higher weights to account for their missing information.
+   * Example: If a patient with severe kidney disease has a high chance of dropping out, their weight in the analysis is increased, ensuring they contribute to the estimation.
+
+IPCW Implementation in R:
+
+```{r}
+library(ipw)
+censor_model <- glm(censor ~ age + diabetes + treatment, family = binomial, data = mydata)
+mydata$weights <- 1 / predict(censor_model, type = "response") 
+
+# Fit weighted Cox model
+library(survival)
+cox_model <- coxph(Surv(time, event) ~ treatment, weights = mydata$weights, data = mydata)
+summary(cox_model)
+```
+
+2. Targeted Learning for Informative Censoring: TMLE with Censoring Adjustment
+   * Targeted Maximum Likelihood Estimation (TMLE) can directly incorporate the probability of censoring into its targeting step, making it doubly robust (i.e., valid if either the censoring or outcome model is correctly specified).
+   * TMLE updates the initial outcome model based on censoring patterns to provide unbiased survival estimates.
+
+TMLE Implementation for Censored Data:
+
+```{r}
+library(survtmle)
+tmle_fit <- survtmle(ftime = mydata$time, ftype = mydata$event, trt = mydata$treat,
+                adjustVars = mydata[, c("age", "diabetes")],
+                t0 = 730, # Estimate risk at 2 years
+                glm.trt = "age + diabetes",
+                glm.ftime = "age + diabetes + treat",
+                glm.ctime = "age + diabetes") # Censoring model
+summary(tmle_fit)
+```
+
+This ensures that patients differentially lost to follow-up do not bias the estimated treatment effect.
+
+3. Imputation-Based Approaches
+   * Multiple Imputation (MI) is sometimes used to "fill in" missing outcomes for censored patients based on observed data.
+   * While MI is not directly causal, it can supplement analyses where other methods are impractical.
+
+Key Takeaways:
+   * If censoring is informative, standard Cox regression will be biased.
+   * IPCW and TMLE provide solutions by accounting for the censoring mechanism.
+   * TMLE is more efficient than IPCW and provides valid confidence intervals even under model misspecification.
+
+## Causal Estimation Methods Beyond Cox: G-Computation and TMLE
+
+Now that we have our estimand in mind (for example, a risk difference at a certain time), how do we estimate it from observational data? The causal roadmap suggests using methods that can account for confounding and directly target the estimand of interest. Two such approaches are G-computation and Targeted Maximum Likelihood Estimation (TMLE). We'll introduce each and discuss their advantages. (We will assume our data have measured all the confounders needed for a causal analysis – an assumption of no unmeasured confounding – as well as other standard assumptions like positivity and correct model specification for these methods to give valid results.)
+
+### G-Computation (Parametric G-formula / Standardization)
+
+What it is: G-computation is essentially a way to emulate what a randomized trial would find, using a combination of modeling and averaging. It's also known as the parametric g-formula or simply standardization. The idea is:
+
+1. Outcome model: Fit a regression model for the outcome (or survival) as a function of treatment and confounders. This could be a logistic regression for risk by time $t$, or a survival model, etc.
+
+2. Prediction under each scenario: Use that model to predict the outcome probability for each individual if treated and if untreated.
+
+3. Average to get marginal risks: Take the average of those predicted probabilities in the population. This gives you the marginal outcome risk under each scenario (everyone treated vs everyone untreated).
+
+4. Calculate contrast: Compute the estimand – e.g. difference or ratio of these two risks. This is your causal effect estimate (assuming the model was correct and adjusted for confounders).
+
+In formula form, if $Y$ is outcome, $A$ treatment, $W$ confounders, g-computation estimates:
+$$P(Y=1 \mid A=1) = E_W[ P(Y=1 \mid A=1, W) ]$$
+$$P(Y=1 \mid A=0) = E_W[ P(Y=1 \mid A=0, W) ]$$
+
+then takes the difference. This is exactly what you'd do in a randomized trial: calculate outcome risk in each arm. Here we use the model to simulate those arms.
+
+Example: If our estimand is 2-year risk difference of kidney injury (treated vs untreated):
+* We could fit a logistic regression for "event by 2 years" ~ treatment + confounders.
+* Then use that model to predict each patient's probability of 2-year event if treated (set treatment=1) and if untreated (treatment=0).
+* Average those probabilities to get population risk with vs. without treatment.
+* Risk difference = treated risk – untreated risk.
+
+Why it's useful: G-computation directly gives marginal effects by design. It answers the question "what would happen if everyone got treatment vs not" (under model assumptions). It's very transparent and connects nicely to the "target trial" concept. It can estimate risk differences, ratios, survival curves, etc., depending on how you implement the outcome model. It's also relatively easy to implement with standard regression tools.
+
+Limitations: The correctness of g-computation depends on correctly specifying the outcome model. If your regression model is wrong or too simplistic (e.g. misses non-linearities or interactions), your estimates may be biased. In other words, it's sensitive to model misspecification. It's also an "one-step" approach in the sense that if that model is wrong, there's no safety net. Later we'll see TMLE tries to improve robustness. Additionally, if there are many confounders or complex relationships, a simple parametric model may struggle (though one can use machine learning in the outcome model as well). Despite these, g-computation is a good starting point for causal estimation and is much closer to the causal estimand than a naive Cox HR.
+
+R Example – G-Computation via Standardization: Suppose mydata has variables: time, event (time-to-event outcome), treat (treatment indicator), and some confounders (conf1, conf2, ...). We want the 2-year risk difference. For simplicity, we'll assume few censored before 2 years or treat censoring as non-informative. We can do:
+
+```{r}
+# Create an indicator for event by 2 years (730 days), counting censor as no event by 2 years
+mydata$event2yr <- ifelse(mydata$time <= 730 & mydata$event == 1, 1, 0)
+
+# Fit an outcome model: logistic regression for having the event by 2 years
+outcome_model <- glm(event2yr ~ treat + conf1 + conf2, data = mydata, family = binomial)
+
+# Predict 2-year risk under each scenario for each person:
+pred_treated <- predict(outcome_model, newdata = transform(mydata, treat = 1), type = "response")
+pred_untreated <- predict(outcome_model, newdata = transform(mydata, treat = 0), type = "response")
+
+# Average predicted risks:
+mean_risk_treated <- mean(pred_treated)
+mean_risk_untreated <- mean(pred_untreated)
+risk_difference <- mean_risk_treated - mean_risk_untreated
+risk_ratio <- mean_risk_treated / mean_risk_untreated
+
+cat("Estimated 2-year risk (treated) =", round(mean_risk_treated,3),
+    "\nEstimated 2-year risk (untreated) =", round(mean_risk_untreated,3),
+    "\nRisk difference =", round(risk_difference,3),
+    "\nRisk ratio =", round(risk_ratio,3))
+```
+
+This code fits a logistic model and then does predicted value standardization to get the marginal risks. The result might show, for example, treated risk = 0.07 (7%), untreated risk = 0.10 (10%), so risk difference = -0.03 (–3 percentage points) and risk ratio ~0.7. Those numbers would match the interpretation of an HR ~0.7 in our hypothetical scenario, but now we have the actual estimand (risk difference) and its size. You could also get a confidence interval via bootstrap or using R packages that implement standardization.
+
+(Note: If censoring is substantial by 2 years, a refinement is needed: one can model the survival time or use weighting for censoring. For didactic clarity, we keep it simple here.)
+
+### Targeted Maximum Likelihood Estimation (TMLE)
+
+What it is: TMLE is an advanced estimation framework that combines ideas from G-computation and propensity score weighting in a clever way. It's part of the "targeted learning" approach developed by van der Laan and colleagues. TMLE is designed to estimate causal effects (like an ATE or risk difference) while being robust to model misspecification and allowing the use of machine learning for parts of the model. In short, TMLE does the following:
+
+* It starts with initial estimates of the outcome model (like in g-computation) and the treatment model (propensity score).
+* It then performs a targeting step that adjusts the outcome prediction in a way that specifically improves the estimate of the causal parameter (the estimand), using information from the treatment model. This ensures the final estimate respects the observed data structure and target parameter.
+* The result is an estimate of (for example) the risk difference that is doubly robust and efficient.
+
+Doubly robust means TMLE will give an asymptotically unbiased estimate if either the outcome model or the treatment model is correctly specified (not necessarily both). This is a big advantage: even if you guess one model wrong, you still get a consistent estimate so long as the other model was right. In contrast, simple g-computation needs the outcome model right, and simple IPTW (weighting by propensity) needs the treatment model right. TMLE combines both and thus has this robustness. It's also typically locally efficient, meaning it achieves the smallest possible variance for an unbiased estimator (when models are correct).
+
+In practice, what does TMLE give you? It can give you the estimated treatment effect (risk difference, risk ratio, OR, etc. depending on what you target) and a valid confidence interval. TMLE can handle complex data situations (censoring, time-varying treatments, etc. with extensions) and can incorporate machine learning algorithms instead of parametric models to improve estimation of nuisance parts (propensity and outcome). This is attractive in high-dimensional RWE contexts.
+
+### Why use TMLE?
+
+* **Causal parameter focus**: It targets the estimand directly. If you want the 1-year risk difference, it will give an estimate tailored to that.
+* **Reduced bias**: Through its targeting step, TMLE often corrects small biases that remain in initial estimates. For example, if your outcome model was slightly misfit, TMLE can often adjust for that using information from the propensity score.
+* **Uses all data efficiently**: Rather than discarding observations (as matching might) or relying on one model, it uses both models to extract information, often leading to better precision.
+* **Automated with software**: While the theory is complex, there are R packages that implement TMLE. You don't have to code the algorithm from scratch. For point exposure (one-time treatment) causal effects, the tmle package (for binary outcomes) and survtmle package (for survival outcomes) are available.
+
+Limitations: TMLE is relatively complex under the hood. It may be less familiar to analysts, and setting it up correctly (especially for survival outcomes with censoring) requires some learning. Sometimes, TMLE procedures can face convergence issues in small samples or extreme propensity cases (if few treated or extreme weights). In large samples, with reasonable overlap, it tends to work well. Because it's a newer method (in epidemiology terms), reviewers or colleagues might need explanation of what it is – but by now, TMLE has been used in many publications, including pharmacoepidemiology.
+
+For our context (time-to-event, single treatment at baseline), TMLE would typically involve: modeling the treatment assignment (propensity of HCV treatment given confounders) and the outcome (survival probability or hazard), then executing the targeting step to estimate (for example) the 2-year survival in each group and the difference.
+
+R Example – TMLE for 2-year Risk Difference: We can use the survtmle package by Benkeser et al. to estimate the 2-year incidence under treatment and no treatment. Here's how it might look:
+
+```{r}
+library(survtmle)
+# Using survtmle for a single time-point analysis (t0 = 730 days)
+# ftime = follow-up time, ftype = event status (1 for event, 0 for censor, in this package's logic)
+# trt = treatment indicator, adjustVars = data frame of confounders
+tmle_fit <- survtmle(ftime = mydata$time, ftype = mydata$event, trt = mydata$treat,
+                adjustVars = mydata[, c("conf1","conf2")],
+                t0 = 730, # time horizon of interest
+                method = "mean", # target the mean outcome (risk) at t0 for each group
+                glm.trt = "conf1 + conf2", # (optionally specify propensity model)
+                glm.ftime = "conf1 + conf2 + trt",# (optionally specify outcome model; can also use SuperLearner)
+                glm.ctime = "conf1 + conf2") # censoring model if needed
+# Results:
+tmle_fit # this will print estimated survival probabilities at 730 days for trt=0 and trt=1, and their difference
+# We can extract the estimates:
+estimates <- summary(tmle_fit)
+estimates$est # might contain Psi_Treated, Psi_Untreated, and Psi_diff (risk difference)
+```
+
+(Note: In survtmle, ftime/ftype format handles censoring and possibly competing risks; here assume ftype=1 means event of interest and ftype=0 means censor. We specify models as formula strings or leave them for machine learning by using SuperLearner.)
+
+The output will give you something like: estimated 2-year event probability in untreated, in treated, and the difference (and maybe log RR or other scale if requested). For example, you might get untreated = 0.10, treated = 0.07, difference = -0.03 (with confidence interval, say -0.05 to -0.01), indicating a statistically significant 3% reduction in 2-year risk due to treatment. This approach directly answers the question: what is the effect on 2-year risk?
+
+Advantages in our case study context: TMLE would use both the propensity score for HCV treatment and an outcome model for CKD incidence. Even if one model is slightly off, TMLE can still consistently estimate the risk difference. It also provides inference (standard errors that account for the nuisance estimation). This is particularly useful if we wanted to adjust for many confounders potentially using machine learning (like regression trees or random forests) – TMLE can incorporate that via the SuperLearner framework and still give a valid CI.
+
+## Other Causal Methods (Briefly)
+
+Besides G-computation and TMLE, you may encounter:
+
+* **Inverse Probability Weighting (IPW)**: Create weights = 1/Pr(Treatment|Conf) for treated (and similar for untreated) to create a pseudo-population where treatment is unconfounded. Then estimate effects (like risk difference or HR) by weighted analysis. IPW is straightforward for marginal effects but can be inefficient or unstable if extreme weights. TMLE often improves on IPW by also modeling outcome.
+
+* **Augmented IPW (AIPW)**: Another doubly robust method (very similar spirit to TMLE) where you add a correction term to IPW using an outcome model. It gives similar results to TMLE if done right.
+
+* **Structural models for hazards**: e.g. Marginal Structural Cox Models use IPW to estimate a marginal hazard ratio. These address time-dependent confounding typically. They provide a weighted Cox HR, which is marginal. However, as we discussed, even a marginal HR can be hard to interpret if non-PH, so one might prefer to convert it to other measures.
+
+* **Accelerated Failure Time (AFT) models**: A parametric alternative to Cox that directly models survival time (log-time usually). The estimand from an AFT could be a time ratio or difference (e.g. treatment multiplies the event time by 1.5, meaning 50% longer time to event). Hernán suggested comparing survival distributions via AFT when HR is problematic. AFT can sometimes be more interpretable (e.g. "treatment delays median onset by 6 months"). But AFT models make parametric assumptions about the survival distribution (exponential, Weibull, etc.), which might not hold. They are less often used in causal contexts than g-computation/TMLE/weighting, but worth knowing.
+
+For our purposes, focusing on standardization (g-formula) and TMLE will cover a lot of ground. They both aim to estimate things like risk differences in a way that aligns with the causal question.
+
+## Refining the Super Learner Library for TMLE
+
+The Super Learner (SL) algorithm is a core component of TMLE, as it optimally combines multiple prediction models to estimate the propensity score and outcome regression models. Choosing an appropriate SL library is critical to improving model accuracy, robustness, and efficiency.
+
+The PracticalSL paper provides key recommendations for constructing a well-specified SL library, including:
+
+* **Diversity of Algorithms**: Include models with different strengths (e.g., linear models, tree-based models, and non-parametric approaches).
+* **Cross-Validation Strategy**: Use V-fold cross-validation (typically V = 5 or 10) to evaluate learner performance.
+* **Computational Feasibility**: Balance library complexity with runtime constraints, especially in large datasets.
+* **Handling High-Dimensional Data**: Consider screening methods or dimension reduction strategies for datasets with many predictors.
+* **Discrete vs. Ensemble Super Learner**: Evaluate if the best individual learner (discrete SL) outperforms the full ensemble (ensemble SL).
+
+## Case Study: HCV Antiviral and Kidney Injury – Applying the Framework
+
+Let's tie everything together with the case study mentioned: an analysis of an HCV drug and subsequent kidney injury (e.g. CKD or acute kidney injury). Suppose our real-world data come from a claims or EHR database, where some patients with Hepatitis C Virus (HCV) infection received the new direct-acting antiviral (DAA) treatment and others did not. We want to know if treating HCV reduces the risk of kidney injury.
+
+### Step 1: Causal Question and Estimand
+
+* **Causal Question**: "Does treating HCV infection with the new DAA (vs. no treatment) causally reduce the incidence of kidney injury over a 2-year follow-up in HCV-infected patients?"
+* **Population**: HCV-infected adult patients eligible for treatment, with no prior kidney injury at baseline.
+* **Interventions (Treatment vs Comparison)**: Initiation of the DAA vs. deferral/absence of antiviral treatment. (We assume in a target trial we'd give everyone either treat or not treat at baseline and follow them; in our observational data, we'll emulate that by comparing those who happened to be treated vs not.)
+* **Outcome**: Onset of kidney injury (we could define this as a diagnosis of CKD, or a significant drop in GFR, etc., within 2 years).
+* **Estimand**: We decide that the most clinically relevant measure is the 2-year risk difference in kidney injury between treating vs. not treating. That is, we want to estimate:
+  $\text{Risk}_{2yr}(Treatment) - \text{Risk}_{2yr}(No\ Treatment)$
+  in the target population. We'll also look at the risk ratio, but the risk difference will tell us the absolute benefit. We might also be interested secondarily in the hazard ratio (since previous studies reported it), but we acknowledge the HR is not our primary estimand.
+
+By clearly defining this, we set ourselves up to choose an approach that can estimate the 2-year risks under each scenario.
+
+### Step 2: Data and Assumptions
+
+We identify confounders: factors affecting both likelihood of getting the HCV treatment and risk of kidney injury. These might include age, baseline kidney function, diabetes, hypertension, liver disease severity, etc. We assume we have measured these. We draw a causal DAG (mentally or on paper) where HCV treatment is the exposure, kidney injury is the outcome, and these confounders have arrows into both. Perhaps HCV treatment is less likely in patients with very poor kidney function due to concerns about drug toxicity – that's confounding we must adjust for, because those untreated patients have higher inherent risk of kidney problems. We also consider follow-up time and censoring (some patients may be lost or die before 2 years – we assume non-informative censoring or we can adjust for censoring via weighting if needed).
+
+### Step 3: Estimation Plan
+
+To estimate the 2-year risk difference, we decide to use two approaches:
+
+1. **Cox PH model approach (for comparison)**: We'll fit a Cox model for time to kidney injury with treatment and confounders. This will give us an adjusted hazard ratio. We know this isn't our target estimand, but it's the conventional analysis, so we want to see what it gives and then translate it.
+
+2. **G-computation or TMLE approach (causal approach)**: We will estimate 2-year cumulative incidence in each group using standardization or TMLE. This directly targets our estimand. Specifically, we might use a logistic model for 2-year outcome as in the earlier code, or use survtmle to account for censoring and get the estimate.
+
+### Step 4: Execution and Results
+
+* **Cox model result**: Suppose after adjusting for age, diabetes, etc., the Cox model gives HR = 0.72 (28% hazard reduction) with 95% CI 0.60–0.85. This is similar to what prior studies found. On its face, this suggests treatment lowers the hazard of kidney injury. But to interpret: we check the proportional hazards assumption (perhaps using Schoenfeld residuals). If it holds reasonably, fine. If not (say hazards diverge more after 1 year), we note that the HR is an average effect. We plan to translate this into a 2-year risk difference for clarity.
+
+* **Causal estimand result via standardization**: Using g-computation, we get: estimated 2-year kidney injury incidence = 8% in untreated vs 5% in treated (these are plausible numbers given an incidence of ~10 per 1000 PY). That yields a risk difference of -3 percentage points (0.05 - 0.08 = -0.03) and a risk ratio of 0.62. The TMLE approach might give a very similar estimate, say -3.0% with a 95% CI (-4.5%, -1.5%) indicating a significant reduction. We thus find that treating HCV would prevent about 3 kidney injury cases per 100 patients over 2 years. The number needed to treat is ~33 to prevent one case in 2 years. This is the kind of summary a clinician or policymaker can use.
+
+* **Comparing to Cox HR**: Does HR=0.72 align with ~5% vs 8% risk? Let's check: The survival curves implied by those risks: untreated ~92% event-free, treated ~95% event-free at 2 years. The hazard ratio of 0.72 is roughly consistent with that level of risk reduction (though not exact, because HR is constant hazard ratio assumption). The Cox model alone wouldn't have told us "3% absolute reduction," but by doing the g-computation, we extracted that information. We also notice that if the hazards were not proportional, the Cox HR might not perfectly predict the 2-year risk ratio. Our approach doesn't rely on PH assumption; we directly estimated the cumulative incidence. Indeed, if we suspect that most of the benefit of treatment comes after, say, the first year (perhaps it takes time for the kidney to benefit from HCV clearance), we could even estimate the 1-year and 2-year risks separately. Maybe at 1 year the difference was only 1%, and by 2 years it grew to 3%. These nuances are lost in a single HR but captured by our estimand-centric approach.
+
+### Step 5: Interpretation
+
+We would report results in a way that directly answers the question: "In this real-world cohort, initiating HCV DAA therapy was associated with a X% absolute reduction in 2-year risk of kidney injury compared to no treatment." We might say: "The 2-year cumulative incidence of kidney injury was 5% among treated patients, vs. 8% among observationally similar untreated patients, an absolute risk difference of -3% (relative risk ~0.65)." We would likely still mention the hazard ratio for comparison with other studies (HR 0.72, 95% CI 0.60–0.85), but with a caveat that this HR is an average over time and we prefer the risk difference for clarity. Our causal interpretation hinges on assuming no unmeasured confounding etc. We would also perhaps plot adjusted survival curves: they might show two curves diverging slightly over time (with most divergence after 1 year, for example).
+
+### Step 6: Sensitivity & Stakeholders
+
+Since the roadmap is iterative, we'd consider if this estimand truly meets stakeholder needs. If a nephrologist actually cares about longer-term outcomes (say 5-year CKD risk), maybe 2-year was too short. Or if regulators want a relative measure, we ensure we also provide the risk ratio or HR. The key is we can always translate our results because we have both absolute and relative metrics now.
+
+We also might assess how robust the finding is: perhaps do a propensity score weighted KM curve as a sensitivity check (which should roughly agree). We would check if any violation of positivity (did we have patients across confounder spectrum in both groups?) – if not, the causal estimate might rely on extrapolation.
+
+In summary, using the causal inference roadmap for this case study led us to define a clear estimand (risk difference) and apply appropriate methods (g-computation, TMLE) to estimate it. This provided a more interpretable answer than a hazard ratio alone. We found that treating HCV likely causally reduces kidney injury risk in this population, and we quantified that effect in absolute terms.
+
+## Summary and Key Takeaways
+
+* **Always start with the causal question and estimand**: Before running models, articulate what effect you want to estimate. For time-to-event outcomes, decide if you care about an absolute risk, a relative risk at a certain time, survival time gained, etc. This estimand will drive your analysis choices. It improves clarity and communication of RWE findings.
+
+* **Be cautious with hazard ratios**: Cox models and HRs are standard in epidemiology, but an HR is not always the best expression of a causal effect. HRs can obscure how effects change over time and do not directly convey absolute risk. Use HRs with awareness of the proportional hazards assumption and consider presenting other measures. As a rule, accompany hazard ratios with absolute measures (e.g. event rates or risk differences) whenever possible.
+
+* **Consider alternative estimands**: Often, stakeholders care about risk over a period of time. Reporting, for example, "Treatment lowered 1-year event risk from 10% to 7%" is very informative. Risk differences, risk ratios at a fixed time, or RMST differences are often more interpretable for decision-making than an abstract HR. The choice depends on the context: risk difference for absolute impact, risk ratio for relative effect, RMST for average time benefit, etc. (See table above for guidance.)
+
+* **Use appropriate methods to estimate your estimand**: If you choose a risk difference, use methods like g-computation or TMLE that naturally provide that. These methods properly adjust for confounding while targeting the estimand. G-computation (standardization) is conceptually straightforward and directly computes population risks. TMLE offers double robustness and often better statistical properties, reducing bias if either the outcome or treatment model is correct. Both can leverage modern computing (e.g. machine learning) to handle many covariates or non-linear relationships. There are user-friendly R packages (e.g. riskstandard or DIY with regression for g-comp, tmle/survtmle for TMLE).
+
+* **Interpret results in context of assumptions**: In observational RWE, remember the causal interpretation hinges on assumptions: no unmeasured confounders, correct model spec, etc. The roadmap encourages explicit stating of these. If using TMLE or g-comp, state that you adjusted for XYZ confounders and assumed no others. If there's censoring, mention how you handled it. This transparency builds trust in the evidence.
+
+* **Communication**: By adopting estimand-focused analysis, your reporting will naturally become clearer. Instead of just "HR=0.72," you'll be able to say "the treatment reduced 2-year incidence by 3% (from 8% to 5%)." This is easier for interdisciplinary teams to understand and for decision-makers to use. It's aligned with regulatory thinking too (ICH E9's estimand framework likes to see clear description of treatment effect measures).
+
+In conclusion, integrating the causal inference roadmap into RWE practice means planning analyses more like trials: define the question and measure of effect (estimand) first, then use appropriate methods to estimate it. For time-to-event outcomes, this often means looking beyond the hazard ratio. Cox regression is not "bad" – it can be part of the toolset – but it should be applied in service of estimating the quantity we truly care about, rather than being the default analysis without question. Methods like TMLE and g-computation empower us to estimate causal effects in a way that aligns with the questions we want to answer, providing results that are both scientifically valid (under assumptions) and practically interpretable.
+
+By following this approach, your RWE team can produce analyses that stand up to scrutiny and genuinely inform decisions, bridging the gap between traditional epidemiologic results and a causal understanding of treatment effects in the real world.
+
+## References:
+(Key sources that informed this tutorial)
+
+* Hernán MA. The hazards of hazard ratios. Epidemiology. 2010;21(1):13–15. doi:10.1097/EDE.0b013e3181c1ea43
+
+* The Causal Roadmap framework – Dang et al. A causal roadmap for generating high-quality real-world evidence. Clin Trials. 2023.
+
+* Snowden JM, Rose S, Mortimer KM. Implementation of G-computation on a simulated data set: Demonstration of a causal inference technique. Am J Epidemiol. 2011.
+
+* Westreich D, Cole SR. Invited commentary: positivity in practice. Am J Epidemiol. 2010. (Positivity assumption in causal inference).
+
+* Gruber S, van der Laan MJ. An R Package for Targeted Maximum Likelihood Estimation. UC Berkeley Div of Biostatistics Working Paper Series. 2011. (tmle package documentation).
+
+* Benkeser D, et al. survtmle: Targeted Learning for Survival Analysis. R package version 1.1.2.
+
+* Park H, et al. Chronic HCV increases risk of CKD while HCV treatment decreases incidence of CKD. Hepatology. 2018;67(2):492-504. (HCV and CKD example study)

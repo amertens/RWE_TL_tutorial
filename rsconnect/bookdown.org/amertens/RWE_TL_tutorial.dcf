@@ -1,0 +1,12 @@
+name: RWE_TL_tutorial
+title:
+username: amertens
+account: amertens
+server: bookdown.org
+hostUrl: https://bookdown.org/__api__
+appId: 15066
+bundleId: 104318
+url: https://bookdown.org/amertens/RWE_TL_tutorial/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

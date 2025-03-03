@@ -1,0 +1,129 @@
+---
+title: "Case study- Acute Kidney injury comparison in Antiviral Treatment Regimens In Patients With Hepatitis C"
+author: "Gilead Tutorial"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    theme: readable
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, eval=FALSE)
+```
+
+## NOTES
+
+TO ADD
+
+Code currently isn't runnable- editing in progress
+
+
+## Introduction
+Real-world evidence (RWE) studies in pharma often rely on traditional regression methods to analyze outcomes. However, causal inference requires more than a p-value or an adjusted hazard ratio (HR). The **causal inference roadmap** provides a structured framework to design analyses that yield **causally interpretable results**.
+
+This tutorial will:
+- Explain what an **estimand** is and why it matters in causal inference.
+- Highlight **limitations of the Cox proportional hazards model and HR**.
+- Introduce alternative estimands and estimation methods (e.g., **TMLE, G-computation**).
+- Walk through a **case study** on Hepatitis C drug treatment and kidney injury.
+- Provide **R code** to execute causal inference analyses using propensity score methods, TMLE, and diagnostics.
+
+## The Causal Inference Roadmap & Estimand Selection
+Modern causal inference recommends designing studies like a **target trial** by clearly specifying:
+- **Causal question** (e.g., "Does Treatment X reduce 12-month kidney injury risk?")
+- **Estimand** (e.g., **absolute risk difference**, survival probability, RMST)
+- **Estimator** (e.g., **G-computation, TMLE, inverse probability weighting (IPW)**)
+
+### Defining the Estimand
+**Example:**
+- "What is the **12-month risk difference** in kidney injury between treated vs. untreated patients?"
+- **Estimand:** Absolute risk difference (Risk[treated] - Risk[untreated])
+- **Estimators:** TMLE, G-computation, IPW
+
+```{r}
+# Example: Simulating hypothetical risk difference estimand
+risk_treated <- 0.05  # 5% incidence
+risk_untreated <- 0.08 # 8% incidence
+risk_difference <- risk_treated - risk_untreated
+risk_difference
+```
+
+## Issues with the Hazard Ratio (HR)
+### Why HR May Be Misleading
+- **Assumes Proportional Hazards**: HR is assumed constant over time.
+- **Selection Bias**: HRs condition on survival, introducing bias.
+- **Lack of Interpretability**: HR does not directly translate into **risk reduction**.
+
+## Alternative Estimands & Methods
+| **Estimand** | **Definition** | **Use Case** |
+|-------------|--------------|--------------|
+| **Risk Difference (RD)** | Difference in cumulative incidence between groups | Intuitive, direct impact on clinical decision-making |
+| **Risk Ratio (RR)** | Ratio of cumulative incidence between groups | Epidemiologic comparisons |
+| **Restricted Mean Survival Time (RMST)** | Difference in event-free time | Non-proportional hazards settings |
+
+## Addressing Selection Bias & Informative Censoring
+Selection bias occurs when loss to follow-up is related to **both treatment and outcome**.
+### **Inverse Probability of Censoring Weighting (IPCW)**
+```{r}
+library(ipw)
+censor_model <- glm(censor ~ age + diabetes + treatment, family = binomial, data = mydata)
+mydata$weights <- 1 / predict(censor_model, type = "response")
+```
+
+### **TMLE for Informative Censoring**
+```{r}
+library(survtmle)
+tmle_fit <- survtmle(ftime = mydata$time, ftype = mydata$event, trt = mydata$treat,
+                     adjustVars = mydata[, c("age", "diabetes")],
+                     t0 = 730,
+                     glm.trt = "age + diabetes",
+                     glm.ftime = "age + diabetes + treat",
+                     glm.ctime = "age + diabetes")
+summary(tmle_fit)
+```
+
+## Implementing Targeted Learning (TMLE) in R
+### **Step 1: Specify Super Learner Library**
+```{r}
+library(SuperLearner)
+SL.library <- c("SL.glm", "SL.glmnet", "SL.ranger", "SL.xgboost")
+```
+
+### **Step 2: TMLE Analysis**
+```{r}
+library(tmle)
+tmle_fit <- tmle(Y = mydata$event, A = mydata$treatment, W = mydata[, c("age", "diabetes")],
+                 family = "binomial", Q.SL.library = SL.library, g.SL.library = SL.library)
+summary(tmle_fit)
+```
+
+## Diagnostics for TMLE
+- **Super Learner Model Weights**
+```{r}
+print(tmle_fit$g$SL.weights)
+print(tmle_fit$Q$SL.weights)
+```
+
+- **Comparison with Propensity Score Methods**
+```{r}
+library(MatchIt)
+ps_model <- glm(treatment ~ age + diabetes, data = mydata, family = binomial)
+ps <- predict(ps_model, type = "response")
+match <- matchit(treatment ~ age + diabetes, data = mydata, method = "nearest", caliper = 0.2)
+summary(match)
+```
+
+## Conclusion
+- Always **define the estimand** before choosing an estimation method.
+- Avoid **hazard ratios** as primary causal estimands.
+- **Use absolute risk measures** (e.g., **risk difference, RMST**).
+- **TMLE is robust** to model misspecification and provides better efficiency.
+
+## References
+- Hernán MA. *The hazards of hazard ratios.* Epidemiology. 2010.
+- Snowden JM, Rose S, Mortimer KM. *G-computation for causal inference.* Am J Epidemiol. 2011.
+- Gruber S, van der Laan MJ. *An R Package for Targeted Maximum Likelihood Estimation.*
