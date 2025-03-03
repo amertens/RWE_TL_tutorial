@@ -1026,17 +1026,17 @@ for (cal in caliper_values) {
   m_data &lt;- match.data(m_out)
 
   # Calculate treatment effect
-  model &lt;- glm(event ~ treatment, data = m_data, family = binomial)
+  model &lt;- coxph(Surv(observed_time, event) ~ treatment, data = m_data)
 
-  # Get odds ratio and confidence interval
-  or &lt;- exp(coef(model)[&quot;treatment&quot;])
+  # Get hazard ratio and confidence interval
+  hr &lt;- exp(coef(model)[&quot;treatment&quot;])
   ci &lt;- exp(confint(model)[&quot;treatment&quot;, ])
 
   # Add results to dataframe
   caliper_results &lt;- rbind(caliper_results,
                            data.frame(Caliper = cal,
                                       Matched_Pairs = nrow(m_data)/2,
-                                      OR = or,
+                                      HR = hr,
                                       Lower_CI = ci[1],
                                       Upper_CI = ci[2]))
 }
@@ -1051,7 +1051,7 @@ knitr::kable(caliper_results, digits = 3,
 <th align="left"></th>
 <th align="right">Caliper</th>
 <th align="right">Matched_Pairs</th>
-<th align="right">OR</th>
+<th align="right">HR</th>
 <th align="right">Lower_CI</th>
 <th align="right">Upper_CI</th>
 </tr>
@@ -1061,37 +1061,37 @@ knitr::kable(caliper_results, digits = 3,
 <td align="left">treatment</td>
 <td align="right">0.1</td>
 <td align="right">693</td>
-<td align="right">1.357</td>
-<td align="right">1.005</td>
-<td align="right">1.839</td>
+<td align="right">1.231</td>
+<td align="right">0.930</td>
+<td align="right">1.631</td>
 </tr>
 <tr class="even">
 <td align="left">treatment1</td>
 <td align="right">0.2</td>
 <td align="right">693</td>
-<td align="right">1.429</td>
-<td align="right">1.061</td>
-<td align="right">1.933</td>
+<td align="right">1.421</td>
+<td align="right">1.076</td>
+<td align="right">1.876</td>
 </tr>
 <tr class="odd">
 <td align="left">treatment2</td>
 <td align="right">0.3</td>
 <td align="right">693</td>
-<td align="right">1.473</td>
-<td align="right">1.095</td>
-<td align="right">1.990</td>
+<td align="right">1.392</td>
+<td align="right">1.055</td>
+<td align="right">1.836</td>
 </tr>
 </tbody>
 </table>
 <pre class="r"><code># Plot results
-ggplot(caliper_results, aes(x = factor(Caliper), y = OR)) +
+ggplot(caliper_results, aes(x = factor(Caliper), y = HR)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
   geom_hline(yintercept = 1, linetype = &quot;dashed&quot;) +
   labs(
     title = &quot;Treatment Effect Estimates with Different Caliper Widths&quot;,
     x = &quot;Caliper Width&quot;,
-    y = &quot;Odds Ratio (95% CI)&quot;
+    y = &quot;Hazard Ratio (95% CI)&quot;
   ) +
   theme_minimal()</code></pre>
 <p><img src="PS_analysis_files/figure-html/sensitivity-caliper-1.png" width="960" style="display: block; margin: auto;" /></p>
@@ -1110,17 +1110,17 @@ for (method in match_methods) {
   m_data &lt;- match.data(m_out)
 
   # Calculate treatment effect
-  model &lt;- glm(event ~ treatment, data = m_data, family = binomial)
+  model &lt;- coxph(Surv(observed_time, event) ~ treatment, data = m_data)
 
-  # Get odds ratio and confidence interval
-  or &lt;- exp(coef(model)[&quot;treatment&quot;])
+  # Get hazard ratio and confidence interval
+  hr &lt;- exp(coef(model)[&quot;treatment&quot;])
   ci &lt;- exp(confint(model)[&quot;treatment&quot;, ])
 
   # Add results to dataframe
   method_results &lt;- rbind(method_results,
                           data.frame(Method = method,
                                      Matched_Pairs = nrow(m_data)/2,
-                                     OR = or,
+                                     HR = hr,
                                      Lower_CI = ci[1],
                                      Upper_CI = ci[2]))
 }
@@ -1135,7 +1135,7 @@ knitr::kable(method_results, digits = 3,
 <th align="left"></th>
 <th align="left">Method</th>
 <th align="right">Matched_Pairs</th>
-<th align="right">OR</th>
+<th align="right">HR</th>
 <th align="right">Lower_CI</th>
 <th align="right">Upper_CI</th>
 </tr>
@@ -1145,37 +1145,37 @@ knitr::kable(method_results, digits = 3,
 <td align="left">treatment</td>
 <td align="left">nearest</td>
 <td align="right">693</td>
-<td align="right">2.317</td>
-<td align="right">1.751</td>
-<td align="right">3.086</td>
+<td align="right">2.142</td>
+<td align="right">1.653</td>
+<td align="right">2.775</td>
 </tr>
 <tr class="even">
 <td align="left">treatment1</td>
 <td align="left">optimal</td>
 <td align="right">693</td>
-<td align="right">1.216</td>
-<td align="right">0.895</td>
-<td align="right">1.655</td>
+<td align="right">1.276</td>
+<td align="right">0.957</td>
+<td align="right">1.700</td>
 </tr>
 <tr class="odd">
 <td align="left">treatment2</td>
 <td align="left">full</td>
 <td align="right">2500</td>
-<td align="right">1.366</td>
-<td align="right">1.081</td>
-<td align="right">1.744</td>
+<td align="right">1.349</td>
+<td align="right">1.079</td>
+<td align="right">1.686</td>
 </tr>
 </tbody>
 </table>
 <pre class="r"><code># Plot results
-ggplot(method_results, aes(x = Method, y = OR)) +
+ggplot(method_results, aes(x = Method, y = HR)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
   geom_hline(yintercept = 1, linetype = &quot;dashed&quot;) +
   labs(
     title = &quot;Treatment Effect Estimates with Different Matching Methods&quot;,
     x = &quot;Matching Method&quot;,
-    y = &quot;Odds Ratio (95% CI)&quot;
+    y = &quot;Hazard Ratio (95% CI)&quot;
   ) +
   theme_minimal()</code></pre>
 <p><img src="PS_analysis_files/figure-html/alternative-matching-1.png" width="960" style="display: block; margin: auto;" /></p>

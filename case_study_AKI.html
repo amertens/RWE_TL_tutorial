@@ -373,7 +373,19 @@ Simulation-Based Case Study</h1>
 <div id="overview" class="section level1">
 <h1>Overview</h1>
 <p>This document simulates and analyzes data for a case study on HCV
-treatment and kidney injury. The steps include:</p>
+treatment and kidney injury. This is based on a real post-market
+comparative safety analysis that assessed the risk of acute kidney
+injury (AKI) in patients with chronic hepatitis C virus (HCV) who were
+treated with sofosbuvir (SOF)-containing direct-acting antivirals (DAAs)
+compared to non-SOF DAAs. The study used real-world data from the
+HealthVerity database, including administrative claims and electronic
+medical records, to conduct a retrospective cohort analysis. The study
+applied propensity score matching (PSM) to balance baseline
+characteristics between treatment groups and used Cox proportional
+hazards models to estimate the hazard ratio (HR) of AKI incidence. The
+primary objective was to determine whether exposure to SOF-containing
+DAAs was associated with a higher risk of AKI compared to non-SOF DAAs.
+The steps include:</p>
 <ol style="list-style-type: decimal">
 <li>Data simulation with realistic confounding relationships</li>
 <li>Introduction of missing data following realistic patterns</li>
@@ -654,17 +666,17 @@ impute_result &lt;- missForest(df_cov, verbose = TRUE)</code></pre>
 <pre><code>##   missForest iteration 1 in progress...done!
 ##     estimated error(s): 0.4263795 
 ##     difference(s): 0.0004873576 
-##     time: 4.59 seconds
+##     time: 4.52 seconds
 ## 
 ##   missForest iteration 2 in progress...done!
 ##     estimated error(s): 0.4263694 
 ##     difference(s): 0.0004590606 
-##     time: 5.09 seconds
+##     time: 5.22 seconds
 ## 
 ##   missForest iteration 3 in progress...done!
 ##     estimated error(s): 0.4262343 
 ##     difference(s): 0.0004983446 
-##     time: 5.79 seconds</code></pre>
+##     time: 4.97 seconds</code></pre>
 <pre class="r"><code># Extract the imputed data
 df_cov_imputed &lt;- impute_result$ximp
 

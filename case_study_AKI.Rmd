@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
 
 # Overview
 
-This document simulates and analyzes data for a case study on HCV treatment and kidney injury. The steps include:
+This document simulates and analyzes data for a case study on HCV treatment and kidney injury. This is based on a real post-market comparative safety analysis that assessed the risk of acute kidney injury (AKI) in patients with chronic hepatitis C virus (HCV) who were treated with sofosbuvir (SOF)-containing direct-acting antivirals (DAAs) compared to non-SOF DAAs. The study used real-world data from the HealthVerity database, including administrative claims and electronic medical records, to conduct a retrospective cohort analysis. The study applied propensity score matching (PSM) to balance baseline characteristics between treatment groups and used Cox proportional hazards models to estimate the hazard ratio (HR) of AKI incidence. The primary objective was to determine whether exposure to SOF-containing DAAs was associated with a higher risk of AKI compared to non-SOF DAAs. The steps include:
 
 1. Data simulation with realistic confounding relationships
 2. Introduction of missing data following realistic patterns

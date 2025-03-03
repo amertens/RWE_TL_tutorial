@@ -390,17 +390,17 @@ for (cal in caliper_values) {
   m_data <- match.data(m_out)
 
   # Calculate treatment effect
-  model <- glm(event ~ treatment, data = m_data, family = binomial)
+  model <- coxph(Surv(observed_time, event) ~ treatment, data = m_data)
 
-  # Get odds ratio and confidence interval
-  or <- exp(coef(model)["treatment"])
+  # Get hazard ratio and confidence interval
+  hr <- exp(coef(model)["treatment"])
   ci <- exp(confint(model)["treatment", ])
 
   # Add results to dataframe
   caliper_results <- rbind(caliper_results,
                            data.frame(Caliper = cal,
                                       Matched_Pairs = nrow(m_data)/2,
-                                      OR = or,
+                                      HR = hr,
                                       Lower_CI = ci[1],
                                       Upper_CI = ci[2]))
 }
@@ -410,14 +410,14 @@ knitr::kable(caliper_results, digits = 3,
              caption = "Sensitivity Analysis with Different Caliper Widths")
 
 # Plot results
-ggplot(caliper_results, aes(x = factor(Caliper), y = OR)) +
+ggplot(caliper_results, aes(x = factor(Caliper), y = HR)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
   geom_hline(yintercept = 1, linetype = "dashed") +
   labs(
     title = "Treatment Effect Estimates with Different Caliper Widths",
     x = "Caliper Width",
-    y = "Odds Ratio (95% CI)"
+    y = "Hazard Ratio (95% CI)"
   ) +
   theme_minimal()
 ```
@@ -437,17 +437,17 @@ for (method in match_methods) {
   m_data <- match.data(m_out)
 
   # Calculate treatment effect
-  model <- glm(event ~ treatment, data = m_data, family = binomial)
+  model <- coxph(Surv(observed_time, event) ~ treatment, data = m_data)
 
-  # Get odds ratio and confidence interval
-  or <- exp(coef(model)["treatment"])
+  # Get hazard ratio and confidence interval
+  hr <- exp(coef(model)["treatment"])
   ci <- exp(confint(model)["treatment", ])
 
   # Add results to dataframe
   method_results <- rbind(method_results,
                           data.frame(Method = method,
                                      Matched_Pairs = nrow(m_data)/2,
-                                     OR = or,
+                                     HR = hr,
                                      Lower_CI = ci[1],
                                      Upper_CI = ci[2]))
 }
@@ -457,14 +457,14 @@ knitr::kable(method_results, digits = 3,
              caption = "Sensitivity Analysis with Different Matching Methods")
 
 # Plot results
-ggplot(method_results, aes(x = Method, y = OR)) +
+ggplot(method_results, aes(x = Method, y = HR)) +
   geom_point(size = 3) +
   geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
   geom_hline(yintercept = 1, linetype = "dashed") +
   labs(
     title = "Treatment Effect Estimates with Different Matching Methods",
     x = "Matching Method",
-    y = "Odds Ratio (95% CI)"
+    y = "Hazard Ratio (95% CI)"
   ) +
   theme_minimal()
 ```
