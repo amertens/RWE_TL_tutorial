@@ -1,0 +1,13 @@
+---
+title: "Comparing estimates from the different analysis approaches to the true causal effect"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+    code_folding: show
+---
+
+
+# calculate truth of generated data and compare difference estimates across methods

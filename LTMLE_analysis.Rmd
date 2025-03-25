@@ -1,0 +1,19 @@
+---
+title: "Targeted Maximum Likelihood Estimation (TMLE) Analysis"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+    code_folding: show
+---
+
+
+#-Add an example of using LTMLE instead of survTMLE where there is a time-varying treatment and time-varying confounders
+
+The HCV and acute kidney injury (AKI) example is likely to involve potential time-dependent confounding, primarily because treatment initiation and continuation may be influenced by evolving patient health status (e.g., liver function, kidney function, comorbidities, or occurrence of adverse events) over the study period. 
+
+Clinical context: If kidney function begins deteriorating after initiating treatment, providers might modify or discontinue HCV medications (SOF or non-SOF). This treatment modification is influenced by time-varying kidney function, which itself impacts future AKI risk.
+
+Feedback loop: Treatment affects kidney function, and kidney function changes affect subsequent treatment decisions (dose adjustments, discontinuations, switches), creating classic time-dependent confounding.
