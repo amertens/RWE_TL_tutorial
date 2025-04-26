@@ -1,0 +1,131 @@
+--- 
+title: "Hep C → AKI Safety Study: Causal Road-map & Analysis Plan" 
+author: "Study Team" 
+date: "`r Sys.Date()`" 
+output: 
+  html_document: 
+  toc: true 
+  toc_depth: 2 
+  number_sections: true 
+  df_print: paged 
+--- 
+
+
+
+```{r setup, include = FALSE} 
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+
+``` 
+
+### 0 Scientific motivation & trial-emulation context 
+
+- *Drug-induced AKI is rare yet clinically serious*; only a very large claims + EHR cohort can attain power. 
+- Pre-specify an **outcome-blind “sandbox”**: all modelling choices (covariate screening, learner library, weight truncation, estimator) are tuned via resampling that *permutes treatment labels* **or** *simulates outcomes under known effects* before unblinding. :contentReference[oaicite:0]{index=0} 
+
+### 1 Causal question, estimands & causal model 
+
+#### 1a Primary and alternative estimands (ICH E9 R1 attributes) 
+
+Primary target (unchanged): **90-day ITT risk difference (RD) and risk ratio (RR)**. *Refinements* - Add the **difference in restricted mean survival time (RMST)** for non-PH robustness. :contentReference[oaicite:1]{index=1} - Document *versions* of SOF regimens (SOF±RBV, LDV/SOF, SOF/VEL, SOF/VEL/VOX). 
+
+#### 1b Expanded DAG 
+
+- Include *time-varying nephrotoxin exposure* and *drug discontinuation* as potential mediators/confounders. 
+- Per-protocol estimands will require longitudinal TMLE or inverse-probability censoring weights. 
+
+### 2 Observed-data structure & RWD quality 
+
+- **Fit-for-purpose checklist** 
+- Exposure → pharmacy claims 
+- Baseline eGFR → EHR labs 
+- AKI → validated ICD phenotype (+ chart sample) 
+- Add SSA Death Master + EHR deaths to mitigate informative censoring. 
+
+### 3 Identifiability diagnostics 
+
+- **Positivity**: inspect overlap with propensity-score density plots; trim or apply outcome-adaptive lasso to restore overlap. 
+- **Exchangeability**: employ a negative-control outcome (ankle sprain) and negative-control exposure (PPIs). 
+
+### 4 Statistical estimand 
+
+$$ \psi_{\text{obs}} \;=\; \mathbb{E}_{W}\!\bigl[\, P(\text{AKI}\le 90\text{ d}\mid A=1,W)\;-\; P(\text{AKI}\le 90\text{ d}\mid A=0,W) \bigr]. $$ 
+
+### 5 Estimation plan 
+
+- **TMLE + Super Learner** library: logistic GLM, xgboost, BART, outcome-adaptive lasso. - Stabilise weights; truncate at $\sqrt{n}\,\ln(n)/5$.  
+- Use influence-function SEs → 95 % Wald CIs. 
+
+### 6 Outcome-blind simulations 
+
+- Run ≥ 500 pseudo-trials with the empirical $P(W)$ but true RD ∈ {0, −2, −5}/1000. 
+- Compare bias, MSE and 95 % coverage for TMLE, IPTW, PS-matched Cox, Fine-Gray; **lock-in** the top performer before unblinding. 
+
+### 7 Robustness & sensitivity 
+
+- **G-value** = minimal causal gap (on RD scale) that moves the 95 % CI to the null; report in RD-units, SE-units and Adj-units. 
+- Report **E-values** for unmeasured confounding *alongside* the G-value. 
+- Multiverse analysis: PS specification, weight truncation, outcome definition.
+
+### Table 1 
+
+Menu of candidate estimands | # | Label | Measure | Population & intercurrent-event strategy | Interpretation | Notes |
+|---|-----------------------------|-----------------|------------------------------------------------------------|--------------------------------------------------|-------| 
+| **1** | **Primary ITT** | ΔRisk, RR | All initiators; ignore switching (treatment-policy) | Effect of *offering* SOF regimen | Regulatory default | 
+| 2 | ITT RMST diff | RMST\_0-90 | Same as 1 | Average delay in AKI | Non-PH robust | 
+| 3 | Per-protocol | ΔRisk on-tx | Censor 30 d after switch | Effect of *continuous exposure* | Needs IPCW | 
+| 4 | Cause-specific HR | Cox HR | Censor at switch/death | Instantaneous hazard ratio | HR caveats  | 
+| 5 | Sub-distribution HR | Fine-Gray SHR | Treat death as competing risk | Effect on cumulative incidence | | 
+| 6 | Principal stratum | RD in adherers | Restrict to “would adhere ≥ 8 wk” stratum | Biological efficacy | Strong assumptions | 
+| 7 | CKD subgroup | RD \| CKD | eGFR < 60 at baseline | Effect in CKD population | Lower power | 
+| 8 | Guideline g-formula | ΔRisk under rule| Dynamic rule: “start SOF if eGFR > 30” | Effect of guideline policy | Needs longitudinal TMLE | 
+
+
+
+| Strategy | Core idea & target quantity | Scientific question answered | Typical analytical choices | 
+|----------|----------------------------|------------------------------|----------------------------| 
+| **Treatment-policy** (“intention-to-treat–like”) | The outcome is taken **as observed**, regardless of any post-randomization (intercurrent) events. The target parameter is the effect had *everyone been assigned* the experimental vs. control regimen, with no restrictions on what happens thereafter. | *“What is the effect of starting treatment X compared with Y in real-world clinical use, where dose changes, rescue meds and adherence issues occur?”* | Analyse all randomized patients from time 0 to the planned end of follow-up; do **not** censor at intercurrent events. For T2E endpoints this often implies Kaplan–Meier/Cox with administrative censoring only (but beware that the hazard ratio may then mix direct and indirect pathway effects). | 
+| **Hypothetical** | Imagine a world in which a specific intercurrent event **would not occur**. The estimand contrasts the counterfactual outcomes under treatment vs. control *if* everyone were prevented from experiencing that event. | *“What would the treatment effect be if no patient discontinued because of intolerance?”* | Requires modelling or imputation: e.g. (i) censor at the intercurrent event *and* assume independent censoring (→ standard survival methods) or (ii) impute post-event outcomes via multiple imputation / g-formula / joint modelling. The key is to articulate (and justify) the assumptions used to emulate the hypothetical world. | 
+| **While-on-treatment** | Focus on outcomes **up to** the intercurrent event (treatment discontinuation, switch, etc.). The estimand is the treatment effect *while patients remain on their originally assigned therapy*. | *“What is the effect of treatment X compared with Y, up to the point a patient stops or switches?”* | Right-censor at the intercurrent event; then estimate survival/objective up to that time. Valid inference needs a “no unmeasured prognostic reason for stopping” assumption (independent censoring given covariates). The resulting quantity is sometimes called the *per-protocol* or *on-treatment* effect. | 
+| **Principal-stratum** | Restrict comparison to the latent subgroup of patients who **would not experience** the intercurrent event *under either treatment*. The estimand is the causal effect within that principal stratum. | *“Among patients who would adhere fully irrespective of assignment, what is the treatment effect?”* | Requires methods from causal inference (e.g. instrumental-variable approaches, g-estimation, Bayesian mixture models) to identify the unobservable stratum. Generally complex and assumption-dependent; rarely the primary estimand in regulatory trials but useful for sensitivity/supportive analysis. |
+
+
+| # | Label / Estimand | Measure (target statistical quantity) | Population & strategy for intercurrent events | Interpretation of the estimand | Notes / typical analysis | Causal question for the HepC–AKI study (SOF vs non-SOF) |
+|---|------------------|---------------------------------------|-----------------------------------------------|--------------------------------|--------------------------|--------------------------------------------------------| 
+| 1 | **Primary ITT** (treatment-policy) | ΔRisk or Risk Ratio over 0-90 d | All initiators; ignore switching, discontinuation or death during the 90 d window | Effect of *offering* a SOF-containing regimen versus a non-SOF regimen on 90-day cumulative AKI risk | Regulatory default; implement with Kaplan–Meier risk difference / ratio or TMLE for risk | *“Among all HCV patients who start any DAA, how would the 90-day risk of AKI differ if every patient were assigned a SOF regimen versus if every patient were assigned a non-SOF regimen?”* :contentReference[oaicite:0]{index=0}&#8203;:contentReference[oaicite:1]{index=1} | 
+| 2 | **ITT RMST difference** | Difference in Restricted Mean Survival Time (RMST) for event-free days 0-90 | Same population & strategy as #1 | Average delay (or acceleration) of AKI within 90 d | Robust to non-proportional hazards; estimate via RMST package or TMLE for RMST | *“What is the average increase (or decrease) in AKI-free days during the first 90 days if all initiators received SOF versus non-SOF?”* | 
+| 3 | **Per-protocol** (while-on-treatment) | ΔRisk while on-treatment; censor 30 d after switch/stop | Patients followed until 30 d after discontinuation or switch; censor thereafter | Effect of *continuous exposure* to SOF vs non-SOF | Needs inverse-probability of censoring weights (IPCW) or longitudinal TMLE | *“Among patients who would remain on their initial DAA for ≥30 days, what would be the difference in AKI risk had they stayed on SOF the whole time versus stayed on non-SOF?”* | 
+| 4 | **Cause-specific HR** | Cox cause-specific Hazard Ratio | Censor at treatment switch and at death; competing events treated as censoring | Instantaneous hazard among still-at-risk individuals | HR depends on proportional-hazard assumption; interpret with caution :contentReference[oaicite:2]{index=2}&#8203;:contentReference[oaicite:3]{index=3} | *“At any given day among patients still alive, what is the instantaneous rate of AKI if they were on SOF compared with if they were on non-SOF, assuming they have not switched regimens?”* | 
+| 5 | **Sub-distribution HR** (Fine–Gray) | Sub-distribution Hazard Ratio | Treat death as a competing risk, keep treatment switching as censoring | Effect of treatment on cumulative incidence function of AKI accounting for competing death | Useful when death precludes AKI and is common | *“How does initiating SOF (vs non-SOF) change the cumulative incidence of AKI over follow-up when deaths are treated as competing events?”* | 
+| 6 | **Principal-stratum** | Risk Difference among latent adherers (≥8 wk) | Restrict to patients who *would* adhere ≥8 weeks under either regimen | Biological efficacy in always-adherers | Requires strong, unverifiable assumptions or IV/g-estimation | *“Among HCV patients who would adhere to ≥8 weeks of therapy regardless of which DAA they start, what is the difference in AKI risk if they took SOF versus non-SOF?”* | 
+| 7 | **CKD subgroup estimand** | Risk Difference in eGFR < 60 subgroup | Population limited to baseline CKD; treatment-policy for intercurrent events | Effect in patients with chronic kidney disease | Lower power; prespecified subgroup | *“Within the subgroup of HCV patients with baseline eGFR < 60 mL/min/1.73 m², how would the risk of AKI change if all received SOF rather than non-SOF?”* | 
+| 8 | **Guideline g-formula rule** (dynamic regimen) | ΔRisk under a dynamic treatment rule | Rule: “start SOF only if baseline eGFR > 30”; censor deviations | Effect of guideline-based policy compared with universal non-SOF | Needs longitudinal TMLE / parametric g-formula | *“What would be the population 90-day AKI risk if clinicians followed the rule *‘prescribe SOF only when eGFR > 30’* versus prescribing non-SOF to everyone?”* | 
+
+
+
+
+
+| # | Label / Estimand | Measure (target statistical quantity) | Population & strategy for intercurrent events | Interpretation of the estimand | Notes / typical analysis | **Causal Roadmap & TL considerations** |
+|---|------------------|---------------------------------------|-----------------------------------------------|--------------------------------|--------------------------|-----------------------------------------| 
+| 1 | **Primary ITT** (treatment-policy) | ΔRisk or Risk Ratio 0-90 d | All initiators; ignore switching, death | Effect of *offering* SOF regimen | Kaplan–Meier or TMLE for risk | • Roadmap Step 0: confirm the clinical question really is pragmatic. • Prefer risk/RMST over Cox HR (HR non-causal). • Use TMLE + SL to adjust for baseline covariates and minimise model miss-specification. • Document assumptions (positivity, no un-measured confounding) and report a non-parametric sensitivity curve to show how large a “causal gap” would overturn inference. :contentReference[oaicite:1]{index=1} | 
+| 2 | **ITT RMST difference** | Δ RMST<sub>0-90</sub> | Same as #1 | Mean delay/acceleration of AKI | RMST plug-in or TMLE for RMST | • RMST is a causal *contrast in the survival scale* endorsed by Chen 2023 as more interpretable than HR. • Same estimation/sensitivity principles as row 1, plus check administrative censoring assumptions. :contentReference[oaicite:2]{index=2}&#8203;:contentReference[oaicite:3]{index=3} | 
+| 3 | **Per-protocol** (while-on-treatment) | ΔRisk while on-tx (censor 30 d post-switch) | Follow until 30 d after switch/stop | Effect of *continuous exposure* | IPCW / longitudinal TMLE | • Roadmap Step 1: encode time-varying data structure. • Identify longitudinal confounders of adherence and outcome; estimate dynamic weights or fit sequential-TMLE. • Positivity often fragile → report diagnostics & truncate weights as in Williamson 2023. :contentReference[oaicite:4]{index=4}&#8203;:contentReference[oaicite:5]{index=5} | 
+| 4 | **Cause-specific HR** | Cox HR | Censor at switch/death | Instantaneous hazard among survivors | Standard Cox ± IPCW | • Roadmap warns HR rarely equals causal effect. • If kept, accompany with causal parameter such as risk difference and justify PH assumption; otherwise replace with TMLE-based risk or RMST. • Show how HR estimate shifts when g-computation or TMLE is applied. :contentReference[oaicite:6]{index=6} | 
+| 5 | **Sub-distribution HR** (Fine-Gray) | SHR | Death as competing risk | Effect on cumulative incidence | Fine-Gray / Aalen-Johansen | • Prefer direct estimation of CIF difference with TMLE instead of SHR (non-collapsible). • Explicitly include competing death as intercurrent event per Roadmap Step 0. • Sensitivity: vary death-as-competing vs composite. | 
+| 6 | **Principal-stratum** | RD in latent adherers (≥8 wk) | Restrict to “always-adherers” | Biological efficacy | IV / mixture models | • Roadmap Step 3 highlights lack of identifiability. • State unverifiable assumptions; implement Bayesian or IV-based bounds; present a bias-robust interval (causal gap plot). | 
+| 7 | **CKD subgroup** | RD in eGFR < 60 | Sub-pop of CKD; tx-policy for events | Effect in CKD patients | Stratified TMLE; lower power | • Roadmap: prespecify subgroup, avoid post-hoc fishing. • Ensure positivity within subgroup; otherwise use pooled-targeted estimation with interaction term and report shrinkage-based CI (Gruber 2024 Sect 4). :contentReference[oaicite:7]{index=7}&#8203;:contentReference[oaicite:8]{index=8} | 
+| 8 | **Guideline g-formula rule** | ΔRisk under dynamic rule | “Start SOF if eGFR > 30”; censor deviations | Effect of guideline policy | Parametric g-formula / longitudinal TMLE | • Roadmap Step 2: define intervention as explicit stochastic policy. • Check support along rule‐defined paths (positivity). • Estimate with iterative TMLE; present policy-based risk curve and Monte-Carlo CI; perform causal-gap sensitivity to violations of sequential exchangeability. :contentReference[oaicite:9]{index=9}&#8203;:contentReference[oaicite:10]{index=10} |
+
+#### Legend of new column
+
+Roadmap Step 0–6 refer to the ordered tasks in the Causal Roadmap (formulate question, specify causal/statistical models, identify, estimate with TL, and conduct sensitivity analysis).
+TMLE + SL = Targeted-Minimum-Loss Estimation with Super-Learner ensemble; delivers double-robust, efficiency-optimal estimates recommended by Chen 2023 and Gruber 2024.
+“Causal gap” denotes the residual bias that would remain if any identifying assumption fails; Roadmap Step 5 advocates reporting how large a gap would flip the study’s conclusion.
+
+
+### Key take-aways 
+
+1. Outcome-blind simulations + collaborative learner choice → objective, regulator-friendly tuning. 
+2. Diagnose & treat positivity before estimation. 
+3. Prefer RD/RMST when non-PH is likely. 
+4. G-value offers transparent, scale-matched sensitivity reporting. 
+5. Align TL workflow with ICH E9 (R1) for full auditability. ### Session info 

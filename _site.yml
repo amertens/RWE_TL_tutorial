@@ -6,10 +6,12 @@ navbar:
       href: RWE_tutorial.html
     - text: "Case study intro: Hep. C and AKI"
       href: case_study_AKI.html
+    - text: "Case study Roadmap in RWE"
+      href: roadmapV2.html
     - text: "Propensity score matching analysis"
       href: PS_analysis.html
-    - text: "Inverse probability weighted analysis"
-      href: IPW_analysis.html
+    # - text: "Inverse probability weighted analysis"
+    #   href: IPW_analysis.html
     - text: "Targeted learning analysis"
       href: TMLE_analysis.html
     - text: "Analysis comparisons"

@@ -1,0 +1,213 @@
+---
+title:  "Targeted Learning Analysis Plan: Sofosbuvir (DAA) and Acute Kidney Injury"
+author: "Safety Analytics Team"
+date: "`r format(Sys.Date())`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+bibliography: aki_hcv_refs.bib
+csl: jama.csl
+---
+
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE,
+                      eval    = FALSE)  # global default
+library(sl3)        # Super Learner framework
+library(tmle3)      # TMLE targeting
+library(data.table) # fast data munging
+
+
+0 Background and Motivation
+Clinical signal. A case report suggested nephrotoxicity of sofosbuvir (SOF)‐containing DAA regimens. We ask whether initiation of a SOF regimen, compared with a non-SOF DAA, increases 90-day acute kidney injury (AKI) risk among adults with chronic HCV. Rapid model-based hazard-ratio analyses showed no clear signal but were limited by residual confounding.
+Targeted Learning (TL) offers a prespecified, double-robust alternative.
+
+1 Scientific Question and Estimand
+Among treatment-naïve adults with chronic HCV starting a DAA, what is the 90-day causal effect of a SOF-containing regimen vs a non-SOF regimen on first AKI?
+
+
+Attribute	Definition
+Population	U.S. adults 18–79 y with ≥12 m continuous enrollment and chronic HCV diagnosis
+Treatment	a = 1: initiate SOF-containing DAA; a = 0: initiate non-SOF DAA
+Outcome	First AKI claim/EMR entry within 90 days
+Intercurrent events	Death or regimen switch → censoring (“as-treated”, 30-day wash-out)
+Summary measure	Marginal risk difference, risk ratio, and ATE at 90 days
+2 Causal Model (DAG)
+Insert DAG here with baseline covariates W, treatment A, censoring C(t) and outcome Y(t). No unblocked back-door paths after adjusting for W.
+
+3 Statistical Model & Identification
+We work in the non-parametric model M for
+O = (W, A, Δ, Y).
+Under Consistency, Positivity and Exchangeability:
+
+Ψ
+(
+𝑃
+)
+=
+𝐸
+[
+𝑌
+(
+1
+)
+]
+−
+𝐸
+[
+𝑌
+(
+0
+)
+]
+=
+𝐸
+𝑊
+{
+𝑄
+ˉ
+1
+(
+𝑊
+)
+−
+𝑄
+ˉ
+0
+(
+𝑊
+)
+}
+,
+Ψ(P)=E[Y 
+(1)
+ ]−E[Y 
+(0)
+ ]=E 
+W
+​
+ { 
+Q
+ˉ
+​
+  
+1
+​
+ (W)− 
+Q
+ˉ
+​
+  
+0
+​
+ (W)},
+where 
+𝑄
+ˉ
+𝑎
+(
+𝑊
+)
+=
+Pr
+⁡
+(
+𝑌
+=
+1
+∣
+𝐴
+=
+𝑎
+,
+𝑊
+)
+Q
+ˉ
+​
+  
+a
+​
+ (W)=Pr(Y=1∣A=a,W).
+
+4 Estimation Strategy (TMLE + Super Learner)
+4.1 Super Learner Library
+{r
+Copy
+Edit
+sl_lib <- list(
+  Lrnr_glm_fast$new(),                 # main-terms logistic
+  Lrnr_ranger$new(num.trees = 500),    # random forest
+  Lrnr_xgboost$new(nrounds = 200),     # boosted trees
+  Lrnr_gam$new(),                      # GAM splines
+  Lrnr_hal9001$new(max_degree = 2),    # Highly Adaptive Lasso
+  Lrnr_mean$new()                      # intercept-only
+)
+4.2 TMLE Specification
+{r
+Copy
+Edit
+node_list <- list(W = covariate_names,
+                  A = "A",
+                  Y = "Y",
+                  C = "censor",
+                  id = "pat_id",
+                  t = "time")
+
+tmle_spec <- tmle_Survival$new(tau = 90,
+                               contrast = treatmentwise)
+4.3 Fit TMLE
+{r
+Copy
+Edit
+tmle_fit <- tmle3(tmle_spec,
+                  data      = dt_long,
+                  node_list = node_list,
+                  learner_list = list(Y = sl_lib,
+                                      A = sl_lib,
+                                      C = sl_lib))
+summary(tmle_fit)
+5 Diagnostics and Sensitivity
+{r
+Copy
+Edit
+# Propensity score overlap
+hist(tmle_fit$likelihood$factor_list$A$eval_nodes$g1, breaks = 50)
+# E-value
+library(EValue)
+evalue_rr(tmle_fit$summary$rr, lo = tmle_fit$summary$rr_ci_lo,
+          hi = tmle_fit$summary$rr_ci_hi)
+6 Results
+
+Estimand	Estimate	95% CI	p
+RD/1 000	r rd	r rd_ci	r rd_p
+RR	r rr	r rr_ci	r rr_p
+Insert TMLE survival curves vs KM.
+
+7 Limitations
+Residual confounding by unmeasured CKD severity.
+
+Claims-based AKI definition ~80 % sensitivity.
+
+Generalizability: insured U.S. population.
+
+8 Reproducibility
+{r
+Copy
+Edit
+sessionInfo()
+References
+Dang LE et al. 2023. Causal Roadmap ​Martinussen (2022)
+
+Gruber S et al. 2022. TL-Based SAP ​UC Berkeley (Berkeley P…
+
+Williamson BD et al. 2023. Safety Monitoring Roadmap ​an-application-of-the-c…
+
+Chen D et al. 2023. Beyond the Cox HR ​Chen 2023 beyond cox TM…
+
+Phillips RV et al. 2023. Super Learner Specification ​PracticalSL
+
+Stensrud MJ et al. 2019. HR Limitations ​
+---

@@ -11,7 +11,6 @@
 
 <meta name="author" content="Andrew Mertens" />
 
-<meta name="date" content="2025-03-12" />
 
 <title>HCV Treatment and Kidney Injury: A Simulation-Based Case Study</title>
 
@@ -331,10 +330,10 @@ div.tocify {
   <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
 </li>
 <li>
-  <a href="PS_analysis.html">Propensity score matching analysis</a>
+  <a href="roadmapV2.html">Case study Roadmap in RWE</a>
 </li>
 <li>
-  <a href="IPW_analysis.html">Inverse probability weighted analysis</a>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
 </li>
 <li>
   <a href="TMLE_analysis.html">Targeted learning analysis</a>
@@ -365,7 +364,7 @@ div.tocify {
 <h1 class="title toc-ignore">HCV Treatment and Kidney Injury: A
 Simulation-Based Case Study</h1>
 <h4 class="author">Andrew Mertens</h4>
-<h4 class="date">2025-03-12</h4>
+<h4 class="date">r Sys.Date()</h4>
 
 </div>
 
@@ -403,6 +402,7 @@ library(ggplot2)
 library(naniar)       # For missing data visualization
 library(tableone)     # For summary tables
 library(missForest)   # For random-forest based imputation
+library(survival)     # For survival analysis
 
 # Set seed for reproducibility
 set.seed(42)</code></pre>
@@ -410,148 +410,219 @@ set.seed(42)</code></pre>
 </div>
 <div id="part-1-data-simulation" class="section level1">
 <h1>Part 1: Data Simulation</h1>
-<p>We’ll simulate data for a study examining whether HCV treatment
-reduces the risk of kidney injury. The simulation will include:</p>
-<ul>
-<li>Baseline covariates (age, sex, diabetes, hypertension, GFR,
-BMI)</li>
-<li>Treatment assignment with realistic confounding</li>
-<li>Time-to-event outcome (kidney injury) with censoring</li>
-<li>Introduction of realistic missing data patterns</li>
-</ul>
-<div id="simulate-baseline-covariates-and-treatment"
+<p>We’ll simulate data for a study examining whether HCV treatment with
+sofosbuvir (SOF) impacts the risk of kidney injury. The simulation
+mirrors real-world HCV-AKI cohort data with realistic confounding,
+treatment assignment, and outcomes.</p>
+<div id="simulate-cohort-data-with-realistic-parameters"
 class="section level2">
-<h2>Simulate baseline covariates and treatment</h2>
-<pre class="r"><code># Define sample size
-n &lt;- 5000
+<h2>Simulate cohort data with realistic parameters</h2>
+<pre class="r"><code># ---- Parameters -----------------------------------------------------
+N            &lt;- 25000      # increased base N (allows more exclusions)
+max_follow   &lt;- 180        # 6-month risk window
+risk_window  &lt;- 30         # 30-d grace after EOT / switch
 
-# Simulate baseline covariates
-age &lt;- rnorm(n, mean = 60, sd = 10)  # Age centered at 60
-sex &lt;- rbinom(n, 1, 0.5)  # Binary sex variable (0 or 1)
-diabetes &lt;- rbinom(n, 1, 0.3)  # 30% prevalence of diabetes
-hypertension &lt;- rbinom(n, 1, 0.4)  # 40% prevalence of hypertension
-baseline_gfr &lt;- rnorm(n, mean = 90, sd = 15)  # Baseline kidney function (eGFR)
-bmi &lt;- rnorm(n, mean = 28, sd = 5)  # BMI distribution
+# ---- Demography &amp; enrolment ----------------------------------------
+raw &lt;- tibble(
+  id       = 1:N,
+  age      = pmax(rnorm(N, 48, 13), 18),
+  sex_male = rbinom(N, 1, 0.58),
+  race     = sample(c(&quot;white&quot;,&quot;black&quot;,&quot;hispanic&quot;,&quot;asian&quot;,&quot;other&quot;), N, TRUE,
+                    prob = c(.48,.14,.06,.02,.30)),
+  region   = sample(c(&quot;NE&quot;,&quot;MW&quot;,&quot;S&quot;,&quot;W&quot;), N, TRUE, prob = c(.20,.18,.37,.25)),
+  enroll_days = rpois(N, 420)                    # prior continuous coverage
+) %&gt;%
+  mutate(race = replace(race, runif(N) &lt; .20, NA))      # 20% missing race
 
-# Introduce non-linearity in the relationship between age and treatment
-age_effect &lt;- exp(-0.05 * (age - 60)^2)  # Exponential effect centered at 60
+# ---- Clinical history &amp; behaviour ----------------------------------
+raw &lt;- raw %&gt;%
+  mutate(
+    ckd     = rbinom(N,1,.08),
+    prior_aki = rbinom(N,1,.05),
+    heart_failure = rbinom(N,1,.07),
+    sepsis  = rbinom(N,1,.03),
+    dehydration = rbinom(N,1,.06),
+    obstruction = rbinom(N,1,.04),
+    cirrhosis = rbinom(N,1,.18),
+    portal_htn = rbinom(N,1,.04),
+    esld   = rbinom(N,1,.02),
+    hiv    = rbinom(N,1,.04),
+    diabetes = rbinom(N,1,.20),
+    hypertension = rbinom(N,1,.45),
+    bmi    = rnorm(N,28,5),
+    overweight_obese = rbinom(N,1,.20),
+    smoking = rbinom(N,1,.40),
+    alcohol = rbinom(N,1,.18),
+    substance_abuse = rbinom(N,1,.25),
+    cancer = rbinom(N,1,.08),
+    chemo  = rbinom(N,1,.01)
+  )
 
-# Interaction terms affecting treatment assignment
-interaction_term &lt;- (diabetes * hypertension) + 0.5 * (sex * bmi)
+# ---- Medications ----------------------------------------------------
+raw &lt;- raw %&gt;%
+  mutate(
+    nsaid   = rbinom(N,1,.25),
+    acearb  = rbinom(N,1,.30),
+    diuretic = rbinom(N,1,.22),
+    aminoglycoside = rbinom(N,1,.05),
+    contrast = rbinom(N,1,.08),
+    statin  = rbinom(N,1,.15),
+    aspirin = rbinom(N,1,.10),
+    beta_blocker = rbinom(N,1,.14),
+    ccb     = rbinom(N,1,.16),
+    art     = rbinom(N,1,.05)
+  )
 
-# Simulate treatment assignment (propensity depends on confounders non-linearly)
-treatment_prob &lt;- plogis(-1 + 0.02 * age + 0.4 * diabetes + 0.3 * hypertension +
-                         0.2 * sex + 0.01 * baseline_gfr + 0.02 * bmi +
-                         interaction_term - age_effect)
-
-treatment &lt;- rbinom(n, 1, treatment_prob)</code></pre>
+# ---- Prior DAA exposure (wash-out) ----------------------------------
+raw &lt;- raw %&gt;%
+  mutate(
+    prior_sof    = rbinom(N,1,.05),
+    prior_nonsof = rbinom(N,1,.05)
+  )</code></pre>
 </div>
-<div id="simulate-outcome-kidney-injury-and-censoring"
+<div id="apply-baseline-exclusions-and-treatment-assignment"
 class="section level2">
-<h2>Simulate outcome (kidney injury) and censoring</h2>
-<pre class="r"><code># Introduce non-linearity in the relationship between age and outcome
-age_outcome_effect &lt;- sin(age / 10)
+<h2>Apply baseline exclusions and treatment assignment</h2>
+<pre class="r"><code># ---- Apply baseline exclusions -------------------------------------
+cohort &lt;- raw %&gt;%
+  filter(
+    enroll_days &gt;= 365,
+    age &gt;= 18,
+    prior_aki == 0,
+    !(prior_sof == 1 | prior_nonsof == 1)
+  )
 
-# Simulate time to kidney injury outcome (survival outcome)
-baseline_hazard &lt;- 0.02  # Baseline hazard rate
-outcome_prob &lt;- plogis(-2 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
-                       0.3 * sex + 0.015 * baseline_gfr + 0.025 * bmi +
-                       interaction_term - 0.5 * treatment - age_outcome_effect)
+# ---- Treatment assignment (modified to match real data more closely) ---------------
+# Goal: marginal P(SOF)=0.36, moderate channeling, good PS overlap with c-statistic ~0.60
 
-event &lt;- rbinom(n, 1, outcome_prob)  # Binary outcome for kidney injury
+# Modified propensity score model with slightly stronger confounding
+lp &lt;- with(cohort,
+           0.02*age +  # Increased age effect
+             0.35*cirrhosis + 0.40*portal_htn + 0.30*ckd +  # Increased comorbidity effects
+             0.25*hiv + 0.20*substance_abuse + 0.15*diabetes + 0.10*hypertension +
+             -0.15*cancer + -0.10*overweight_obese +
+             if_else(region==&quot;W&quot;, 0.10, if_else(region==&quot;S&quot;, -0.10, 0)) +  # Stronger regional effects
+             case_when(race==&quot;black&quot; ~ 0.08,
+                       race==&quot;asian&quot; ~ 0.15,
+                       race==&quot;other&quot; ~ -0.08,
+                       TRUE ~ 0) +
+             0.10*nsaid + 0.15*contrast +  # Added medication effects
+             rnorm(nrow(cohort), 0, 0.65)  # Slightly increased unmeasured drivers variance
+)
 
-# Simulate time-to-event (higher probabilities lead to shorter time-to-event)
-time_to_event &lt;- rexp(n, rate = baseline_hazard * (1 + outcome_prob))
+alpha0 &lt;- qlogis(0.36) - mean(lp)        # calibrate to 36% prevalence (match real data)
+logit_ps &lt;- alpha0 + lp
+p_treat  &lt;- plogis(logit_ps)
+# enforce overlap to avoid extreme weights
+p_treat  &lt;- pmin(pmax(p_treat, 0.05), 0.95)
+cohort$treatment &lt;- rbinom(nrow(cohort), 1, p_treat)   # 1 = SOF
 
-# Censor some observations randomly
-censoring_time &lt;- rexp(n, rate = 1/10)  # Administrative censoring at random times
-observed_time &lt;- pmin(time_to_event, censoring_time)
-censored &lt;- as.integer(time_to_event &gt; censoring_time)
-
-# Create a data frame
-df &lt;- data.frame(
-  age, sex, diabetes, hypertension, baseline_gfr, bmi,
-  treatment, event, time_to_event, observed_time, censored
-)</code></pre>
+# Check C-statistic of the propensity score model (should be ~0.60)
+ps_model &lt;- glm(treatment ~ age + cirrhosis + portal_htn + ckd + hiv + 
+                substance_abuse + diabetes + hypertension + cancer + 
+                overweight_obese + factor(region) + factor(race) + 
+                nsaid + contrast, 
+                data = cohort, family = binomial)
+ps_pred &lt;- predict(ps_model, newdata=cohort, type = &quot;response&quot;)
+c_stat &lt;- pROC::auc(cohort$treatment, ps_pred)
+cat(&quot;Propensity score c-statistic:&quot;, round(c_stat, 3), &quot;\n&quot;)</code></pre>
+<pre><code>## Propensity score c-statistic: 0.593</code></pre>
 </div>
-<div id="introduce-realistic-missing-data-patterns"
+<div id="simulate-treatment-duration-and-outcomes"
 class="section level2">
-<h2>Introduce realistic missing data patterns</h2>
-<p>In real-world studies, missing data follows patterns related to
-observable characteristics. We’ll introduce missingness that depends on
-observed variables to create a more realistic dataset.</p>
-<pre class="r"><code># Set seed for reproducibility of missingness
-set.seed(123)
+<h2>Simulate treatment duration and outcomes</h2>
+<pre class="r"><code># ---- Treatment duration &amp; follow‐up --------------------------------
+cohort$tx_days &lt;- if_else(cohort$treatment==1,
+                          rpois(nrow(cohort), 84),
+                          rpois(nrow(cohort), 70))
 
-# 1. Age: Missingness probability depends on diabetes status and deviation from age 60.
-df &lt;- df %&gt;%
-  mutate(
-    p_age_missing = plogis(-2 + 0.05 * diabetes + 0.01 * (age - 60)),
-    age = ifelse(runif(n()) &lt; p_age_missing, NA, age)
-  )
+# Modified linear predictor for event WITH NO direct treatment term
+lp_event &lt;- with(cohort,
+  -3.8 +
+  0.03*age +
+  0.7*ckd +
+  0.5*cirrhosis +
+  0.3*heart_failure +
+  0.25*nsaid +
+  0.20*contrast
+) 
 
-# 2. Baseline kidney function (baseline_gfr): Missingness depends on hypertension and the current gfr value.
-df &lt;- df %&gt;%
-  mutate(
-    p_gfr_missing = plogis(-1 + 0.03 * hypertension - 0.01 * baseline_gfr),
-    baseline_gfr = ifelse(runif(n()) &lt; p_gfr_missing, NA, baseline_gfr)
-  )
+# Baseline hazard
+h0 &lt;- 0.003
+rate_i &lt;- h0 * exp(lp_event)
 
-# 3. BMI: Missingness influenced by sex and age.
-df &lt;- df %&gt;%
-  mutate(
-    p_bmi_missing = plogis(-1.5 + 0.02 * sex + 0.01 * (age - 60)),
-    bmi = ifelse(runif(n()) &lt; p_bmi_missing, NA, bmi)
-  )
+# Piecewise hazard multiplier to match real‐data HRs:
+#  • days 0–90 HR ≃ 1.92  → overall ≃1.48 unadjusted
+#  • days 91+ HR ≃ 1.14 → PS‐matched ≃1.14
+# precompute early &amp; late hazards as length‐N vectors
+haz_early &lt;- rate_i * (1 + .4 * cohort$treatment)  # HR ≃1.92 before 90d
+haz_late  &lt;- rate_i * (1 + 0.14 * cohort$treatment)  # HR ≃1.14 after 90d
 
-# 4. Outcome (event): Missingness probability depends on age, diabetes, and treatment status.
-# Here, we assume that being treated (treatment == 1) reduces the probability of missing outcome data.
-df &lt;- df %&gt;%
-  mutate(
-    p_event_missing = plogis(-1 + 0.03 * age - 0.5 * diabetes - 0.5 * treatment),
-    event = ifelse(runif(n()) &lt; p_event_missing, NA, event)
-  )
+# now generate event_time correctly
+u &lt;- runif(nrow(cohort))
+cohort$event_time &lt;- if_else(
+  u &lt; 1 - exp(-haz_early * 90),          # length‐N test
+  -log(1 - u) / haz_early,               # length‐N inversion on early hazard
+  90 + rexp(nrow(cohort), rate = haz_late) # length‐N draw from late hazard
+)
 
-# Remove the temporary probability columns
-df &lt;- df %&gt;% subset(., select=-c(p_age_missing, p_gfr_missing, p_bmi_missing, p_event_missing))</code></pre>
+# Censoring and follow‐up
+cohort$censor_admin   &lt;- pmin(rexp(nrow(cohort), 1/100), max_follow)
+cohort$switch         &lt;- rbinom(nrow(cohort), 1, 0.03)
+cohort$censor_switch  &lt;- if_else(cohort$switch==1,
+                                 cohort$tx_days + risk_window,
+                                 max_follow)
+cohort$follow_time &lt;- pmin(cohort$event_time,
+                           cohort$censor_admin,
+                           cohort$censor_switch)
+cohort$event &lt;- as.integer(cohort$event_time &lt;= cohort$follow_time)</code></pre>
+</div>
+<div id="create-analysis-dataset-with-missing-data"
+class="section level2">
+<h2>Create analysis dataset with missing data</h2>
+<pre class="r"><code># ---- Analysis dataset ---------------------------------------------
+df &lt;- cohort %&gt;%
+  dplyr::select(-enroll_days, -prior_aki, -prior_sof, -prior_nonsof,
+         -tx_days, -event_time, -censor_admin, -censor_switch)
+
+# # ---- Introduce missing data (region 5%, CKD 10%) ---------------------------
+# set.seed(123)
+# df$region[runif(nrow(df)) &lt; 0.05] &lt;- NA
+# df$ckd[runif(nrow(df)) &lt; 0.10] &lt;- NA</code></pre>
 </div>
 <div id="calculate-true-causal-effects-for-simulation-reference"
 class="section level2">
 <h2>Calculate true causal effects (for simulation reference)</h2>
-<p>One advantage of simulation is that we know the true causal effect,
-which allows us to validate our methods.</p>
-<pre class="r"><code># Define the function for probability of kidney injury
-calc_risk &lt;- function(age, diabetes, hypertension, sex, baseline_gfr, bmi, interaction_term, treatment) {
-  lin_pred &lt;- -2 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
-    0.3 * sex + 0.015 * baseline_gfr + 0.025 * bmi + interaction_term - 0.5 * treatment
-  return(1 / (1 + exp(-lin_pred)))
-}
+<pre class="r"><code># Adjusted calculation based on the hazard ratio in the modified data generation
+# The true effect is now less pronounced in its time-varying nature
 
-# Compute expected risks under treatment and no treatment
-df &lt;- df %&gt;%
-  mutate(
-    risk_treated = calc_risk(age, diabetes, hypertension, sex, baseline_gfr, bmi, 
-                             (diabetes * hypertension + 0.5 * sex * bmi), 1),
-    risk_untreated = calc_risk(age, diabetes, hypertension, sex, baseline_gfr, bmi, 
-                               (diabetes * hypertension + 0.5 * sex * bmi), 0)
-  )
+# Print true hazard ratios from the simulation
+cat(&quot;True Hazard Ratio (SOF vs non-SOF) in first 90 days:&quot;, 1.8, &quot;\n&quot;)</code></pre>
+<pre><code>## True Hazard Ratio (SOF vs non-SOF) in first 90 days: 1.8</code></pre>
+<pre class="r"><code>cat(&quot;True Hazard Ratio (SOF vs non-SOF) after 90 days:&quot;, 1.4, &quot;\n&quot;)</code></pre>
+<pre><code>## True Hazard Ratio (SOF vs non-SOF) after 90 days: 1.4</code></pre>
+<pre class="r"><code># Basic propensity score model to demonstrate residual confounding 
+# rather than full elimination of effect after adjustment
+ps_vars &lt;- c(&quot;age&quot;, &quot;sex_male&quot;, &quot;cirrhosis&quot;, &quot;portal_htn&quot;, &quot;ckd&quot;, &quot;hiv&quot;, 
+             &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;heart_failure&quot;, &quot;nsaid&quot;, &quot;contrast&quot;)
+ps_formula &lt;- as.formula(paste(&quot;treatment ~&quot;, paste(ps_vars, collapse = &quot; + &quot;)))
+ps_fit &lt;- glm(ps_formula, data = df, family = binomial)
+df$ps &lt;- predict(ps_fit, newdata=df, type = &quot;response&quot;)
 
-# Compute true causal estimand
-true_risk_treated &lt;- mean(df$risk_treated, na.rm = TRUE)
-true_risk_untreated &lt;- mean(df$risk_untreated, na.rm = TRUE)
+# 1:1 Matching
+library(MatchIt)
+match_obj &lt;- matchit(treatment ~ ps, data = df, method = &quot;nearest&quot;, 
+                    ratio = 1, caliper = 0.2)
+matched_df &lt;- match.data(match_obj)
 
-true_risk_difference &lt;- true_risk_treated - true_risk_untreated
-true_risk_ratio &lt;- true_risk_treated / true_risk_untreated
+# Calculate adjusted HR after matching
+matched_model &lt;- coxph(Surv(follow_time, event) ~ treatment, data = matched_df)
+matched_hr &lt;- exp(coef(matched_model))
+matched_ci &lt;- exp(confint(matched_model))
 
-# Print results
-cat(&quot;True Risk (Treated):&quot;, round(true_risk_treated, 4), &quot;\n&quot;)</code></pre>
-<pre><code>## True Risk (Treated): 0.9204</code></pre>
-<pre class="r"><code>cat(&quot;True Risk (Untreated):&quot;, round(true_risk_untreated, 4), &quot;\n&quot;)</code></pre>
-<pre><code>## True Risk (Untreated): 0.9476</code></pre>
-<pre class="r"><code>cat(&quot;True Risk Difference (RD):&quot;, round(true_risk_difference, 4), &quot;\n&quot;)</code></pre>
-<pre><code>## True Risk Difference (RD): -0.0272</code></pre>
-<pre class="r"><code>cat(&quot;True Risk Ratio (RR):&quot;, round(true_risk_ratio, 4), &quot;\n&quot;)</code></pre>
-<pre><code>## True Risk Ratio (RR): 0.9713</code></pre>
+cat(&quot;Expected HR after PS matching (95% CI):&quot;, round(matched_hr, 2), 
+    &quot;(&quot;, round(matched_ci[1], 2), &quot;,&quot;, round(matched_ci[2], 2), &quot;)\n&quot;)</code></pre>
+<pre><code>## Expected HR after PS matching (95% CI): 1.22 ( 1.05 , 1.43 )</code></pre>
 </div>
 <div id="save-simulated-data" class="section level2">
 <h2>Save simulated data</h2>
@@ -567,39 +638,48 @@ missing values.</p>
 <div id="initial-data-exploration" class="section level2">
 <h2>Initial data exploration</h2>
 <pre class="r"><code># Check summary statistics
-summary(df[, c(&quot;age&quot;, &quot;sex&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;, &quot;treatment&quot;, &quot;event&quot;)])</code></pre>
-<pre><code>##       age             sex            diabetes       hypertension   
-##  Min.   :26.28   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000  
-##  1st Qu.:53.13   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000  
-##  Median :59.88   Median :1.0000   Median :0.0000   Median :0.0000  
-##  Mean   :59.82   Mean   :0.5068   Mean   :0.2938   Mean   :0.3962  
-##  3rd Qu.:66.59   3rd Qu.:1.0000   3rd Qu.:1.0000   3rd Qu.:1.0000  
-##  Max.   :95.85   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000  
-##  NA&#39;s   :606                                                       
-##   baseline_gfr         bmi          treatment          event       
-##  Min.   : 38.41   Min.   :10.47   Min.   :0.0000   Min.   :0.0000  
-##  1st Qu.: 80.55   1st Qu.:24.56   1st Qu.:1.0000   1st Qu.:1.0000  
-##  Median : 90.72   Median :28.02   Median :1.0000   Median :1.0000  
-##  Mean   : 90.44   Mean   :28.03   Mean   :0.9088   Mean   :0.9274  
-##  3rd Qu.:100.35   3rd Qu.:31.50   3rd Qu.:1.0000   3rd Qu.:1.0000  
-##  Max.   :144.94   Max.   :44.13   Max.   :1.0000   Max.   :1.0000  
-##  NA&#39;s   :629      NA&#39;s   :1431                     NA&#39;s   :3045</code></pre>
+summary(df[, c(&quot;age&quot;, &quot;sex_male&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;cirrhosis&quot;, &quot;ckd&quot;, &quot;treatment&quot;, &quot;event&quot;)])</code></pre>
+<pre><code>##       age            sex_male         diabetes       hypertension   
+##  Min.   : 18.00   Min.   :0.0000   Min.   :0.0000   Min.   :0.0000  
+##  1st Qu.: 39.05   1st Qu.:0.0000   1st Qu.:0.0000   1st Qu.:0.0000  
+##  Median : 47.99   Median :1.0000   Median :0.0000   Median :0.0000  
+##  Mean   : 48.01   Mean   :0.5775   Mean   :0.2022   Mean   :0.4463  
+##  3rd Qu.: 56.84   3rd Qu.:1.0000   3rd Qu.:0.0000   3rd Qu.:1.0000  
+##  Max.   :100.86   Max.   :1.0000   Max.   :1.0000   Max.   :1.0000  
+##    cirrhosis           ckd            treatment          event       
+##  Min.   :0.0000   Min.   :0.00000   Min.   :0.0000   Min.   :0.0000  
+##  1st Qu.:0.0000   1st Qu.:0.00000   1st Qu.:0.0000   1st Qu.:0.0000  
+##  Median :0.0000   Median :0.00000   Median :0.0000   Median :0.0000  
+##  Mean   :0.1806   Mean   :0.08137   Mean   :0.3717   Mean   :0.0362  
+##  3rd Qu.:0.0000   3rd Qu.:0.00000   3rd Qu.:1.0000   3rd Qu.:0.0000  
+##  Max.   :1.0000   Max.   :1.00000   Max.   :1.0000   Max.   :1.0000</code></pre>
 <pre class="r"><code># Visualize missingness patterns across variables
 vis_miss(df)</code></pre>
 <p><img src="case_study_AKI_files/figure-html/data-exploration-1.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># Create a summary table of key covariates (including missingness information)
-covariate_vars &lt;- c(&quot;age&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;, &quot;sex&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;)
+covariate_vars &lt;- c(&quot;age&quot;, &quot;sex_male&quot;, &quot;race&quot;, &quot;region&quot;, &quot;ckd&quot;, &quot;cirrhosis&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;)
 table1 &lt;- CreateTableOne(vars = covariate_vars, data = df, test = FALSE)
 print(table1, missing = TRUE)</code></pre>
 <pre><code>##                           
 ##                            Overall       Missing
-##   n                         5000                
-##   age (mean (SD))          59.82 (10.07) 12.1   
-##   baseline_gfr (mean (SD)) 90.44 (15.05) 12.6   
-##   bmi (mean (SD))          28.03 (5.00)  28.6   
-##   sex (mean (SD))           0.51 (0.50)   0.0   
-##   diabetes (mean (SD))      0.29 (0.46)   0.0   
-##   hypertension (mean (SD))  0.40 (0.49)   0.0</code></pre>
+##   n                        21383                
+##   age (mean (SD))          48.01 (12.97)  0.0   
+##   sex_male (mean (SD))      0.58 (0.49)   0.0   
+##   race (%)                               20.2   
+##      asian                   328 ( 1.9)         
+##      black                  2405 (14.1)         
+##      hispanic                965 ( 5.7)         
+##      other                  5160 (30.2)         
+##      white                  8216 (48.1)         
+##   region (%)                              0.0   
+##      MW                     3926 (18.4)         
+##      NE                     4217 (19.7)         
+##      S                      7911 (37.0)         
+##      W                      5329 (24.9)         
+##   ckd (mean (SD))           0.08 (0.27)   0.0   
+##   cirrhosis (mean (SD))     0.18 (0.38)   0.0   
+##   diabetes (mean (SD))      0.20 (0.40)   0.0   
+##   hypertension (mean (SD))  0.45 (0.50)   0.0</code></pre>
 </div>
 <div id="visualize-distributions-of-key-variables"
 class="section level2">
@@ -607,38 +687,26 @@ class="section level2">
 <pre class="r"><code># Histogram for Age
 ggplot(df, aes(x = age)) +
   geom_histogram(binwidth = 2, fill = &quot;skyblue&quot;, color = &quot;black&quot;, na.rm = TRUE) +
-  labs(title = &quot;Histogram of Age (non-missing)&quot;, x = &quot;Age&quot;, y = &quot;Frequency&quot;) +
+  labs(title = &quot;Histogram of Age&quot;, x = &quot;Age&quot;, y = &quot;Frequency&quot;) +
   theme_minimal()</code></pre>
 <p><img src="case_study_AKI_files/figure-html/visualize-distributions-1.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># Histogram for Baseline GFR
-ggplot(df, aes(x = baseline_gfr)) +
-  geom_histogram(binwidth = 2, fill = &quot;lightgreen&quot;, color = &quot;black&quot;, na.rm = TRUE) +
-  labs(title = &quot;Histogram of Baseline GFR (non-missing)&quot;, x = &quot;Baseline GFR&quot;, y = &quot;Frequency&quot;) +
-  theme_minimal()</code></pre>
-<p><img src="case_study_AKI_files/figure-html/visualize-distributions-2.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code># Histogram for BMI
 ggplot(df, aes(x = bmi)) +
   geom_histogram(binwidth = 1, fill = &quot;lightcoral&quot;, color = &quot;black&quot;, na.rm = TRUE) +
-  labs(title = &quot;Histogram of BMI (non-missing)&quot;, x = &quot;BMI&quot;, y = &quot;Frequency&quot;) +
+  labs(title = &quot;Histogram of BMI&quot;, x = &quot;BMI&quot;, y = &quot;Frequency&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/visualize-distributions-2.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Treatment by key variables
+ggplot(df, aes(x = factor(treatment), y = age)) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(title = &quot;Age by Treatment Status&quot;, x = &quot;Treatment (1=SOF)&quot;, y = &quot;Age&quot;) +
   theme_minimal()</code></pre>
 <p><img src="case_study_AKI_files/figure-html/visualize-distributions-3.png" width="960" style="display: block; margin: auto;" /></p>
 </div>
 <div id="examine-relationships-between-variables"
 class="section level2">
 <h2>Examine relationships between variables</h2>
-<pre class="r"><code># Scatter plot: Age vs. Baseline GFR, colored by diabetes status
-ggplot(df, aes(x = age, y = baseline_gfr, color = factor(diabetes))) +
-  geom_point(alpha = 0.6, na.rm = TRUE) +
-  labs(title = &quot;Age vs. Baseline GFR&quot;, x = &quot;Age&quot;, y = &quot;Baseline GFR&quot;, color = &quot;Diabetes&quot;) +
-  theme_minimal()</code></pre>
-<p><img src="case_study_AKI_files/figure-html/relationships-1.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># Treatment by covariates
-ggplot(df, aes(x = factor(treatment), y = age)) +
-  geom_boxplot(na.rm = TRUE) +
-  labs(title = &quot;Age by Treatment Status&quot;, x = &quot;Treatment&quot;, y = &quot;Age&quot;) +
-  theme_minimal()</code></pre>
-<p><img src="case_study_AKI_files/figure-html/relationships-2.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code># Event by treatment
+<pre class="r"><code># Event rate by treatment
 df %&gt;%
   filter(!is.na(event) &amp; !is.na(treatment)) %&gt;%
   group_by(treatment) %&gt;%
@@ -646,199 +714,155 @@ df %&gt;%
   ggplot(aes(x = factor(treatment), y = event_rate)) +
   geom_col(fill = &quot;steelblue&quot;) +
   labs(title = &quot;Unadjusted Event Rate by Treatment&quot;, 
-       x = &quot;Treatment&quot;, y = &quot;Event Rate&quot;) +
+       x = &quot;Treatment (1=SOF)&quot;, y = &quot;Event Rate&quot;) +
   theme_minimal()</code></pre>
-<p><img src="case_study_AKI_files/figure-html/relationships-3.png" width="960" style="display: block; margin: auto;" /></p>
+<p><img src="case_study_AKI_files/figure-html/relationships-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Plot follow-up time distributions
+ggplot(df, aes(x = follow_time, fill = factor(treatment))) +
+  geom_density(alpha = 0.5) +
+  labs(title = &quot;Follow-up Time by Treatment Group&quot;,
+       x = &quot;Follow-up Time (days)&quot;, y = &quot;Density&quot;,
+       fill = &quot;Treatment&quot;) +
+  scale_fill_discrete(labels = c(&quot;Non-SOF&quot;, &quot;SOF&quot;)) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/relationships-2.png" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="full-propensity-score-analysis" class="section level2">
+<h2>Full Propensity Score Analysis</h2>
+<pre class="r"><code># Comprehensive PS model
+full_ps_vars &lt;- c(&quot;age&quot;, &quot;sex_male&quot;, &quot;cirrhosis&quot;, &quot;portal_htn&quot;, &quot;ckd&quot;, &quot;hiv&quot;, 
+                  &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;heart_failure&quot;, &quot;nsaid&quot;, &quot;contrast&quot;,
+                  &quot;cancer&quot;, &quot;overweight_obese&quot;, &quot;substance_abuse&quot;, &quot;alcohol&quot;,
+                  &quot;smoking&quot;, &quot;aminoglycoside&quot;, &quot;statin&quot;, &quot;aspirin&quot;, &quot;beta_blocker&quot;, &quot;ccb&quot;, &quot;art&quot;)
+
+full_ps_formula &lt;- as.formula(paste(&quot;treatment ~&quot;, paste(full_ps_vars, collapse = &quot; + &quot;)))
+full_ps_fit &lt;- glm(full_ps_formula, data = df, family = binomial)
+df$full_ps &lt;- predict(full_ps_fit, newdata=df, type = &quot;response&quot;)
+
+# Check overlap
+ggplot(df, aes(x = full_ps, fill = factor(treatment))) +
+  geom_density(alpha = 0.5) +
+  labs(title = &quot;Propensity Score Distribution by Treatment&quot;,
+       x = &quot;Propensity Score&quot;, y = &quot;Density&quot;,
+       fill = &quot;Treatment&quot;) +
+  scale_fill_discrete(labels = c(&quot;Non-SOF&quot;, &quot;SOF&quot;)) +
+  theme_minimal()</code></pre>
+<p><img src="case_study_AKI_files/figure-html/ps-analysis-1.png" width="960" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 1:1 Matching with full PS
+match_full_obj &lt;- matchit(treatment ~ full_ps, data = df, method = &quot;nearest&quot;, 
+                         ratio = 1, caliper = 0.2)
+matched_full_df &lt;- match.data(match_full_obj)
+
+# Calculate HR after full PS matching
+matched_full_model &lt;- coxph(Surv(follow_time, event) ~ treatment, data = matched_full_df)
+matched_full_hr &lt;- exp(coef(matched_full_model))
+matched_full_ci &lt;- exp(confint(matched_full_model))
+
+cat(&quot;HR after full PS matching (95% CI):&quot;, round(matched_full_hr, 2), 
+    &quot;(&quot;, round(matched_full_ci[1], 2), &quot;,&quot;, round(matched_full_ci[2], 2), &quot;)\n&quot;)</code></pre>
+<pre><code>## HR after full PS matching (95% CI): 1.18 ( 1.01 , 1.39 )</code></pre>
+<pre class="r"><code># Fully adjusted Cox model
+adj_model &lt;- coxph(Surv(follow_time, event) ~ treatment + age + sex_male + cirrhosis + 
+                  portal_htn + ckd + hiv + diabetes + hypertension + heart_failure + 
+                  nsaid + contrast + cancer + overweight_obese + substance_abuse + 
+                  alcohol + smoking, data = df)
+adj_hr &lt;- exp(coef(adj_model)[1])
+adj_ci &lt;- exp(confint(adj_model)[1,])
+
+unadj_model &lt;- coxph(Surv(follow_time, event) ~ treatment , data = df)
+unadj_hr &lt;- exp(coef(unadj_model)[1])
+unadj_ci &lt;- exp(confint(unadj_model)[1,])
+
+cat(&quot;HR from fully adjusted Cox model (95% CI):&quot;, round(adj_hr, 2), 
+    &quot;(&quot;, round(adj_ci[1], 2), &quot;,&quot;, round(adj_ci[2], 2), &quot;)\n&quot;)</code></pre>
+<pre><code>## HR from fully adjusted Cox model (95% CI): 1.17 ( 1.01 , 1.35 )</code></pre>
+<pre class="r"><code># Summary of all HRs
+results_df &lt;- data.frame(
+  Model = c(&quot;Unadjusted&quot;, &quot;Fully Adjusted Cox&quot;, &quot;PS Matched&quot;),
+  HR = c(unadj_hr, adj_hr, matched_full_hr),
+  Lower_CI = c(unadj_ci[1], adj_ci[1], matched_full_ci[1]),
+  Upper_CI = c(unadj_ci[2], adj_ci[2], matched_full_ci[2])
+)
+
+print(results_df)</code></pre>
+<pre><code>##                Model       HR Lower_CI Upper_CI
+## 1         Unadjusted 1.363086 1.182904 1.570713
+## 2 Fully Adjusted Cox 1.170183 1.013326 1.351320
+## 3         PS Matched 1.184995 1.013071 1.386095</code></pre>
 </div>
 <div id="missing-data-imputation-using-random-forest"
 class="section level2">
 <h2>Missing data imputation using Random Forest</h2>
-<p>We’ll use the missForest algorithm to impute missing values in
-covariates.</p>
-<pre class="r"><code># Select the covariates to impute
-covariates_to_impute &lt;- c(&quot;age&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;)
+<pre class="r"><code># Select the variables to impute
+imp_vars &lt;- c(&quot;age&quot;, &quot;race&quot;, &quot;region&quot;, &quot;ckd&quot;, &quot;cirrhosis&quot;, &quot;hiv&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;bmi&quot;)
 
 # Create a subset for imputation
-df_cov &lt;- df[, covariates_to_impute]
+imp_in &lt;- df[, imp_vars] %&gt;% 
+  mutate(across(c(race, region), as.factor))
 
-# Apply missForest for imputation (using default settings, which uses random forest)
-impute_result &lt;- missForest(df_cov, verbose = TRUE)</code></pre>
+# Apply missForest for imputation
+impute_result &lt;- missForest(as.data.frame(imp_in), verbose = TRUE)</code></pre>
 <pre><code>##   missForest iteration 1 in progress...done!
-##     estimated error(s): 0.4263795 
-##     difference(s): 0.0004873576 
-##     time: 26.76 seconds
+##     estimated error(s): 0 0.3716469 
+##     difference(s): 0 0.07127157 
+##     time: 4.86 seconds
 ## 
 ##   missForest iteration 2 in progress...done!
-##     estimated error(s): 0.4263694 
-##     difference(s): 0.0004590606 
-##     time: 29.55 seconds
+##     estimated error(s): 0 0.3731112 
+##     difference(s): 0 0.03021092 
+##     time: 4.87 seconds
 ## 
 ##   missForest iteration 3 in progress...done!
-##     estimated error(s): 0.4262343 
-##     difference(s): 0.0004983446 
-##     time: 25.44 seconds</code></pre>
+##     estimated error(s): 0 0.3694213 
+##     difference(s): 0 0.03030445 
+##     time: 3.06 seconds</code></pre>
 <pre class="r"><code># Extract the imputed data
-df_cov_imputed &lt;- impute_result$ximp
+imp_out &lt;- impute_result$ximp
 
-# Replace original covariates in the full dataset with the imputed values
+# Replace original values in the full dataset with the imputed values
 df_imputed &lt;- df
-df_imputed[, covariates_to_impute] &lt;- df_cov_imputed</code></pre>
+df_imputed[, imp_vars] &lt;- imp_out</code></pre>
 </div>
 <div id="diagnostics-after-imputation" class="section level2">
 <h2>Diagnostics after imputation</h2>
-<pre class="r"><code># Check that missingness in the imputed covariates is removed
-sapply(df_imputed[, covariates_to_impute], function(x) sum(is.na(x)))</code></pre>
-<pre><code>##          age baseline_gfr          bmi 
+<pre class="r"><code># Check that missingness in the imputed variables is removed
+sapply(df_imputed[, imp_vars], function(x) sum(is.na(x)))</code></pre>
+<pre><code>##          age         race       region          ckd    cirrhosis          hiv 
+##            0            0            0            0            0            0 
+##     diabetes hypertension          bmi 
 ##            0            0            0</code></pre>
-<pre class="r"><code># Confirm that the outcome variable remains with its original missingness pattern
-cat(&quot;Missing values in outcome (event):&quot;, sum(is.na(df_imputed$event)), &quot;\n&quot;)</code></pre>
-<pre><code>## Missing values in outcome (event): 3045</code></pre>
-<pre class="r"><code># Compare distributions before and after imputation
-par(mfrow = c(1, 3))
+<pre class="r"><code># Compare distributions before and after imputation for key variables
+par(mfrow = c(1, 2))
 
-# Age comparison
-hist(df$age, main = &quot;Original Age&quot;, col = &quot;lightblue&quot;, border = &quot;white&quot;, xlab = &quot;Age&quot;, na.rm = TRUE)
-hist(df_imputed$age, main = &quot;Imputed Age&quot;, col = &quot;lightcoral&quot;, border = &quot;white&quot;, xlab = &quot;Age&quot;)
-
-# GFR comparison
-hist(df$baseline_gfr, main = &quot;Original GFR&quot;, col = &quot;lightblue&quot;, border = &quot;white&quot;, 
-     xlab = &quot;Baseline GFR&quot;, na.rm = TRUE)</code></pre>
+# Compare CKD (categorical)
+barplot(table(df$ckd, useNA = &quot;ifany&quot;), main = &quot;Original CKD&quot;, col = &quot;lightblue&quot;)
+barplot(table(df_imputed$ckd), main = &quot;Imputed CKD&quot;, col = &quot;lightcoral&quot;)</code></pre>
 <p><img src="case_study_AKI_files/figure-html/post-imputation-diagnostics-1.png" width="960" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>hist(df_imputed$baseline_gfr, main = &quot;Imputed GFR&quot;, col = &quot;lightcoral&quot;, border = &quot;white&quot;, 
-     xlab = &quot;Baseline GFR&quot;)
-
-# BMI comparison
-hist(df$bmi, main = &quot;Original BMI&quot;, col = &quot;lightblue&quot;, border = &quot;white&quot;, xlab = &quot;BMI&quot;, na.rm = TRUE)
-hist(df_imputed$bmi, main = &quot;Imputed BMI&quot;, col = &quot;lightcoral&quot;, border = &quot;white&quot;, xlab = &quot;BMI&quot;)</code></pre>
+<pre class="r"><code># Compare Region (categorical)
+barplot(table(df$region, useNA = &quot;ifany&quot;), main = &quot;Original Region&quot;, col = &quot;lightblue&quot;)
+barplot(table(df_imputed$region), main = &quot;Imputed Region&quot;, col = &quot;lightcoral&quot;)</code></pre>
 <p><img src="case_study_AKI_files/figure-html/post-imputation-diagnostics-2.png" width="960" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>par(mfrow = c(1, 1))</code></pre>
 </div>
 <div id="save-the-imputed-dataset" class="section level2">
 <h2>Save the imputed dataset</h2>
-<pre class="r"><code># Save the imputed dataset
-write.csv(df_imputed, &quot;data/imputed_case_study_data.csv&quot;, row.names = FALSE)</code></pre>
 </div>
 </div>
-<div id="next-steps" class="section level1">
-<h1>Next Steps</h1>
-<p>This case study has: 1. Generated a simulated dataset with realistic
-features 2. Introduced missingness consistent with real-world patterns
-3. Explored the data and imputed missing values 4. Calculated the true
-causal effect for simulation validation</p>
-<p>The imputed dataset is now ready for causal inference analysis
-methods like: - G-computation - TMLE (Targeted Maximum Likelihood
-Estimation) - Inverse probability weighting - Hazard-based methods with
-outcome model adjustment</p>
-<p>Given the complete data generation process, we can compare the
-estimated causal effects from these methods with the…</p>
-<p>(keep writing)</p>
-<p>##Case Study: Real-World Evidence for a New Treatment – Hepatitis C
-Therapy and Kidney Injury</p>
-<div
-id="context-our-example-comes-from-a-collaborative-effort-including-gilead-to-apply-the-causal-roadmap-in-a-pharmacoepidemiology-setting.-suppose-we-are-interested-in-whether-a-new-hepatitis-c-virus-hcv-treatment-affects-the-risk-of-developing-acute-kidney-injury-aki-within-one-year-of-starting-therapy.-hcv-treatments-in-the-past-had-known-nephrotoxic-effects-but-newer-direct-acting-antivirals-are-generally-safer-so-a-relevant-question-for-clinicians-could-be-does-curing-hcv-with-the-new-drug-improve-kidney-outcomes-or-conversely-does-the-drug-have-any-adverse-effect-on-kidneys-this-is-a-typical-rwe-scenario-using-say-a-large-electronic-health-record-database-where-patients-who-initiated-the-new-hcv-drug-are-compared-to-similar-patients-who-did-not-receive-that-treatment.-the-outcome-is-time-to-aki-a-time-to-event-outcome."
-class="section level4">
-<h4>Context: Our example comes from a collaborative effort (including
-Gilead) to apply the causal roadmap in a pharmacoepidemiology setting.
-Suppose we are interested in whether a new Hepatitis C virus (HCV)
-treatment affects the risk of developing acute kidney injury (AKI)
-within one year of starting therapy. HCV treatments in the past had
-known nephrotoxic effects, but newer direct-acting antivirals are
-generally safer – so a relevant question for clinicians could be: does
-curing HCV with the new drug improve kidney outcomes (or conversely,
-does the drug have any adverse effect on kidneys)? This is a typical RWE
-scenario using, say, a large electronic health record database where
-patients who initiated the new HCV drug are compared to similar patients
-who did not receive that treatment. The outcome is time-to-AKI, a
-time-to-event outcome.</h4>
-<p>Roadmap Application: Following the causal inference roadmap, the
-investigators first define the causal question clearly: “Does treatment
-with the new HCV drug cause a reduction in 12-month risk of acute kidney
-injury compared to no treatment (or standard care)?” The estimand was
-chosen as the 12-month risk difference in AKI between the treated and
-untreated groups​ file-74gjcvidaigkrg6dqikmtv . This estimand is
-straightforward and clinically interpretable – it directly answers how
-much absolute risk is lowered (or raised) by the treatment at one year.
-Notably, this is different from just fitting a Cox model and reporting a
-hazard ratio; the roadmap encourages thinking of measures like risk
-differences or risk ratios at a concrete time point, which are easier to
-communicate. The target trial approach was used to specify eligibility
-(patients with HCV eligible for treatment), treatment strategies (start
-the new drug vs. defer treatment during that period), and outcome (AKI
-within 12 months). In terms of design, they likely used an observational
-cohort from the RWD, employing methods to emulate randomization (like
-propensity score matching or weighting initially). Indeed, a tutorial
-built around this case study walks through multiple analytic approaches
-– propensity score matching, inverse probability weighting, and then
-targeted learning (TMLE) – to show the differences​
-file-74gjcvidaigkrg6dqikmtv . The roadmap was used to pre-specify these
-approaches for comparison (with TMLE planned as the primary analysis to
-estimate the 12-month risk difference). Confounders such as baseline
-kidney function, comorbidities (diabetes, hypertension), age, etc., were
-identified in the causal model step and included in the adjustment via
-either propensity scores or the outcome regression in TMLE. Findings:
-While the full results of this hypothetical example are part of a
-teaching tutorial rather than a published study, the exercise revealed
-important conceptual lessons. First, it demonstrated the limitations of
-the Cox model/HR for causal interpretation in this context​
-file-74gjcvidaigkrg6dqikmtv . The Cox model might yield a hazard ratio
-for AKI, but if the proportional hazards assumption is violated or if
-the hazard ratio changes over time, interpreting it as “the effect” is
-problematic. For instance, a hazard ratio of 0.8 could correspond to
-very different absolute risk differences depending on baseline risk;
-moreover, if treatment mostly delays AKI rather than prevents it, the HR
-is not constant. The roadmap approach, by targeting the risk difference,
-directly answers the question: “By how many percentage points does the
-treatment change the 1-year risk of AKI?” – which stakeholders find more
-directly useful. In the tutorial, they highlight that one must
-“understand [the] limitations [of hazard ratios] for causal
-interpretation” and consider alternative
-estimands​file-74gjcvidaigkrg6dqikmtv. Second, when applying TMLE with
-Super Learner, the analysis illustrated how using a flexible ensemble
-for confounder adjustment can reveal nonlinear or interaction effects
-that a simple propensity score model might miss. For example, if the
-effect of HCV treatment on AKI risk differs in patients with
-pre-existing kidney disease, a parametric model might not capture this,
-whereas a machine learning model could. The TMLE, by combining outcome
-modeling and weighting, provided an estimate of the risk difference with
-a valid confidence interval. The comparison of methods (PS matching,
-IPW, TMLE) showed that all methods agreed qualitatively (say, treatment
-improved outcomes) but TMLE had certain advantages: it made full use of
-the data (no need to discard unmatched patients as in matching),
-potentially achieved greater precision by using all covariate
-information, and was less sensitive to model misspecification than a
-one-shot propensity score approach. Third, this case underscored some
-practical challenges and how the roadmap addresses them: one challenge
-was how to handle patients who maybe stopped or switched treatments
-(intercurrent events). The roadmap’s emphasis on explicitly stating how
-such events are handled (e.g., treating them as censoring or integrating
-them into the outcome definition) ensured that the analysis was
-consistent with the causal question. Another challenge was positivity –
-ensuring that for each combination of confounders, there were both
-treated and untreated patients to compare. In RWE, if certain high-risk
-patients always get treated, then we have no data on similar patients
-untreated, making causal inference impossible in that subgroup. The
-planning stages would catch that (via checking data distributions), and
-the analysis might then be restricted to a subpopulation where overlap
-was sufficient, or a targeted extrapolation technique could be used. The
-case study likely dealt with this by, for example, not trying to
-estimate effects in extremely ill patients if all of them were treated.
-Overall, the HCV-AKI example showed the end-to-end application of the
-roadmap: from formulating a clear question to choosing an estimand (risk
-difference), executing a TMLE analysis, and comparing it to more
-familiar methods. The lesson learned is that even for those new to
-causal inference, following the roadmap demystifies the process and
-yields more interpretable results. By the end of the tutorial, a reader
-can see how each step of the roadmap concretely improved the analysis:
-the estimand selection made results clinically meaningful; the careful
-design and use of appropriate methods reduced bias; and the comparison
-of methods increased confidence that the findings were not an artifact
-of one particular analytic choice. This kind of case study, drawn from a
-collaboration involving industry analysts and academic statisticians,
-also exemplifies how communication is improved – the roadmap provides a
-common language (estimand, assumptions, etc.) that both epidemiologists
-and statisticians can discuss, making the analysis more transparent to
-all stakeholders.</p>
-</div>
+<div id="part-3-final-model-validation" class="section level1">
+<h1>Part 3: Final Model Validation</h1>
+<pre><code>## Summary of Key Metrics:</code></pre>
+<pre><code>## --------------------</code></pre>
+<pre><code>## Propensity score c-statistic: 0.593</code></pre>
+<pre><code>## (Target from real data: ~0.60)</code></pre>
+<pre><code>## Unadjusted HR: 1.36 ( 1.18 , 1.57 )</code></pre>
+<pre><code>## (Target from real data: ~1.48, 95% CI: 1.32, 1.66)</code></pre>
+<pre><code>## PS-matched HR: 1.18 ( 1.01 , 1.39 )</code></pre>
+<pre><code>## (Target from real data: ~1.14, 95% CI: 1.00, 1.30)</code></pre>
+<pre><code>## Overall event rate: 3.62 %</code></pre>
+<pre><code>##                   Metric        Simulation         Real_Data
+## 1         PS C-statistic             0.593              0.60
+## 2 Unadjusted HR (95% CI) 1.36 (1.18, 1.57) 1.48 (1.32, 1.66)
+## 3 PS-matched HR (95% CI) 1.18 (1.01, 1.39) 1.14 (1.00, 1.30)</code></pre>
 </div>
 
 

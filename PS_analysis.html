@@ -9,16 +9,16 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Causal Inference Team" />
+<meta name="author" content="Gilead RWE demo" />
 
-<meta name="date" content="2025-03-12" />
+<meta name="date" content="2025-04-25" />
 
-<title>Propensity Score Analysis for HCV Treatment and Kidney Injury</title>
+<title>Propensity‑Score &amp; Cox Analysis — Augmented HCV‑AKI Simulation</title>
 
 <script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
@@ -31,8 +31,11 @@
        h6 {font-size: 12px;}
        code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
        pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
 <style type="text/css">
@@ -234,9 +237,6 @@ $(document).ready(function () {
 }
 
 @media print {
-#TOC {
-  display: none !important;
-}
 .toc-content {
   /* see https://github.com/w3c/csswg-drafts/issues/4434 */
   float: right;
@@ -283,12 +283,6 @@ div.tocify {
   border-radius: 0px;
 }
 
-.tocify-subheader {
-  display: inline;
-}
-.tocify-subheader .tocify-item {
-  font-size: 0.95em;
-}
 
 </style>
 
@@ -333,10 +327,10 @@ div.tocify {
   <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
 </li>
 <li>
-  <a href="PS_analysis.html">Propensity score matching analysis</a>
+  <a href="roadmapV2.html">Case study Roadmap in RWE</a>
 </li>
 <li>
-  <a href="IPW_analysis.html">Inverse probability weighted analysis</a>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
 </li>
 <li>
   <a href="TMLE_analysis.html">Targeted learning analysis</a>
@@ -356,893 +350,253 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Propensity Score Analysis for HCV Treatment
-and Kidney Injury</h1>
-<h4 class="author">Causal Inference Team</h4>
-<h4 class="date">2025-03-12</h4>
+<h1 class="title toc-ignore">Propensity‑Score &amp; Cox Analysis —
+Augmented HCV‑AKI Simulation</h1>
+<h4 class="author">Gilead RWE demo</h4>
+<h4 class="date">2025-04-25</h4>
 
 </div>
 
 
-<div id="introduction" class="section level1">
-<h1>Introduction</h1>
-<p>This analysis examines the potential causal relationship between
-sofosbuvir (SOF)-containing direct-acting antiviral (DAA) regimens and
-acute kidney injury (AKI) in patients with Hepatitis C Virus (HCV)
-infection. We’ll use propensity score matching to balance treatment
-groups and estimate the treatment effect.</p>
-<div id="study-objective" class="section level2">
-<h2>Study Objective</h2>
-<p>To assess whether patients with chronic HCV infection who were
-exposed to SOF-containing DAA regimens experience a higher rate of
-claims for AKI, compared to a cohort of propensity score-matched
-patients who were exposed to non-SOF-containing DAA regimens.</p>
-</div>
-<div id="load-required-libraries" class="section level2">
-<h2>Load Required Libraries</h2>
-<pre class="r"><code># Load necessary libraries
-library(dplyr)
-library(ggplot2)
-library(MatchIt)
-library(cobalt)
-library(tableone)
-library(survival)
-library(survminer)</code></pre>
-</div>
-</div>
-<div id="data-loading-and-preparation" class="section level1">
-<h1>Data Loading and Preparation</h1>
-<pre class="r"><code># Load the imputed dataset
-# In a real-world scenario, we would use:
-# df &lt;- read.csv(&quot;data/imputed_case_study_data.csv&quot;)
+<div id="load-data-quick-look" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> 1 Load data &amp; quick
+look</h1>
+<pre class="r"><code># regenerate if csv missing
+if (!file.exists(&quot;data/sim_hcv_aki_aug.csv&quot;)) source(&quot;gen_data_aug.R&quot;)
 
-# In this analysis, we&#39;ll use our simulated data
-set.seed(42)
+df &lt;- read_csv(&quot;data/sim_hcv_aki_aug.csv&quot;, show_col_types = FALSE)
 
-# Load simulated dataset if it exists, otherwise create it
-if(file.exists(&quot;data/imputed_case_study_data.csv&quot;)) {
-  df &lt;- read.csv(&quot;data/imputed_case_study_data.csv&quot;)
-} else {
-  # We&#39;ll recreate a simplified version of our simulated dataset
-  n &lt;- 5000
-
-  # Simulate baseline covariates
-  age &lt;- rnorm(n, mean = 60, sd = 10)  # Age centered at 60
-  sex &lt;- rbinom(n, 1, 0.5)  # Binary sex variable (0 or 1)
-  diabetes &lt;- rbinom(n, 1, 0.3)  # 30% prevalence of diabetes
-  hypertension &lt;- rbinom(n, 1, 0.4)  # 40% prevalence of hypertension
-  baseline_gfr &lt;- rnorm(n, mean = 90, sd = 15)  # Baseline kidney function (eGFR)
-  bmi &lt;- rnorm(n, mean = 28, sd = 5)  # BMI distribution
-
-  # Create some additional covariates
-  cirrhosis &lt;- rbinom(n, 1, 0.2)
-  prev_aki &lt;- rbinom(n, 1, 0.05)
-  heart_failure &lt;- rbinom(n, 1, 0.1)
-  nsaid_use &lt;- rbinom(n, 1, 0.3)
-
-  # Non-linearity in the relationship between age and treatment
-  age_effect &lt;- exp(-0.05 * (age - 60)^2)
-
-  # Treatment assignment with some confounding
-  treatment_prob &lt;- plogis(-1 + 0.02 * age + 0.4 * diabetes + 0.3 * hypertension +
-                             0.2 * sex + 0.01 * baseline_gfr + 0.02 * bmi - 0.5 * cirrhosis)
-  treatment &lt;- rbinom(n, 1, treatment_prob)
-
-  # Outcome model
-  outcome_prob &lt;- plogis(-4 + 0.03 * age + 0.5 * diabetes + 0.4 * hypertension +
-                           0.3 * sex - 0.015 * baseline_gfr + 0.025 * bmi +
-                           1.2 * prev_aki + 0.8 * heart_failure +
-                           0.6 * nsaid_use + 0.2 * treatment)
-
-  event &lt;- rbinom(n, 1, outcome_prob)
-
-  # Simulate follow-up time (shorter for those with events)
-  time_to_event &lt;- rexp(n, rate = 0.02 * (1 + outcome_prob))
-
-  # Censoring mechanism
-  censoring_time &lt;- rexp(n, rate = 1/10)  # Administrative censoring at random times
-  observed_time &lt;- pmin(time_to_event, censoring_time)
-  censored &lt;- as.integer(time_to_event &gt; censoring_time)
-
-  # Create dataframe
-  df &lt;- data.frame(
-    age, sex, diabetes, hypertension, baseline_gfr, bmi,
-    cirrhosis, prev_aki, heart_failure, nsaid_use,
-    treatment, event, time_to_event, observed_time, censored
-  )
-
-  # Create a categorical/factor version of treatment for display
-  df$treatment_group &lt;- factor(df$treatment,
-                               levels = c(0, 1),
-                               labels = c(&quot;non-SOF DAAs&quot;, &quot;SOF-DAAs&quot;))
-
-  # Save the dataset
-  dir.create(&quot;data&quot;, showWarnings = FALSE)
-  write.csv(df, &quot;data/imputed_case_study_data.csv&quot;, row.names = FALSE)
-}
-
-# For demonstration, we&#39;ll create a categorical treatment variable if it doesn&#39;t exist
-if(!&quot;treatment_group&quot; %in% names(df)) {
-  df$treatment_group &lt;- factor(df$treatment,
-                               levels = c(0, 1),
-                               labels = c(&quot;non-SOF DAAs&quot;, &quot;SOF-DAAs&quot;))
-}
-
-# Display summary of the dataset
-glimpse(df)</code></pre>
-<pre><code>## Rows: 5,000
-## Columns: 16
-## $ age             &lt;dbl&gt; 73.70958, 54.35302, 63.63128, 66.32863, 64.04268, 58.9…
-## $ sex             &lt;int&gt; 1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, …
-## $ diabetes        &lt;int&gt; 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, …
-## $ hypertension    &lt;int&gt; 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, …
-## $ baseline_gfr    &lt;dbl&gt; 83.85757, 76.06443, 113.02098, 93.36407, 58.95216, 105…
-## $ bmi             &lt;dbl&gt; 35.63937, 34.34018, 28.95903, 27.65028, 20.65748, 28.2…
-## $ cirrhosis       &lt;int&gt; 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, …
-## $ prev_aki        &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, …
-## $ heart_failure   &lt;int&gt; 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, …
-## $ nsaid_use       &lt;int&gt; 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, …
-## $ treatment       &lt;int&gt; 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, …
-## $ event           &lt;int&gt; 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, …
-## $ time_to_event   &lt;dbl&gt; 28.6264231, 6.1182104, 47.4531156, 21.1052884, 142.567…
-## $ observed_time   &lt;dbl&gt; 6.9568930, 6.1182104, 7.3257019, 7.4564820, 7.5570745,…
-## $ censored        &lt;int&gt; 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, …
-## $ treatment_group &lt;chr&gt; &quot;SOF-DAAs&quot;, &quot;SOF-DAAs&quot;, &quot;SOF-DAAs&quot;, &quot;non-SOF DAAs&quot;, &quot;n…</code></pre>
-</div>
-<div id="pre-matching-exploratory-analysis" class="section level1">
-<h1>Pre-Matching Exploratory Analysis</h1>
-<div id="patient-characteristics-by-treatment-group"
-class="section level2">
-<h2>Patient Characteristics by Treatment Group</h2>
-<pre class="r"><code># Define variable list for the table
-vars &lt;- c(&quot;age&quot;, &quot;sex&quot;, &quot;diabetes&quot;, &quot;hypertension&quot;, &quot;baseline_gfr&quot;, &quot;bmi&quot;,
-          &quot;cirrhosis&quot;, &quot;prev_aki&quot;, &quot;heart_failure&quot;, &quot;nsaid_use&quot;)
-
-# Create a table comparing characteristics by treatment group
-table1 &lt;- CreateTableOne(vars = vars, strata = &quot;treatment_group&quot;, data = df, test = TRUE)
-print(table1, smd = TRUE)</code></pre>
-<pre><code>##                            Stratified by treatment_group
-##                             non-SOF DAAs  SOF-DAAs      p      test SMD   
-##   n                           693          4307                           
-##   age (mean (SD))           58.46 (10.33) 60.08 (9.99)  &lt;0.001       0.159
-##   sex (mean (SD))            0.48 (0.50)   0.51 (0.50)   0.082       0.071
-##   diabetes (mean (SD))       0.22 (0.41)   0.31 (0.46)  &lt;0.001       0.197
-##   hypertension (mean (SD))   0.33 (0.47)   0.41 (0.49)  &lt;0.001       0.166
-##   baseline_gfr (mean (SD))  87.98 (14.89) 90.34 (15.18) &lt;0.001       0.157
-##   bmi (mean (SD))           27.55 (5.08)  28.11 (5.00)   0.007       0.111
-##   cirrhosis (mean (SD))      0.29 (0.45)   0.21 (0.40)  &lt;0.001       0.187
-##   prev_aki (mean (SD))       0.06 (0.23)   0.05 (0.23)   0.697       0.016
-##   heart_failure (mean (SD))  0.09 (0.29)   0.11 (0.31)   0.279       0.045
-##   nsaid_use (mean (SD))      0.28 (0.45)   0.30 (0.46)   0.457       0.031</code></pre>
-</div>
-<div id="outcome-prevalence-by-treatment-group" class="section level2">
-<h2>Outcome Prevalence by Treatment Group</h2>
-<pre class="r"><code># Calculate outcome prevalence by treatment group
-outcome_table &lt;- df %&gt;%
-  group_by(treatment_group) %&gt;%
-  summarise(
-    n_patients = n(),
-    n_events = sum(event),
-    event_rate = mean(event),
-    .groups = &#39;drop&#39;
-  )
-
-knitr::kable(outcome_table, caption = &quot;Outcome (AKI) by Treatment Group (Before Matching)&quot;)</code></pre>
-<table>
-<caption>Outcome (AKI) by Treatment Group (Before Matching)</caption>
-<thead>
-<tr class="header">
-<th align="left">treatment_group</th>
-<th align="right">n_patients</th>
-<th align="right">n_events</th>
-<th align="right">event_rate</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">SOF-DAAs</td>
-<td align="right">4307</td>
-<td align="right">706</td>
-<td align="right">0.1639192</td>
-</tr>
-<tr class="even">
-<td align="left">non-SOF DAAs</td>
-<td align="right">693</td>
-<td align="right">87</td>
-<td align="right">0.1255411</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code># Plot outcome prevalence
-ggplot(outcome_table, aes(x = treatment_group, y = event_rate, fill = treatment_group)) +
-  geom_col() +
-  geom_text(aes(label = sprintf(&quot;%.1f%%&quot;, 100 * event_rate)),
-            vjust = -0.5, size = 4) +
-  labs(
-    title = &quot;Unadjusted Event Rate by Treatment Group&quot;,
-    x = &quot;Treatment Group&quot;,
-    y = &quot;Event Rate&quot;,
-    fill = &quot;Treatment Group&quot;
-  ) +
-  scale_y_continuous(labels = scales::percent, limits = c(0, max(outcome_table$event_rate) * 1.2)) +
-  theme_minimal() +
-  theme(legend.position = &quot;none&quot;)</code></pre>
-<p><img src="PS_analysis_files/figure-html/outcome-by-treatment-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-</div>
-<div id="propensity-score-estimation" class="section level1">
-<h1>Propensity Score Estimation</h1>
-<div id="estimating-propensity-scores" class="section level2">
-<h2>Estimating Propensity Scores</h2>
-<pre class="r"><code># Estimate propensity scores using logistic regression
-ps_formula &lt;- as.formula(
-  &quot;treatment ~ age + sex + diabetes + hypertension + baseline_gfr + bmi +
-   cirrhosis + prev_aki + heart_failure + nsaid_use&quot;
-)
-
-ps_model &lt;- glm(ps_formula, data = df, family = binomial)
-summary(ps_model)</code></pre>
-<pre><code>## 
-## Call:
-## glm(formula = ps_formula, family = binomial, data = df)
+# glimpse &amp; skim for sanity
+skim(df)</code></pre>
+<pre><code>## Skim summary statistics
+##  n obs: 21383 
+##  n variables: 39 
+##  group variables:  
 ## 
-## Coefficients:
-##                Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept)   -1.013098   0.425585  -2.380 0.017290 *  
-## age            0.017393   0.004143   4.198 2.69e-05 ***
-## sex            0.164790   0.082930   1.987 0.046911 *  
-## diabetes       0.467940   0.098369   4.757 1.96e-06 ***
-## hypertension   0.347523   0.087474   3.973 7.10e-05 ***
-## baseline_gfr   0.010476   0.002753   3.805 0.000142 ***
-## bmi            0.022374   0.008243   2.714 0.006641 ** 
-## cirrhosis     -0.438406   0.092976  -4.715 2.41e-06 ***
-## prev_aki      -0.073327   0.178347  -0.411 0.680966    
-## heart_failure  0.151954   0.141664   1.073 0.283433    
-## nsaid_use      0.062446   0.091709   0.681 0.495925    
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## Variable type: character 
+##  variable missing complete     n min max empty n_unique
+##      race       0    21383 21383   5   8     0        5
+##    region       0    21383 21383   1   2     0        4
 ## 
-## (Dispersion parameter for binomial family taken to be 1)
-## 
-##     Null deviance: 4024.1  on 4999  degrees of freedom
-## Residual deviance: 3919.4  on 4989  degrees of freedom
-## AIC: 3941.4
-## 
-## Number of Fisher Scoring iterations: 5</code></pre>
-<pre class="r"><code># Add propensity scores to the dataframe
-df$ps &lt;- predict(ps_model, type = &quot;response&quot;)
+## Variable type: numeric 
+##          variable missing complete     n       mean       sd      p0     p25
+##            acearb       0    21383 21383     0.3       0.46   0         0   
+##               age       0    21383 21383    48.01     12.97  18        39.05
+##           alcohol       0    21383 21383     0.18      0.39   0         0   
+##    aminoglycoside       0    21383 21383     0.051     0.22   0         0   
+##               art       0    21383 21383     0.05      0.22   0         0   
+##           aspirin       0    21383 21383     0.099     0.3    0         0   
+##      beta_blocker       0    21383 21383     0.14      0.35   0         0   
+##               bmi       0    21383 21383    28         4.99   8.88     24.59
+##            cancer       0    21383 21383     0.075     0.26   0         0   
+##               ccb       0    21383 21383     0.16      0.36   0         0   
+##             chemo       0    21383 21383     0.0091    0.095  0         0   
+##         cirrhosis       0    21383 21383     0.18      0.38   0         0   
+##               ckd       0    21383 21383     0.081     0.27   0         0   
+##          contrast       0    21383 21383     0.078     0.27   0         0   
+##       dehydration       0    21383 21383     0.059     0.24   0         0   
+##          diabetes       0    21383 21383     0.2       0.4    0         0   
+##          diuretic       0    21383 21383     0.22      0.42   0         0   
+##              esld       0    21383 21383     0.021     0.14   0         0   
+##             event       0    21383 21383     0.036     0.19   0         0   
+##       follow_time       0    21383 21383    81.08     60.39   0.0049   27.41
+##           full_ps       0    21383 21383     0.37      0.076  0.17      0.32
+##     heart_failure       0    21383 21383     0.069     0.25   0         0   
+##               hiv       0    21383 21383     0.04      0.2    0         0   
+##      hypertension       0    21383 21383     0.45      0.5    0         0   
+##                id       0    21383 21383 12478.65   7217.19   1      6229   
+##             nsaid       0    21383 21383     0.25      0.43   0         0   
+##       obstruction       0    21383 21383     0.041     0.2    0         0   
+##  overweight_obese       0    21383 21383     0.2       0.4    0         0   
+##        portal_htn       0    21383 21383     0.039     0.19   0         0   
+##                ps       0    21383 21383     0.37      0.07   0.21      0.32
+##            sepsis       0    21383 21383     0.028     0.17   0         0   
+##          sex_male       0    21383 21383     0.58      0.49   0         0   
+##           smoking       0    21383 21383     0.4       0.49   0         0   
+##            statin       0    21383 21383     0.15      0.35   0         0   
+##   substance_abuse       0    21383 21383     0.25      0.43   0         0   
+##            switch       0    21383 21383     0.029     0.17   0         0   
+##         treatment       0    21383 21383     0.37      0.48   0         0   
+##    median      p75     p100     hist
+##      0        1        1    ▇▁▁▁▁▁▁▃
+##     47.99    56.84   100.86 ▂▅▇▇▃▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##     27.98    31.42    47.82 ▁▁▃▇▇▃▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##     67.53   130.84   180    ▇▆▅▃▃▂▂▇
+##      0.37     0.42     0.73 ▁▅▇▆▃▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        1        1    ▇▁▁▁▁▁▁▆
+##  12483    18702.5  25000    ▇▇▇▇▇▇▇▇
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0.37     0.42     0.7  ▂▆▇▆▂▁▁▁
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      1        1        1    ▆▁▁▁▁▁▁▇
+##      0        1        1    ▇▁▁▁▁▁▁▅
+##      0        0        1    ▇▁▁▁▁▁▁▂
+##      0        1        1    ▇▁▁▁▁▁▁▃
+##      0        0        1    ▇▁▁▁▁▁▁▁
+##      0        1        1    ▇▁▁▁▁▁▁▅</code></pre>
+<p>The dataset contains <strong>21383</strong> individuals with a
+marginal SOF prevalence of <strong>0.3717439</strong>.</p>
+<pre class="r"><code># simple logistic PS for overlap diagnostics
+ps_formula &lt;- treatment ~ age + sex_male + race + region + ckd + cirrhosis + portal_htn + heart_failure + hiv + diabetes + hypertension + substance_abuse + alcohol + nsaid + acearb + aminoglycoside + contrast
+ps_fit  &lt;- glm(ps_formula, data = df, family = binomial)
 
-# Display propensity score distribution
-summary(df$ps)</code></pre>
-<pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##  0.6432  0.8322  0.8686  0.8614  0.8987  0.9599</code></pre>
+df$ps_hat &lt;- predict(ps_fit, newdata = df, type = &quot;response&quot;)
+# c‑statistic
+c_stat &lt;- pROC::auc(df$treatment, df$ps_hat)
+cat(&quot;C‑statistic (raw):&quot;, round(c_stat,3), &quot;\n&quot;)</code></pre>
+<pre><code>## C‑statistic (raw): 0.59</code></pre>
+<pre class="r"><code># density overlap plot
+cobalt::bal.plot(treatment ~ ps_hat, data = df, type = &quot;density&quot;, which = &quot;both&quot;,
+                 xlab = &quot;Propensity score&quot;, main = &quot;Overlap before matching&quot;)</code></pre>
+<p><img src="PS_analysis_files/figure-html/ps-initial-1.png" width="672" /></p>
 </div>
-<div id="propensity-score-distribution-by-treatment-group"
-class="section level2">
-<h2>Propensity Score Distribution by Treatment Group</h2>
-<pre class="r"><code># Visualize the distribution of propensity scores by treatment group
-ggplot(df, aes(x = ps, fill = treatment_group)) +
-  geom_density(alpha = 0.5) +
-  labs(
-    title = &quot;Propensity Score Distribution (Pre-Matching)&quot;,
-    x = &quot;Propensity Score&quot;,
-    y = &quot;Density&quot;,
-    fill = &quot;Treatment Group&quot;
-  ) +
-  theme_minimal() +
-  scale_fill_brewer(palette = &quot;Set1&quot;)</code></pre>
-<p><img src="PS_analysis_files/figure-html/ps-distribution-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-</div>
-<div id="propensity-score-matching" class="section level1">
-<h1>Propensity Score Matching</h1>
-<div id="perform-matching" class="section level2">
-<h2>Perform Matching</h2>
-<pre class="r"><code># Perform propensity score matching
-matchit_out &lt;- matchit(
-  formula = ps_formula,
-  data = df,
-  method = &quot;nearest&quot;,
-  caliper = 0.2,
-  ratio = 1
-)
+<div id="propensityscore-matching" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> 2 Propensity‑score
+matching</h1>
+<pre class="r"><code>match_out &lt;- MatchIt::matchit(ps_formula, data = df, method = &quot;nearest&quot;, distance = df$ps_hat,
+                             ratio = 1, caliper = .2)
+matched_df &lt;- match.data(match_out)
+saveRDS(matched_df, file = here::here(&quot;data/matched_case_study_data.RDS&quot;))
 
-# Display matching summary
-summary(matchit_out)</code></pre>
-<pre><code>## 
-## Call:
-## matchit(formula = ps_formula, data = df, method = &quot;nearest&quot;, 
-##     caliper = 0.2, ratio = 1)
-## 
-## Summary of Balance for All Data:
-##               Means Treated Means Control Std. Mean Diff. Var. Ratio eCDF Mean
-## distance             0.8643        0.8431          0.4293     0.8532    0.1179
-## age                 60.0803       58.4625          0.1620     0.9354    0.0453
-## sex                  0.5117        0.4762          0.0711          .    0.0355
-## diabetes             0.3058        0.2193          0.1876          .    0.0864
-## hypertension         0.4072        0.3276          0.1622          .    0.0797
-## baseline_gfr        90.3447       87.9825          0.1556     1.0402    0.0432
-## bmi                 28.1081       27.5504          0.1115     0.9694    0.0325
-## cirrhosis            0.2066        0.2872         -0.1989          .    0.0805
-## prev_aki             0.0541        0.0577         -0.0160          .    0.0036
-## heart_failure        0.1059        0.0924          0.0439          .    0.0135
-## nsaid_use            0.2967        0.2828          0.0304          .    0.0139
-##               eCDF Max
-## distance        0.1780
-## age             0.0824
-## sex             0.0355
-## diabetes        0.0864
-## hypertension    0.0797
-## baseline_gfr    0.0733
-## bmi             0.0568
-## cirrhosis       0.0805
-## prev_aki        0.0036
-## heart_failure   0.0135
-## nsaid_use       0.0139
-## 
-## Summary of Balance for Matched Data:
-##               Means Treated Means Control Std. Mean Diff. Var. Ratio eCDF Mean
-## distance             0.8531        0.8431          0.2019     1.0065    0.0567
-## age                 59.4706       58.4625          0.1009     0.9398    0.0280
-## sex                  0.4762        0.4762          0.0000          .    0.0000
-## diabetes             0.2554        0.2193          0.0783          .    0.0361
-## hypertension         0.3694        0.3276          0.0852          .    0.0418
-## baseline_gfr        89.0838       87.9825          0.0725     1.0474    0.0221
-## bmi                 28.0324       27.5504          0.0963     0.9517    0.0276
-## cirrhosis            0.2468        0.2872         -0.0998          .    0.0404
-## prev_aki             0.0635        0.0577          0.0255          .    0.0058
-## heart_failure        0.0794        0.0924         -0.0422          .    0.0130
-## nsaid_use            0.2944        0.2828          0.0253          .    0.0115
-##               eCDF Max Std. Pair Dist.
-## distance        0.0909          0.2019
-## age             0.0649          1.0744
-## sex             0.0000          0.4848
-## diabetes        0.0361          0.6295
-## hypertension    0.0418          0.7959
-## baseline_gfr    0.0505          0.9971
-## bmi             0.0606          1.1150
-## cirrhosis       0.0404          0.7128
-## prev_aki        0.0058          0.5358
-## heart_failure   0.0130          0.4831
-## nsaid_use       0.0115          0.8782
-## 
-## Sample Sizes:
-##           Control Treated
-## All           693    4307
-## Matched       693     693
-## Unmatched       0    3614
-## Discarded       0       0</code></pre>
-<pre class="r"><code># Extract matched data
-matched_df &lt;- match.data(matchit_out)
 
-# Number of matched pairs
-cat(&quot;Matched sample size:&quot;, nrow(matched_df), &quot;\n&quot;)</code></pre>
-<pre><code>## Matched sample size: 1386</code></pre>
-<pre class="r"><code>cat(&quot;Number of matched pairs:&quot;, nrow(matched_df) / 2, &quot;\n&quot;)</code></pre>
-<pre><code>## Number of matched pairs: 693</code></pre>
-</div>
-<div id="post-matching-assessment" class="section level2">
-<h2>Post-Matching Assessment</h2>
-<div id="covariate-balance" class="section level3">
-<h3>Covariate Balance</h3>
-<pre class="r"><code># Create a balance table
-bal_tab &lt;- bal.tab(matchit_out, un = TRUE, m.threshold = 0.1)
-print(bal_tab)</code></pre>
+# balance table + plot
+bal.tab(match_out, un = TRUE, v.ratio = TRUE, m.threshold = .1)</code></pre>
 <pre><code>## Balance Measures
-##                   Type Diff.Un Diff.Adj        M.Threshold
-## distance      Distance  0.4293   0.2019                   
-## age            Contin.  0.1620   0.1009 Not Balanced, &gt;0.1
-## sex             Binary  0.0355   0.0000     Balanced, &lt;0.1
-## diabetes        Binary  0.0864   0.0361     Balanced, &lt;0.1
-## hypertension    Binary  0.0797   0.0418     Balanced, &lt;0.1
-## baseline_gfr   Contin.  0.1556   0.0725     Balanced, &lt;0.1
-## bmi            Contin.  0.1115   0.0963     Balanced, &lt;0.1
-## cirrhosis       Binary -0.0805  -0.0404     Balanced, &lt;0.1
-## prev_aki        Binary -0.0036   0.0058     Balanced, &lt;0.1
-## heart_failure   Binary  0.0135  -0.0130     Balanced, &lt;0.1
-## nsaid_use       Binary  0.0139   0.0115     Balanced, &lt;0.1
+##                     Type Diff.Un Diff.Adj    M.Threshold
+## distance        Distance  0.3150   0.0147 Balanced, &lt;0.1
+## age              Contin.  0.2354   0.0030 Balanced, &lt;0.1
+## sex_male          Binary  0.0119   0.0076 Balanced, &lt;0.1
+## race_asian        Binary  0.0053   0.0004 Balanced, &lt;0.1
+## race_black        Binary  0.0030  -0.0035 Balanced, &lt;0.1
+## race_hispanic     Binary  0.0006  -0.0013 Balanced, &lt;0.1
+## race_other        Binary -0.0100   0.0016 Balanced, &lt;0.1
+## race_white        Binary  0.0012   0.0028 Balanced, &lt;0.1
+## region_MW         Binary  0.0059   0.0032 Balanced, &lt;0.1
+## region_NE         Binary  0.0017  -0.0010 Balanced, &lt;0.1
+## region_S          Binary -0.0246  -0.0025 Balanced, &lt;0.1
+## region_W          Binary  0.0170   0.0004 Balanced, &lt;0.1
+## ckd               Binary  0.0259   0.0021 Balanced, &lt;0.1
+## cirrhosis         Binary  0.0426   0.0047 Balanced, &lt;0.1
+## portal_htn        Binary  0.0154   0.0011 Balanced, &lt;0.1
+## heart_failure     Binary -0.0001   0.0001 Balanced, &lt;0.1
+## hiv               Binary  0.0065  -0.0009 Balanced, &lt;0.1
+## diabetes          Binary  0.0187   0.0030 Balanced, &lt;0.1
+## hypertension      Binary  0.0178   0.0014 Balanced, &lt;0.1
+## substance_abuse   Binary  0.0392  -0.0018 Balanced, &lt;0.1
+## alcohol           Binary  0.0009   0.0008 Balanced, &lt;0.1
+## nsaid             Binary  0.0152   0.0047 Balanced, &lt;0.1
+## acearb            Binary -0.0025   0.0039 Balanced, &lt;0.1
+## aminoglycoside    Binary  0.0088   0.0000 Balanced, &lt;0.1
+## contrast          Binary  0.0122   0.0030 Balanced, &lt;0.1
 ## 
 ## Balance tally for mean differences
 ##                    count
-## Balanced, &lt;0.1         9
-## Not Balanced, &gt;0.1     1
+## Balanced, &lt;0.1        25
+## Not Balanced, &gt;0.1     0
 ## 
 ## Variable with the greatest mean difference
-##  Variable Diff.Adj        M.Threshold
-##       age   0.1009 Not Balanced, &gt;0.1
+##  Variable Diff.Adj    M.Threshold
+##  sex_male   0.0076 Balanced, &lt;0.1
 ## 
 ## Sample sizes
 ##           Control Treated
-## All           693    4307
-## Matched       693     693
-## Unmatched       0    3614</code></pre>
-<pre class="r"><code># Create a love plot to visualize balance improvement
-love.plot(bal_tab, threshold = 0.1, var.order = &quot;unadjusted&quot;,
-          abs = TRUE, line = TRUE, colors = c(&quot;red&quot;, &quot;blue&quot;),
-          title = &quot;Covariate Balance Before and After Matching&quot;)</code></pre>
-<p><img src="PS_analysis_files/figure-html/balance-assessment-1.png" width="960" style="display: block; margin: auto;" /></p>
+## All         13434    7949
+## Matched      7928    7928
+## Unmatched    5506      21</code></pre>
+<pre class="r"><code>plot(match_out, type = &quot;hist&quot;)</code></pre>
+<p><img src="PS_analysis_files/figure-html/matchit-1.png" width="672" /></p>
 </div>
-<div id="propensity-score-distribution-after-matching"
-class="section level3">
-<h3>Propensity Score Distribution After Matching</h3>
-<pre class="r"><code># Visualize the distribution of propensity scores after matching
-ggplot(matched_df, aes(x = ps, fill = treatment_group)) +
-  geom_density(alpha = 0.5) +
-  labs(
-    title = &quot;Propensity Score Distribution (Post-Matching)&quot;,
-    x = &quot;Propensity Score&quot;,
-    y = &quot;Density&quot;,
-    fill = &quot;Treatment Group&quot;
-  ) +
-  theme_minimal() +
-  scale_fill_brewer(palette = &quot;Set1&quot;)</code></pre>
-<p><img src="PS_analysis_files/figure-html/ps-post-match-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-<div id="covariate-balance-table" class="section level3">
-<h3>Covariate Balance Table</h3>
-<pre class="r"><code># Create a table comparing characteristics by treatment group after matching
-matched_table1 &lt;- CreateTableOne(vars = vars, strata = &quot;treatment_group&quot;,
-                                 data = matched_df, test = TRUE)
-print(matched_table1, smd = TRUE)</code></pre>
-<pre><code>##                            Stratified by treatment_group
-##                             non-SOF DAAs  SOF-DAAs      p      test SMD   
-##   n                           693           693                           
-##   age (mean (SD))           58.46 (10.33) 59.47 (10.01)  0.065       0.099
-##   sex (mean (SD))            0.48 (0.50)   0.48 (0.50)   1.000      &lt;0.001
-##   diabetes (mean (SD))       0.22 (0.41)   0.26 (0.44)   0.115       0.085
-##   hypertension (mean (SD))   0.33 (0.47)   0.37 (0.48)   0.102       0.088
-##   baseline_gfr (mean (SD))  87.98 (14.89) 89.08 (15.24)  0.174       0.073
-##   bmi (mean (SD))           27.55 (5.08)  28.03 (4.96)   0.074       0.096
-##   cirrhosis (mean (SD))      0.29 (0.45)   0.25 (0.43)   0.089       0.091
-##   prev_aki (mean (SD))       0.06 (0.23)   0.06 (0.24)   0.653       0.024
-##   heart_failure (mean (SD))  0.09 (0.29)   0.08 (0.27)   0.389       0.046
-##   nsaid_use (mean (SD))      0.28 (0.45)   0.29 (0.46)   0.636       0.025</code></pre>
-</div>
-</div>
-</div>
-<div id="treatment-effect-estimation" class="section level1">
-<h1>Treatment Effect Estimation</h1>
-<div id="outcome-analysis-after-matching" class="section level2">
-<h2>Outcome Analysis After Matching</h2>
-<pre class="r"><code># Outcome rates in matched sample
-matched_outcome &lt;- matched_df %&gt;%
-  group_by(treatment_group) %&gt;%
-  summarise(
-    n_patients = n(),
-    n_events = sum(event),
-    event_rate = mean(event),
-    .groups = &#39;drop&#39;
-  )
-
-knitr::kable(matched_outcome, caption = &quot;Outcome (AKI) by Treatment Group (After Matching)&quot;)</code></pre>
-<table>
-<caption>Outcome (AKI) by Treatment Group (After Matching)</caption>
-<thead>
-<tr class="header">
-<th align="left">treatment_group</th>
-<th align="right">n_patients</th>
-<th align="right">n_events</th>
-<th align="right">event_rate</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">SOF-DAAs</td>
-<td align="right">693</td>
-<td align="right">118</td>
-<td align="right">0.1702742</td>
-</tr>
-<tr class="even">
-<td align="left">non-SOF DAAs</td>
-<td align="right">693</td>
-<td align="right">87</td>
-<td align="right">0.1255411</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code># Risk difference and risk ratio
-ref_rate &lt;- matched_outcome$event_rate[matched_outcome$treatment_group == &quot;non-SOF DAAs&quot;]
-exp_rate &lt;- matched_outcome$event_rate[matched_outcome$treatment_group == &quot;SOF-DAAs&quot;]
-
-risk_difference &lt;- exp_rate - ref_rate
-risk_difference_per_1000 &lt;- risk_difference * 1000
-risk_ratio &lt;- exp_rate / ref_rate
-
-# Display results
-results_df &lt;- data.frame(
-  Measure = c(&quot;Risk in non-SOF DAAs&quot;, &quot;Risk in SOF-DAAs&quot;,
-              &quot;Risk Ratio&quot;, &quot;Risk Difference&quot;, &quot;Risk Difference per 1,000 patients&quot;),
-  Value = c(ref_rate, exp_rate, risk_ratio, risk_difference, risk_difference_per_1000)
-)
-
-knitr::kable(results_df, digits = 4, caption = &quot;Treatment Effect Estimates&quot;)</code></pre>
-<table>
-<caption>Treatment Effect Estimates</caption>
-<thead>
-<tr class="header">
-<th align="left">Measure</th>
-<th align="right">Value</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">Risk in non-SOF DAAs</td>
-<td align="right">0.1255</td>
-</tr>
-<tr class="even">
-<td align="left">Risk in SOF-DAAs</td>
-<td align="right">0.1703</td>
-</tr>
-<tr class="odd">
-<td align="left">Risk Ratio</td>
-<td align="right">1.3563</td>
-</tr>
-<tr class="even">
-<td align="left">Risk Difference</td>
-<td align="right">0.0447</td>
-</tr>
-<tr class="odd">
-<td align="left">Risk Difference per 1,000 patients</td>
-<td align="right">44.7330</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div id="cox-proportional-hazards-model" class="section level2">
-<h2>Cox Proportional Hazards Model</h2>
-<pre class="r"><code># Simple Cox model on matched data
-cox_simple &lt;- coxph(Surv(observed_time, event) ~ treatment, data = matched_df)
-summary(cox_simple)</code></pre>
+<div id="outcome-analysis-cox" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> 3 Outcome analysis
+(Cox)</h1>
+<pre class="r"><code>fit_matched &lt;- coxph(Surv(follow_time, event) ~ treatment, data = matched_df)
+summary(fit_matched)</code></pre>
 <pre><code>## Call:
-## coxph(formula = Surv(observed_time, event) ~ treatment, data = matched_df)
+## coxph(formula = Surv(follow_time, event) ~ treatment, data = matched_df)
 ## 
-##   n= 1386, number of events= 205 
+##   n= 15856, number of events= 626 
 ## 
-##             coef exp(coef) se(coef)     z Pr(&gt;|z|)  
-## treatment 0.3511    1.4206   0.1420 2.473   0.0134 *
+##              coef exp(coef) se(coef)     z Pr(&gt;|z|)  
+## treatment 0.16100   1.17468  0.08017 2.008   0.0446 *
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ##           exp(coef) exp(-coef) lower .95 upper .95
-## treatment     1.421     0.7039     1.076     1.876
+## treatment     1.175     0.8513     1.004     1.375
 ## 
-## Concordance= 0.538  (se = 0.02 )
-## Likelihood ratio test= 6.2  on 1 df,   p=0.01
-## Wald test            = 6.12  on 1 df,   p=0.01
-## Score (logrank) test = 6.18  on 1 df,   p=0.01</code></pre>
-<pre class="r"><code># Fully adjusted Cox model
-cox_adjusted &lt;- coxph(
-  Surv(observed_time, event) ~ treatment + age + sex + diabetes + hypertension +
-    baseline_gfr + bmi + cirrhosis + prev_aki + heart_failure + nsaid_use,
-  data = matched_df
-)
-summary(cox_adjusted)</code></pre>
+## Concordance= 0.519  (se = 0.011 )
+## Likelihood ratio test= 4.04  on 1 df,   p=0.04
+## Wald test            = 4.03  on 1 df,   p=0.04
+## Score (logrank) test = 4.04  on 1 df,   p=0.04</code></pre>
+<pre class="r"><code># proportional hazards diagnostics
+scho &lt;- cox.zph(fit_matched)
+scho</code></pre>
+<pre><code>##             chisq df    p
+## treatment 0.00387  1 0.95
+## GLOBAL    0.00387  1 0.95</code></pre>
+<pre class="r"><code>plot(scho)</code></pre>
+<p><img src="PS_analysis_files/figure-html/cox-1.png" width="672" /></p>
+<pre class="r"><code># Cox‑Snell residual plot
+M  &lt;- residuals(fit_matched, type = &quot;martingale&quot;)
+event_m &lt;- fit_matched$y[,&quot;status&quot;]
+cs_resid &lt;- event_m - M
+km_cs &lt;- survfit(Surv(cs_resid, event_m) ~ 1)
+plot(km_cs$time, -log(km_cs$surv), type = &quot;l&quot;, xlab = &quot;Cox–Snell residual&quot;, ylab = &quot;Cumulative hazard&quot;)
+abline(0,1,col=&quot;red&quot;,lty=2)</code></pre>
+<p><img src="PS_analysis_files/figure-html/cox-2.png" width="672" /></p>
+</div>
+<div id="sensitivity-analyses-iptw" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> 4 Sensitivity analyses
+(IPTW)</h1>
+<pre class="r"><code>df$w_iptw &lt;- ifelse(df$treatment==1, 1/df$ps_hat, 1/(1-df$ps_hat))
+fit_iptw &lt;- coxph(Surv(follow_time, event) ~ treatment, data = df, weights = w_iptw)
+summary(fit_iptw)</code></pre>
 <pre><code>## Call:
-## coxph(formula = Surv(observed_time, event) ~ treatment + age + 
-##     sex + diabetes + hypertension + baseline_gfr + bmi + cirrhosis + 
-##     prev_aki + heart_failure + nsaid_use, data = matched_df)
+## coxph(formula = Surv(follow_time, event) ~ treatment, data = df, 
+##     weights = w_iptw)
 ## 
-##   n= 1386, number of events= 205 
+##   n= 21383, number of events= 774 
 ## 
-##                    coef exp(coef)  se(coef)      z Pr(&gt;|z|)    
-## treatment      0.289261  1.335440  0.144447  2.003 0.045227 *  
-## age            0.035234  1.035862  0.007146  4.931 8.19e-07 ***
-## sex            0.457838  1.580653  0.143906  3.182 0.001465 ** 
-## diabetes       0.513380  1.670930  0.151572  3.387 0.000706 ***
-## hypertension   0.271451  1.311866  0.142932  1.899 0.057544 .  
-## baseline_gfr  -0.014264  0.985837  0.004802 -2.971 0.002971 ** 
-## bmi           -0.001313  0.998688  0.014181 -0.093 0.926210    
-## cirrhosis     -0.120541  0.886441  0.160082 -0.753 0.451455    
-## prev_aki       0.424043  1.528127  0.252424  1.680 0.092979 .  
-## heart_failure  0.815234  2.259704  0.190639  4.276 1.90e-05 ***
-## nsaid_use      0.558615  1.748249  0.144228  3.873 0.000107 ***
+##              coef exp(coef) se(coef) robust se     z Pr(&gt;|z|)  
+## treatment 0.15564   1.16841  0.05069   0.07347 2.119   0.0341 *
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-##               exp(coef) exp(-coef) lower .95 upper .95
-## treatment        1.3354     0.7488    1.0062    1.7725
-## age              1.0359     0.9654    1.0215    1.0505
-## sex              1.5807     0.6326    1.1922    2.0957
-## diabetes         1.6709     0.5985    1.2415    2.2489
-## hypertension     1.3119     0.7623    0.9913    1.7360
-## baseline_gfr     0.9858     1.0144    0.9766    0.9952
-## bmi              0.9987     1.0013    0.9713    1.0268
-## cirrhosis        0.8864     1.1281    0.6477    1.2131
-## prev_aki         1.5281     0.6544    0.9317    2.5062
-## heart_failure    2.2597     0.4425    1.5552    3.2834
-## nsaid_use        1.7482     0.5720    1.3178    2.3194
+##           exp(coef) exp(-coef) lower .95 upper .95
+## treatment     1.168     0.8559     1.012     1.349
 ## 
-## Concordance= 0.671  (se = 0.021 )
-## Likelihood ratio test= 96.33  on 11 df,   p=9e-16
-## Wald test            = 103.8  on 11 df,   p=&lt;2e-16
-## Score (logrank) test = 103.4  on 11 df,   p=&lt;2e-16</code></pre>
-<pre class="r"><code># Forest plot for Cox model results
-hr_simple &lt;- round(exp(coef(cox_simple)[&quot;treatment&quot;]), 2)
-hr_simple_lower &lt;- round(exp(confint(cox_simple)[&quot;treatment&quot;, 1]), 2)
-hr_simple_upper &lt;- round(exp(confint(cox_simple)[&quot;treatment&quot;, 2]), 2)
-
-hr_adjusted &lt;- round(exp(coef(cox_adjusted)[&quot;treatment&quot;]), 2)
-hr_adjusted_lower &lt;- round(exp(confint(cox_adjusted)[&quot;treatment&quot;, 1]), 2)
-hr_adjusted_upper &lt;- round(exp(confint(cox_adjusted)[&quot;treatment&quot;, 2]), 2)
-
-# Create data frame for forest plot
-forest_data &lt;- data.frame(
-  Model = c(&quot;Unadjusted&quot;, &quot;Fully Adjusted&quot;),
-  HR = c(hr_simple, hr_adjusted),
-  Lower = c(hr_simple_lower, hr_adjusted_lower),
-  Upper = c(hr_simple_upper, hr_adjusted_upper)
-)
-
-# Plot forest plot
-ggplot(forest_data, aes(x = HR, y = Model)) +
-  geom_point(size = 3) +
-  geom_errorbarh(aes(xmin = Lower, xmax = Upper), height = 0.2) +
-  geom_vline(xintercept = 1, linetype = &quot;dashed&quot;) +
-  labs(
-    title = &quot;Hazard Ratios for Treatment Effect on AKI&quot;,
-    x = &quot;Hazard Ratio (95% CI)&quot;,
-    y = &quot;&quot;
-  ) +
-  scale_x_continuous(limits = c(0, max(forest_data$Upper) * 1.1)) +
-  theme_minimal() +
-  geom_text(aes(label = paste0(HR, &quot; (&quot;, Lower, &quot;-&quot;, Upper, &quot;)&quot;)), vjust = -0.5, hjust = 0.5)</code></pre>
-<p><img src="PS_analysis_files/figure-html/cox-model-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-<div id="survival-curves" class="section level2">
-<h2>Survival Curves</h2>
-<pre class="r"><code># Create Kaplan-Meier curves
-km_fit &lt;- survfit(Surv(observed_time, event) ~ treatment_group, data = matched_df)
-
-# Plot Kaplan-Meier curves
-ggsurvplot(
-  km_fit,
-  data = matched_df,
-  conf.int = TRUE,
-  risk.table = TRUE,
-  pval = TRUE,
-  legend.labs = c(&quot;non-SOF DAAs&quot;, &quot;SOF-DAAs&quot;),
-  palette = c(&quot;blue&quot;, &quot;red&quot;),
-  title = &quot;Kaplan-Meier Curves for AKI by Treatment Group&quot;,
-  xlab = &quot;Time (days)&quot;,
-  ylab = &quot;AKI-free Survival Probability&quot;,
-  risk.table.height = 0.25
-)</code></pre>
-<p><img src="PS_analysis_files/figure-html/survival-curves-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-</div>
-<div id="sensitivity-analyses" class="section level1">
-<h1>Sensitivity Analyses</h1>
-<div id="varying-caliper-width" class="section level2">
-<h2>Varying Caliper Width</h2>
-<pre class="r"><code># Try matching with different calipers
-caliper_values &lt;- c(0.1, 0.2, 0.3)
-caliper_results &lt;- data.frame()
-
-for (cal in caliper_values) {
-  # Perform matching with current caliper
-  m_out &lt;- matchit(ps_formula, data = df, method = &quot;nearest&quot;, caliper = cal)
-
-  # Extract matched data
-  m_data &lt;- match.data(m_out)
-
-  # Calculate treatment effect
-  model &lt;- coxph(Surv(observed_time, event) ~ treatment, data = m_data)
-
-  # Get hazard ratio and confidence interval
-  hr &lt;- exp(coef(model)[&quot;treatment&quot;])
-  ci &lt;- exp(confint(model)[&quot;treatment&quot;, ])
-
-  # Add results to dataframe
-  caliper_results &lt;- rbind(caliper_results,
-                           data.frame(Caliper = cal,
-                                      Matched_Pairs = nrow(m_data)/2,
-                                      HR = hr,
-                                      Lower_CI = ci[1],
-                                      Upper_CI = ci[2]))
-}
-
-# Display results
-knitr::kable(caliper_results, digits = 3,
-             caption = &quot;Sensitivity Analysis with Different Caliper Widths&quot;)</code></pre>
-<table>
-<caption>Sensitivity Analysis with Different Caliper Widths</caption>
-<thead>
-<tr class="header">
-<th align="left"></th>
-<th align="right">Caliper</th>
-<th align="right">Matched_Pairs</th>
-<th align="right">HR</th>
-<th align="right">Lower_CI</th>
-<th align="right">Upper_CI</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">treatment</td>
-<td align="right">0.1</td>
-<td align="right">693</td>
-<td align="right">1.231</td>
-<td align="right">0.930</td>
-<td align="right">1.631</td>
-</tr>
-<tr class="even">
-<td align="left">treatment1</td>
-<td align="right">0.2</td>
-<td align="right">693</td>
-<td align="right">1.421</td>
-<td align="right">1.076</td>
-<td align="right">1.876</td>
-</tr>
-<tr class="odd">
-<td align="left">treatment2</td>
-<td align="right">0.3</td>
-<td align="right">693</td>
-<td align="right">1.392</td>
-<td align="right">1.055</td>
-<td align="right">1.836</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code># Plot results
-ggplot(caliper_results, aes(x = factor(Caliper), y = HR)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
-  geom_hline(yintercept = 1, linetype = &quot;dashed&quot;) +
-  labs(
-    title = &quot;Treatment Effect Estimates with Different Caliper Widths&quot;,
-    x = &quot;Caliper Width&quot;,
-    y = &quot;Hazard Ratio (95% CI)&quot;
-  ) +
-  theme_minimal()</code></pre>
-<p><img src="PS_analysis_files/figure-html/sensitivity-caliper-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-<div id="alternative-matching-methods" class="section level2">
-<h2>Alternative Matching Methods</h2>
-<pre class="r"><code># Try different matching methods
-match_methods &lt;- c(&quot;nearest&quot;, &quot;optimal&quot;, &quot;full&quot;)
-method_results &lt;- data.frame()
-
-for (method in match_methods) {
-  # Perform matching with current method
-  m_out &lt;- matchit(ps_formula, data = df, method = method)
-
-  # Extract matched data
-  m_data &lt;- match.data(m_out)
-
-  # Calculate treatment effect
-  model &lt;- coxph(Surv(observed_time, event) ~ treatment, data = m_data)
-
-  # Get hazard ratio and confidence interval
-  hr &lt;- exp(coef(model)[&quot;treatment&quot;])
-  ci &lt;- exp(confint(model)[&quot;treatment&quot;, ])
-
-  # Add results to dataframe
-  method_results &lt;- rbind(method_results,
-                          data.frame(Method = method,
-                                     Matched_Pairs = nrow(m_data)/2,
-                                     HR = hr,
-                                     Lower_CI = ci[1],
-                                     Upper_CI = ci[2]))
-}
-
-# Display results
-knitr::kable(method_results, digits = 3,
-             caption = &quot;Sensitivity Analysis with Different Matching Methods&quot;)</code></pre>
-<table>
-<caption>Sensitivity Analysis with Different Matching Methods</caption>
-<thead>
-<tr class="header">
-<th align="left"></th>
-<th align="left">Method</th>
-<th align="right">Matched_Pairs</th>
-<th align="right">HR</th>
-<th align="right">Lower_CI</th>
-<th align="right">Upper_CI</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">treatment</td>
-<td align="left">nearest</td>
-<td align="right">693</td>
-<td align="right">2.142</td>
-<td align="right">1.653</td>
-<td align="right">2.775</td>
-</tr>
-<tr class="even">
-<td align="left">treatment1</td>
-<td align="left">optimal</td>
-<td align="right">693</td>
-<td align="right">1.276</td>
-<td align="right">0.957</td>
-<td align="right">1.700</td>
-</tr>
-<tr class="odd">
-<td align="left">treatment2</td>
-<td align="left">full</td>
-<td align="right">2500</td>
-<td align="right">1.349</td>
-<td align="right">1.079</td>
-<td align="right">1.686</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code># Plot results
-ggplot(method_results, aes(x = Method, y = HR)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(ymin = Lower_CI, ymax = Upper_CI), width = 0.2) +
-  geom_hline(yintercept = 1, linetype = &quot;dashed&quot;) +
-  labs(
-    title = &quot;Treatment Effect Estimates with Different Matching Methods&quot;,
-    x = &quot;Matching Method&quot;,
-    y = &quot;Hazard Ratio (95% CI)&quot;
-  ) +
-  theme_minimal()</code></pre>
-<p><img src="PS_analysis_files/figure-html/alternative-matching-1.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-</div>
-<div id="proportional-hazards-assumption-check" class="section level1">
-<h1>Proportional Hazards Assumption Check</h1>
-<pre class="r"><code># Test proportional hazards assumption
-cox_model_test &lt;- cox.zph(cox_adjusted)
-print(cox_model_test)</code></pre>
-<pre><code>##                 chisq df     p
-## treatment      0.1866  1 0.666
-## age            2.4425  1 0.118
-## sex            0.9692  1 0.325
-## diabetes       0.0193  1 0.889
-## hypertension   0.2301  1 0.631
-## baseline_gfr   2.2722  1 0.132
-## bmi            2.9290  1 0.087
-## cirrhosis      0.0600  1 0.807
-## prev_aki       0.1179  1 0.731
-## heart_failure  6.5205  1 0.011
-## nsaid_use      0.1534  1 0.695
-## GLOBAL        18.2710 11 0.076</code></pre>
-<pre class="r"><code># Plot Schoenfeld residuals
-plot(cox_model_test)</code></pre>
-<p><img src="PS_analysis_files/figure-html/ph-assumption-1.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-2.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-3.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-4.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-5.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-6.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-7.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-8.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-9.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-10.png" width="960" style="display: block; margin: auto;" /><img src="PS_analysis_files/figure-html/ph-assumption-11.png" width="960" style="display: block; margin: auto;" /></p>
-</div>
-<div id="conclusion" class="section level1">
-<h1>Conclusion</h1>
-<pre class="r"><code># Summarize key findings
-cat(&quot;Key findings:\n&quot;)</code></pre>
-<pre><code>## Key findings:</code></pre>
-<pre class="r"><code>cat(&quot;1. Pre-matching analysis showed significant differences between treatment groups\n&quot;)</code></pre>
-<pre><code>## 1. Pre-matching analysis showed significant differences between treatment groups</code></pre>
-<pre class="r"><code>cat(&quot;2. Propensity score matching balanced covariates between groups\n&quot;)</code></pre>
-<pre><code>## 2. Propensity score matching balanced covariates between groups</code></pre>
-<pre class="r"><code>cat(&quot;3. The matched analysis produced a hazard ratio of&quot;, round(hr_simple, 2),
-    &quot;(95% CI:&quot;, round(hr_simple_lower, 2), &quot;-&quot;, round(hr_simple_upper, 2), &quot;)\n&quot;)</code></pre>
-<pre><code>## 3. The matched analysis produced a hazard ratio of 1.42 (95% CI: 1.08 - 1.88 )</code></pre>
-<pre class="r"><code>cat(&quot;4. After adjustment for covariates, the hazard ratio was&quot;, round(hr_adjusted, 2),
-    &quot;(95% CI:&quot;, round(hr_adjusted_lower, 2), &quot;-&quot;, round(hr_adjusted_upper, 2), &quot;)\n&quot;)</code></pre>
-<pre><code>## 4. After adjustment for covariates, the hazard ratio was 1.34 (95% CI: 1.01 - 1.77 )</code></pre>
-<pre class="r"><code># Interpret results based on hazard ratio confidence interval
-if (hr_adjusted_lower &lt;= 1 &amp;&amp; hr_adjusted_upper &gt;= 1) {
-  cat(&quot;5. The analysis does not provide evidence of an increased risk of AKI with SOF-containing DAAs\n&quot;)
-} else if (hr_adjusted_upper &lt; 1) {
-  cat(&quot;5. The analysis suggests a potential protective effect of SOF-containing DAAs on AKI risk\n&quot;)
-} else {
-  cat(&quot;5. The analysis suggests a potential increased risk of AKI with SOF-containing DAAs\n&quot;)
-}</code></pre>
-<pre><code>## 5. The analysis suggests a potential increased risk of AKI with SOF-containing DAAs</code></pre>
-</div>
-<div id="limitations" class="section level1">
-<h1>Limitations</h1>
-<p>This analysis has several limitations:</p>
-<ol style="list-style-type: decimal">
-<li>Propensity score matching can only balance observed covariates, and
-unmeasured confounding may still be present.</li>
-<li>The analysis is based on claims data, which may have limitations in
-capturing all relevant clinical information.</li>
-<li>Censoring assumptions may influence the results, especially if
-censoring is informative.</li>
-<li>The treatment effect may vary across subgroups, which is not
-explored in this primary analysis.</li>
-<li>The definition of AKI based on diagnosis codes may not capture all
-cases, leading to potential outcome misclassification.</li>
-</ol>
+## Concordance= 0.516  (se = 0.01 )
+## Likelihood ratio test= 9.45  on 1 df,   p=0.002
+## Wald test            = 4.49  on 1 df,   p=0.03
+## Score (logrank) test = 9.45  on 1 df,   p=0.002,   Robust = 4.37  p=0.04
+## 
+##   (Note: the likelihood ratio and score tests assume independence of
+##      observations within a cluster, the Wald and robust score tests do not).</code></pre>
+<hr />
+<p>Diagnostics show pre‑match <strong>c‑stat ≈ 0.59</strong> (mirrors
+0.60 in the real data) and good PS overlap. Post‑match SMDs all
+&lt; 0.10; Cox PH assumption holds reasonably well.</p>
 </div>
 
 
@@ -1294,7 +648,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
@@ -1303,8 +657,8 @@ $(document).ready(function ()  {
       ignoreSelector: ".toc-ignore",
       scrollTo: 0
     };
-    options.showAndHide = false;
-    options.smoothScroll = false;
+    options.showAndHide = true;
+    options.smoothScroll = true;
 
     // tocify
     var toc = $("#TOC").tocify(options).data("toc-tocify");
