@@ -153,4 +153,3 @@ ana_vars[ , imp_vars] <- imp_out
 # ---- 13. Save ----------------------------------------------------------
 write_csv(ana_vars, "data/sim_hcv_aki_aug.csv")
 
-# Data ready:  `ana_vars`
