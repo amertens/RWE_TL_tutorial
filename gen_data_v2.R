@@ -11,7 +11,7 @@ library(survival)
 set.seed(42)
 
 # ---- 2. Parameters -----------------------------------------------------
-N            <- 20000      # base N (allows exclusions)
+N            <- 125000      # base N (allows exclusions)
 max_follow   <- 180        # 6‑month risk window
 risk_window  <- 30         # 30‑d grace after EOT / switch
 
@@ -24,8 +24,8 @@ raw <- tibble(
                     prob = c(.48,.14,.06,.02,.30)),
   region   = sample(c("NE","MW","S","W"), N, TRUE, prob = c(.20,.18,.37,.25)),
   enroll_days = rpois(N, 420)                    # prior continuous coverage
-) %>%
-  mutate(race = replace(race, runif(N) < .20, NA))      # 20 % missing race
+) #%>%
+  #mutate(race = replace(race, runif(N) < .20, NA))      # 20 % missing race
 
 # ---- 4. Clinical history & behaviour ----------------------------------
 raw <- raw %>%
@@ -111,7 +111,7 @@ cohort$tx_days <- if_else(cohort$treatment==1,
                           rpois(nrow(cohort), 70))
 
 set.seed(12345)
-h0 <- 0.02
+h0 <- 0.00035
 lp_event <- with(cohort,
                  -2.8 + 0.03*age + 0.7*ckd + 0.5*cirrhosis + 0.3*heart_failure +
                    0.25*nsaid + 0.20*contrast)

@@ -369,94 +369,90 @@ df &lt;- read_csv(&quot;data/sim_hcv_aki_aug.csv&quot;, show_col_types = FALSE)
 # glimpse &amp; skim for sanity
 skim(df)</code></pre>
 <pre><code>## Skim summary statistics
-##  n obs: 21383 
-##  n variables: 39 
+##  n obs: 106915 
+##  n variables: 37 
 ##  group variables:  
 ## 
 ## Variable type: character 
-##  variable missing complete     n min max empty n_unique
-##      race       0    21383 21383   5   8     0        5
-##    region       0    21383 21383   1   2     0        4
+##  variable missing complete      n min max empty n_unique
+##      race       0   106915 106915   5   8     0        5
+##    region       0   106915 106915   1   2     0        4
 ## 
 ## Variable type: numeric 
-##          variable missing complete     n       mean       sd      p0     p25
-##            acearb       0    21383 21383     0.3       0.46   0         0   
-##               age       0    21383 21383    48.01     12.97  18        39.05
-##           alcohol       0    21383 21383     0.18      0.39   0         0   
-##    aminoglycoside       0    21383 21383     0.051     0.22   0         0   
-##               art       0    21383 21383     0.05      0.22   0         0   
-##           aspirin       0    21383 21383     0.099     0.3    0         0   
-##      beta_blocker       0    21383 21383     0.14      0.35   0         0   
-##               bmi       0    21383 21383    28         4.99   8.88     24.59
-##            cancer       0    21383 21383     0.075     0.26   0         0   
-##               ccb       0    21383 21383     0.16      0.36   0         0   
-##             chemo       0    21383 21383     0.0091    0.095  0         0   
-##         cirrhosis       0    21383 21383     0.18      0.38   0         0   
-##               ckd       0    21383 21383     0.081     0.27   0         0   
-##          contrast       0    21383 21383     0.078     0.27   0         0   
-##       dehydration       0    21383 21383     0.059     0.24   0         0   
-##          diabetes       0    21383 21383     0.2       0.4    0         0   
-##          diuretic       0    21383 21383     0.22      0.42   0         0   
-##              esld       0    21383 21383     0.021     0.14   0         0   
-##             event       0    21383 21383     0.036     0.19   0         0   
-##       follow_time       0    21383 21383    81.08     60.39   0.0049   27.41
-##           full_ps       0    21383 21383     0.37      0.076  0.17      0.32
-##     heart_failure       0    21383 21383     0.069     0.25   0         0   
-##               hiv       0    21383 21383     0.04      0.2    0         0   
-##      hypertension       0    21383 21383     0.45      0.5    0         0   
-##                id       0    21383 21383 12478.65   7217.19   1      6229   
-##             nsaid       0    21383 21383     0.25      0.43   0         0   
-##       obstruction       0    21383 21383     0.041     0.2    0         0   
-##  overweight_obese       0    21383 21383     0.2       0.4    0         0   
-##        portal_htn       0    21383 21383     0.039     0.19   0         0   
-##                ps       0    21383 21383     0.37      0.07   0.21      0.32
-##            sepsis       0    21383 21383     0.028     0.17   0         0   
-##          sex_male       0    21383 21383     0.58      0.49   0         0   
-##           smoking       0    21383 21383     0.4       0.49   0         0   
-##            statin       0    21383 21383     0.15      0.35   0         0   
-##   substance_abuse       0    21383 21383     0.25      0.43   0         0   
-##            switch       0    21383 21383     0.029     0.17   0         0   
-##         treatment       0    21383 21383     0.37      0.48   0         0   
-##    median      p75     p100     hist
-##      0        1        1    ▇▁▁▁▁▁▁▃
-##     47.99    56.84   100.86 ▂▅▇▇▃▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##     27.98    31.42    47.82 ▁▁▃▇▇▃▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##     67.53   130.84   180    ▇▆▅▃▃▂▂▇
-##      0.37     0.42     0.73 ▁▅▇▆▃▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        1        1    ▇▁▁▁▁▁▁▆
-##  12483    18702.5  25000    ▇▇▇▇▇▇▇▇
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0.37     0.42     0.7  ▂▆▇▆▂▁▁▁
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      1        1        1    ▆▁▁▁▁▁▁▇
-##      0        1        1    ▇▁▁▁▁▁▁▅
-##      0        0        1    ▇▁▁▁▁▁▁▂
-##      0        1        1    ▇▁▁▁▁▁▁▃
-##      0        0        1    ▇▁▁▁▁▁▁▁
-##      0        1        1    ▇▁▁▁▁▁▁▅</code></pre>
-<p>The dataset contains <strong>21383</strong> individuals with a
-marginal SOF prevalence of <strong>0.3717439</strong>.</p>
+##          variable missing complete      n       mean        sd       p0
+##            acearb       0   106915 106915     0.3        0.46   0      
+##               age       0   106915 106915    47.98      12.91  18      
+##           alcohol       0   106915 106915     0.18       0.38   0      
+##    aminoglycoside       0   106915 106915     0.05       0.22   0      
+##               art       0   106915 106915     0.05       0.22   0      
+##           aspirin       0   106915 106915     0.1        0.3    0      
+##      beta_blocker       0   106915 106915     0.14       0.35   0      
+##               bmi       0   106915 106915    27.97       5      5.39   
+##            cancer       0   106915 106915     0.08       0.27   0      
+##               ccb       0   106915 106915     0.16       0.37   0      
+##             chemo       0   106915 106915     0.0095     0.097  0      
+##         cirrhosis       0   106915 106915     0.18       0.38   0      
+##               ckd       0   106915 106915     0.081      0.27   0      
+##          contrast       0   106915 106915     0.081      0.27   0      
+##       dehydration       0   106915 106915     0.059      0.24   0      
+##          diabetes       0   106915 106915     0.2        0.4    0      
+##          diuretic       0   106915 106915     0.22       0.41   0      
+##              esld       0   106915 106915     0.02       0.14   0      
+##             event       0   106915 106915     0.012      0.11   0      
+##       follow_time       0   106915 106915    82.44      60.75   6.7e-05
+##     heart_failure       0   106915 106915     0.07       0.26   0      
+##               hiv       0   106915 106915     0.04       0.2    0      
+##      hypertension       0   106915 106915     0.45       0.5    0      
+##                id       0   106915 106915 62478.73   36109.56   1      
+##             nsaid       0   106915 106915     0.25       0.43   0      
+##       obstruction       0   106915 106915     0.041      0.2    0      
+##  overweight_obese       0   106915 106915     0.2        0.4    0      
+##        portal_htn       0   106915 106915     0.04       0.2    0      
+##            sepsis       0   106915 106915     0.029      0.17   0      
+##          sex_male       0   106915 106915     0.58       0.49   0      
+##           smoking       0   106915 106915     0.4        0.49   0      
+##            statin       0   106915 106915     0.15       0.36   0      
+##   substance_abuse       0   106915 106915     0.25       0.43   0      
+##            switch       0   106915 106915     0.03       0.17   0      
+##         treatment       0   106915 106915     0.37       0.48   0      
+##       p25   median      p75      p100     hist
+##      0        0        1         1    ▇▁▁▁▁▁▁▃
+##     39.11    47.95    56.75    104.27 ▂▅▇▇▃▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##     24.61    27.95    31.34     53.23 ▁▁▃▇▆▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##     28.75    68.57   134.09    180    ▇▆▅▅▃▂▂▇
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        1         1    ▇▁▁▁▁▁▁▆
+##  31220.5  62498    93756.5  124998    ▇▇▇▇▇▇▇▇
+##      0        0        1         1    ▇▁▁▁▁▁▁▃
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        1        1         1    ▆▁▁▁▁▁▁▇
+##      0        0        1         1    ▇▁▁▁▁▁▁▆
+##      0        0        0         1    ▇▁▁▁▁▁▁▂
+##      0        0        1         1    ▇▁▁▁▁▁▁▃
+##      0        0        0         1    ▇▁▁▁▁▁▁▁
+##      0        0        1         1    ▇▁▁▁▁▁▁▅</code></pre>
+<p>The dataset contains <strong>106915</strong> individuals with a
+marginal SOF prevalence of <strong>0.3692372</strong>.</p>
 <pre class="r"><code># simple logistic PS for overlap diagnostics
 ps_formula &lt;- treatment ~ age + sex_male + race + region + ckd + cirrhosis + portal_htn + heart_failure + hiv + diabetes + hypertension + substance_abuse + alcohol + nsaid + acearb + aminoglycoside + contrast
 ps_fit  &lt;- glm(ps_formula, data = df, family = binomial)
@@ -465,7 +461,7 @@ df$ps_hat &lt;- predict(ps_fit, newdata = df, type = &quot;response&quot;)
 # c‑statistic
 c_stat &lt;- pROC::auc(df$treatment, df$ps_hat)
 cat(&quot;C‑statistic (raw):&quot;, round(c_stat,3), &quot;\n&quot;)</code></pre>
-<pre><code>## C‑statistic (raw): 0.59</code></pre>
+<pre><code>## C‑statistic (raw): 0.573</code></pre>
 <pre class="r"><code># density overlap plot
 cobalt::bal.plot(treatment ~ ps_hat, data = df, type = &quot;density&quot;, which = &quot;both&quot;,
                  xlab = &quot;Propensity score&quot;, main = &quot;Overlap before matching&quot;)</code></pre>
@@ -484,31 +480,31 @@ saveRDS(matched_df, file = here::here(&quot;data/matched_case_study_data.RDS&quo
 bal.tab(match_out, un = TRUE, v.ratio = TRUE, m.threshold = .1)</code></pre>
 <pre><code>## Balance Measures
 ##                     Type Diff.Un Diff.Adj    M.Threshold
-## distance        Distance  0.3150   0.0147 Balanced, &lt;0.1
-## age              Contin.  0.2354   0.0030 Balanced, &lt;0.1
-## sex_male          Binary  0.0119   0.0076 Balanced, &lt;0.1
-## race_asian        Binary  0.0053   0.0004 Balanced, &lt;0.1
-## race_black        Binary  0.0030  -0.0035 Balanced, &lt;0.1
-## race_hispanic     Binary  0.0006  -0.0013 Balanced, &lt;0.1
-## race_other        Binary -0.0100   0.0016 Balanced, &lt;0.1
-## race_white        Binary  0.0012   0.0028 Balanced, &lt;0.1
-## region_MW         Binary  0.0059   0.0032 Balanced, &lt;0.1
-## region_NE         Binary  0.0017  -0.0010 Balanced, &lt;0.1
-## region_S          Binary -0.0246  -0.0025 Balanced, &lt;0.1
-## region_W          Binary  0.0170   0.0004 Balanced, &lt;0.1
-## ckd               Binary  0.0259   0.0021 Balanced, &lt;0.1
-## cirrhosis         Binary  0.0426   0.0047 Balanced, &lt;0.1
-## portal_htn        Binary  0.0154   0.0011 Balanced, &lt;0.1
-## heart_failure     Binary -0.0001   0.0001 Balanced, &lt;0.1
-## hiv               Binary  0.0065  -0.0009 Balanced, &lt;0.1
-## diabetes          Binary  0.0187   0.0030 Balanced, &lt;0.1
-## hypertension      Binary  0.0178   0.0014 Balanced, &lt;0.1
-## substance_abuse   Binary  0.0392  -0.0018 Balanced, &lt;0.1
-## alcohol           Binary  0.0009   0.0008 Balanced, &lt;0.1
-## nsaid             Binary  0.0152   0.0047 Balanced, &lt;0.1
-## acearb            Binary -0.0025   0.0039 Balanced, &lt;0.1
-## aminoglycoside    Binary  0.0088   0.0000 Balanced, &lt;0.1
-## contrast          Binary  0.0122   0.0030 Balanced, &lt;0.1
+## distance        Distance  0.2536   0.0046 Balanced, &lt;0.1
+## age              Contin.  0.1914   0.0030 Balanced, &lt;0.1
+## sex_male          Binary -0.0003  -0.0001 Balanced, &lt;0.1
+## race_asian        Binary  0.0022  -0.0006 Balanced, &lt;0.1
+## race_black        Binary  0.0100   0.0006 Balanced, &lt;0.1
+## race_hispanic     Binary -0.0027  -0.0001 Balanced, &lt;0.1
+## race_other        Binary -0.0093  -0.0002 Balanced, &lt;0.1
+## race_white        Binary -0.0002   0.0003 Balanced, &lt;0.1
+## region_MW         Binary -0.0001   0.0021 Balanced, &lt;0.1
+## region_NE         Binary  0.0037  -0.0006 Balanced, &lt;0.1
+## region_S          Binary -0.0170  -0.0006 Balanced, &lt;0.1
+## region_W          Binary  0.0134  -0.0008 Balanced, &lt;0.1
+## ckd               Binary  0.0185   0.0003 Balanced, &lt;0.1
+## cirrhosis         Binary  0.0449   0.0016 Balanced, &lt;0.1
+## portal_htn        Binary  0.0126   0.0002 Balanced, &lt;0.1
+## heart_failure     Binary -0.0009   0.0000 Balanced, &lt;0.1
+## hiv               Binary  0.0061  -0.0004 Balanced, &lt;0.1
+## diabetes          Binary  0.0147   0.0001 Balanced, &lt;0.1
+## hypertension      Binary  0.0041   0.0013 Balanced, &lt;0.1
+## substance_abuse   Binary  0.0255   0.0003 Balanced, &lt;0.1
+## alcohol           Binary  0.0013  -0.0012 Balanced, &lt;0.1
+## nsaid             Binary -0.0019  -0.0002 Balanced, &lt;0.1
+## acearb            Binary  0.0005   0.0012 Balanced, &lt;0.1
+## aminoglycoside    Binary -0.0014   0.0012 Balanced, &lt;0.1
+## contrast          Binary -0.0021  -0.0008 Balanced, &lt;0.1
 ## 
 ## Balance tally for mean differences
 ##                    count
@@ -517,13 +513,13 @@ bal.tab(match_out, un = TRUE, v.ratio = TRUE, m.threshold = .1)</code></pre>
 ## 
 ## Variable with the greatest mean difference
 ##  Variable Diff.Adj    M.Threshold
-##  sex_male   0.0076 Balanced, &lt;0.1
+##       age    0.003 Balanced, &lt;0.1
 ## 
 ## Sample sizes
 ##           Control Treated
-## All         13434    7949
-## Matched      7928    7928
-## Unmatched    5506      21</code></pre>
+## All         67438   39477
+## Matched     39466   39466
+## Unmatched   27972      11</code></pre>
 <pre class="r"><code>plot(match_out, type = &quot;hist&quot;)</code></pre>
 <p><img src="PS_analysis_files/figure-html/matchit-1.png" width="672" /></p>
 </div>
@@ -535,26 +531,26 @@ summary(fit_matched)</code></pre>
 <pre><code>## Call:
 ## coxph(formula = Surv(follow_time, event) ~ treatment, data = matched_df)
 ## 
-##   n= 15856, number of events= 626 
+##   n= 78932, number of events= 1034 
 ## 
-##              coef exp(coef) se(coef)     z Pr(&gt;|z|)  
-## treatment 0.16100   1.17468  0.08017 2.008   0.0446 *
+##             coef exp(coef) se(coef)   z Pr(&gt;|z|)   
+## treatment 0.1622    1.1761   0.0624 2.6  0.00933 **
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ##           exp(coef) exp(-coef) lower .95 upper .95
-## treatment     1.175     0.8513     1.004     1.375
+## treatment     1.176     0.8502     1.041     1.329
 ## 
-## Concordance= 0.519  (se = 0.011 )
-## Likelihood ratio test= 4.04  on 1 df,   p=0.04
-## Wald test            = 4.03  on 1 df,   p=0.04
-## Score (logrank) test = 4.04  on 1 df,   p=0.04</code></pre>
+## Concordance= 0.533  (se = 0.008 )
+## Likelihood ratio test= 6.78  on 1 df,   p=0.009
+## Wald test            = 6.76  on 1 df,   p=0.009
+## Score (logrank) test = 6.77  on 1 df,   p=0.009</code></pre>
 <pre class="r"><code># proportional hazards diagnostics
 scho &lt;- cox.zph(fit_matched)
 scho</code></pre>
-<pre><code>##             chisq df    p
-## treatment 0.00387  1 0.95
-## GLOBAL    0.00387  1 0.95</code></pre>
+<pre><code>##           chisq df     p
+## treatment  20.8  1 5e-06
+## GLOBAL     20.8  1 5e-06</code></pre>
 <pre class="r"><code>plot(scho)</code></pre>
 <p><img src="PS_analysis_files/figure-html/cox-1.png" width="672" /></p>
 <pre class="r"><code># Cox‑Snell residual plot
@@ -576,25 +572,25 @@ summary(fit_iptw)</code></pre>
 ## coxph(formula = Surv(follow_time, event) ~ treatment, data = df, 
 ##     weights = w_iptw)
 ## 
-##   n= 21383, number of events= 774 
+##   n= 106915, number of events= 1270 
 ## 
-##              coef exp(coef) se(coef) robust se     z Pr(&gt;|z|)  
-## treatment 0.15564   1.16841  0.05069   0.07347 2.119   0.0341 *
+##              coef exp(coef) se(coef) robust se     z Pr(&gt;|z|)   
+## treatment 0.18149   1.19900  0.03952   0.05718 3.174   0.0015 **
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
 ##           exp(coef) exp(-coef) lower .95 upper .95
-## treatment     1.168     0.8559     1.012     1.349
+## treatment     1.199      0.834     1.072     1.341
 ## 
-## Concordance= 0.516  (se = 0.01 )
-## Likelihood ratio test= 9.45  on 1 df,   p=0.002
-## Wald test            = 4.49  on 1 df,   p=0.03
-## Score (logrank) test = 9.45  on 1 df,   p=0.002,   Robust = 4.37  p=0.04
+## Concordance= 0.536  (se = 0.007 )
+## Likelihood ratio test= 21.17  on 1 df,   p=4e-06
+## Wald test            = 10.08  on 1 df,   p=0.002
+## Score (logrank) test = 21.14  on 1 df,   p=4e-06,   Robust = 9.72  p=0.002
 ## 
 ##   (Note: the likelihood ratio and score tests assume independence of
 ##      observations within a cluster, the Wald and robust score tests do not).</code></pre>
 <hr />
-<p>Diagnostics show pre‑match <strong>c‑stat ≈ 0.59</strong> (mirrors
+<p>Diagnostics show pre‑match <strong>c‑stat ≈ 0.57</strong> (mirrors
 0.60 in the real data) and good PS overlap. Post‑match SMDs all
 &lt; 0.10; Cox PH assumption holds reasonably well.</p>
 </div>
