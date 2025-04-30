@@ -11,3 +11,97 @@ output:
 
 
 # calculate truth of generated data and compare difference estimates across methods
+
+
+
+```{r}
+
+source("DGP.R")   # assumes the updated function is in your working dir
+
+
+# Using the function from above:
+set.seed(12345)
+# 1) Everyone untreated
+df0 <- generate_hcv_data(N=1000000, treat_override="all_control")
+
+# 2) Everyone treated
+df1 <- generate_hcv_data(N=1000000, treat_override="all_treated")
+
+# Suppose we look at 90 day risk
+t_star <- 180
+
+risk_untreated <- mean(df0$follow_time <= t_star & df0$event==1)
+risk_treated   <- mean(df1$follow_time <= t_star & df1$event==1)
+risk_diff      <- risk_treated - risk_untreated
+risk_ratio     <- risk_treated / risk_untreated
+
+cat("1-year risk (untreated):", round(risk_untreated,4), "\n")
+cat("1-year risk (treated):  ", round(risk_treated,4),   "\n")
+cat("Risk difference:        ", round(risk_diff,4),      "\n")
+cat("Risk ratio:        ", round(risk_ratio,4),      "\n")
+
+
+
+
+
+#------------------------------------------------------------
+#  true_hr_period()
+#------------------------------------------------------------
+#  Nbig        large sample to remove Monte-Carlo noise
+#  start, end  window for the HR (in days); use 0, 90, 180, …
+#  ...         extra arguments passed to generate_hcv_data()
+#------------------------------------------------------------
+true_hr_period <- function(Nbig      = 1000000,
+                           start     = 0,
+                           end       = 90,
+                           ...){
+
+  ## 1. simulate ALL controls, ALL treated — censoring disabled
+  ctrl <- generate_hcv_data(Nbig, treat_override = "all_control",
+                            max_follow = 360,  ...) |>
+    dplyr::select(follow_time, event) |>
+    dplyr::mutate(A = 0)
+
+  trt  <- generate_hcv_data(Nbig, treat_override = "all_treated",
+                            max_follow = 360,  ...) |>
+    dplyr::select(follow_time, event) |>
+    dplyr::mutate(A = 1)
+
+  dat <- dplyr::bind_rows(ctrl, trt)
+
+  ## 2. counting-process format to isolate the window
+  dat_cp <- dat |>
+    dplyr::mutate(
+      start  = pmax(0, pmin(follow_time, start)),
+      stop   = pmin(follow_time, end),
+      eventW = as.integer(event == 1 & follow_time <= end &
+                            follow_time >  start)
+    ) |>
+    dplyr::filter(stop > start)   # keep those at risk in the window
+
+  fit <- coxph(Surv(start, stop, eventW) ~ A, data = dat_cp)
+  HR  <- exp(coef(fit))
+  HR
+}
+
+# generator with early HR = 1.6 and late HR = 0.8
+
+set.seed(12345)
+
+true_HR_0_180 <- true_hr_period(start = 0,
+                                 end   = 180,
+                                 np_hazard = TRUE,   # if using NP hazards
+                                 HR_early = 1.5,
+                                 HR_late  = 0.7)
+
+true_HR_0_180
+
+
+truth <- data.frame(t=180, 
+                    HR = true_HR_0_180,
+                    RD = risk_diff,
+                    RR = risk_ratio)
+saveRDS(truth, file = "results/truth.rds")
+
+```
+

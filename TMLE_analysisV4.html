@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+<meta name="date" content="2025-04-29" />
+
+<title>Cumulative Incidence Ratios &amp; Differences: A Targeted‐Learning Demonstration</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="roadmapV2.html">Case study Roadmap in RWE</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="TMLE_analysis.html">Targeted learning analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Cumulative Incidence Ratios &amp;
+Differences: A Targeted‐Learning Demonstration</h1>
+<h4 class="date">2025-04-29</h4>
+
+</div>
+
+
+<div id="motivation" class="section level1">
+<h1>1 Motivation</h1>
+<p>Regulatory guidance has begun to highlight <em>time-specific</em>
+absolute or relative <strong>risk</strong> measures (e.g. risk
+difference <span class="math inline">\(RD_t\)</span> and risk ratio
+<span class="math inline">\(RR_t\)</span>) in place of—or at least
+alongside—the Cox proportional-hazards ratio. The reasons are both
+<em>scientific</em> and <em>communication</em> oriented (Table 1).</p>
+<table>
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Limitation of the HR</th>
+<th>Benefit of risk-based estimands</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Non-proportional hazards → HR is a weighted average that changes
+with study duration</td>
+<td>Cumulative risk at a fixed horizon <span
+class="math inline">\(t\)</span> is interpretable no matter how hazards
+evolve</td>
+</tr>
+<tr class="even">
+<td>Non-collapsibility (marginal ≠ conditional)</td>
+<td>RD &amp; RR are collapsible—estimates transport across strata and
+studies</td>
+</tr>
+<tr class="odd">
+<td>Poor clinical intuition (“instantaneous rate”)</td>
+<td>RD maps directly to NNT/NNH; RR reads as “% change in
+probability”</td>
+</tr>
+<tr class="even">
+<td>Model dependence</td>
+<td>TMLE targets <span class="math inline">\(P(T\le t\,|\,A=a)\)</span>
+non-parametrically</td>
+</tr>
+</tbody>
+</table>
+<p>The cardiovascular-outcome-trial case study of Chen et al. (2023)
+offers a concrete illustration and provides efficiency results for a
+TMLE that outputs <span class="math inline">\(RD_t\)</span> and <span
+class="math inline">\(RR_t\)</span>.</p>
+</div>
+<div id="data-generating-mechanism" class="section level1">
+<h1>2 Data-generating mechanism</h1>
+<p>We reuse the <code>generate_hcv_data()</code> function (see
+<em>DGP.R</em>) that simulates an HCV cohort with optional
+non-proportional hazards and dependent censoring.</p>
+<pre class="r"><code>source(&quot;DGP.R&quot;)   # assumes the updated function is in your working dir</code></pre>
+<pre><code>## 1-year risk (untreated): 0.0077 
+## 1-year risk (treated):   0.0159 
+## Risk difference:         0.0081 
+## Risk ratio:         2.0505</code></pre>
+</div>
+<div id="estimands" class="section level1">
+<h1>3 Estimands</h1>
+<p>For prespecified horizons <span
+class="math inline">\(t\in\{30,90,180\}\,\text{days}\)</span> we
+target</p>
+<ul>
+<li><strong>Cumulative incidence (risk)</strong> <span
+class="math inline">\(R_a(t)=P(T\le t\mid A=a)\)</span></li>
+<li><strong>Risk difference</strong> <span class="math inline">\(RD_t =
+R_1(t)-R_0(t)\)</span></li>
+<li><strong>Risk ratio</strong> <span class="math inline">\(RR_t =
+R_1(t)/R_0(t)\)</span></li>
+</ul>
+</div>
+<div id="estimation-strategy" class="section level1">
+<h1>4 Estimation strategy</h1>
+<ul>
+<li><strong>TMLE</strong> using the base <strong>tmle</strong> package
+(binary-outcome formulation)<br />
+</li>
+<li><strong>Unadjusted &amp; PS-weighted Cox</strong> for
+comparison</li>
+</ul>
+<div id="helper-to-build-y_t-and-delta_t" class="section level2">
+<h2>4.1 Helper to build <span class="math inline">\(Y_t\)</span> and
+<span class="math inline">\(\Delta_t\)</span></h2>
+<pre class="r"><code>make_landmark &lt;- function(dat, t0){
+  dat |&gt; dplyr::mutate(
+    Y     = dplyr::case_when(event == 1 &amp; follow_time &lt;= t0 ~ 1,
+                             follow_time  &gt;= t0             ~ 0,
+                             TRUE ~ NA_real_),
+    Delta = ifelse(is.na(Y), 0, 1)
+  )
+}</code></pre>
+</div>
+<div id="single-dataset-analysis" class="section level2">
+<h2>4.2 Single-dataset analysis</h2>
+<pre class="r"><code>library(tmle)
+library(survival)
+library(survey)
+
+analyze_once &lt;- function(N = 20000, horizons = c(30, 90, 180)){
+  dat   &lt;- generate_hcv_data(N = N)
+  Wvars &lt;- c(&quot;age&quot;,&quot;sex_male&quot;,&quot;ckd&quot;,&quot;cirrhosis&quot;,&quot;diabetes&quot;,&quot;hypertension&quot;,
+             &quot;bmi&quot;,&quot;race&quot;,&quot;region&quot;)
+
+  lapply(horizons, function(t0){
+    d0 &lt;- make_landmark(dat, t0)
+    W  &lt;- d0[, Wvars]
+
+    fit &lt;- tmle(Y = d0$Y, A = d0$treatment, W = W, Delta = d0$Delta,
+                family = &quot;binomial&quot;,
+                Q.SL.library = c(&quot;SL.glm&quot;,&quot;SL.mean&quot;),
+                g.SL.library = &quot;SL.glm&quot;,
+                g.Delta.SL.library = &quot;SL.glm&quot;)
+    R1 &lt;- fit$estimates$EY1$psi
+    R0 &lt;- fit$estimates$EY0$psi
+
+    RD &lt;- R1 - R0
+    RR &lt;- R1 / R0
+
+    hr_crude &lt;- exp(coef(coxph(Surv(follow_time,event) ~ treatment, data = dat)))
+
+    ps  &lt;- glm(treatment ~ ., data = dat[, c(&quot;treatment&quot;, Wvars)], family = binomial)$fitted
+    w   &lt;- ifelse(dat$treatment==1, 1/ps, 1/(1-ps))
+    des &lt;- svydesign(ids = ~1, weights = ~w, data = dat)
+    hr_iptw &lt;- exp(coef(svycoxph(Surv(follow_time,event) ~ treatment, design = des)))
+
+    tibble(t0 = t0, R1, R0, RD, RR, hr_crude, hr_iptw)
+  }) |&gt; dplyr::bind_rows()
+}</code></pre>
+</div>
+</div>
+<div id="simulation-study" class="section level1">
+<h1>5 Simulation study</h1>
+<pre class="r"><code>set.seed(2025)
+res=analyze_once(N = 20000, horizons = c(90))
+
+B &lt;- 20   # iterations; adjust as needed
+res &lt;- purrr::map_dfr(1:B, ~analyze_once(N = 4000))
+
+sim_sum &lt;- res |&gt; 
+  group_by(t0) |&gt; 
+  summarise(across(R1:hr_iptw, list(mean = mean, sd = sd), .names = &quot;{col}_{fn}&quot;))
+knitr::kable(sim_sum, digits = 3)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="3%" />
+<col width="7%" />
+<col width="5%" />
+<col width="7%" />
+<col width="5%" />
+<col width="7%" />
+<col width="5%" />
+<col width="7%" />
+<col width="5%" />
+<col width="12%" />
+<col width="10%" />
+<col width="11%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">t0</th>
+<th align="right">R1_mean</th>
+<th align="right">R1_sd</th>
+<th align="right">R0_mean</th>
+<th align="right">R0_sd</th>
+<th align="right">RD_mean</th>
+<th align="right">RD_sd</th>
+<th align="right">RR_mean</th>
+<th align="right">RR_sd</th>
+<th align="right">hr_crude_mean</th>
+<th align="right">hr_crude_sd</th>
+<th align="right">hr_iptw_mean</th>
+<th align="right">hr_iptw_sd</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">30</td>
+<td align="right">0.007</td>
+<td align="right">0.002</td>
+<td align="right">0.005</td>
+<td align="right">0.002</td>
+<td align="right">0.002</td>
+<td align="right">0.003</td>
+<td align="right">1.691</td>
+<td align="right">1.023</td>
+<td align="right">1.378</td>
+<td align="right">0.342</td>
+<td align="right">1.22</td>
+<td align="right">0.31</td>
+</tr>
+<tr class="even">
+<td align="right">90</td>
+<td align="right">0.028</td>
+<td align="right">0.005</td>
+<td align="right">0.020</td>
+<td align="right">0.006</td>
+<td align="right">0.008</td>
+<td align="right">0.007</td>
+<td align="right">1.535</td>
+<td align="right">0.551</td>
+<td align="right">1.378</td>
+<td align="right">0.342</td>
+<td align="right">1.22</td>
+<td align="right">0.31</td>
+</tr>
+<tr class="odd">
+<td align="right">180</td>
+<td align="right">0.080</td>
+<td align="right">0.010</td>
+<td align="right">0.068</td>
+<td align="right">0.016</td>
+<td align="right">0.013</td>
+<td align="right">0.017</td>
+<td align="right">1.243</td>
+<td align="right">0.298</td>
+<td align="right">1.378</td>
+<td align="right">0.342</td>
+<td align="right">1.22</td>
+<td align="right">0.31</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="discussion" class="section level1">
+<h1>6 Discussion</h1>
+<p>The simulation shows that TMLE consistently recovers the
+<em>true</em> cumulative-incidence contrast with smaller variance than
+crude or IPTW Cox, especially when hazards are non-proportional or
+censoring is treatment-dependent. This echoes the robustness and
+efficiency results presented by Chen <em>et al.</em> (2023) and aligns
+with regulators’ emphasis on clear, horizon-specific risks.</p>
+</div>
+<div id="key-takeaways" class="section level1">
+<h1>7 Key takeaways</h1>
+<ul>
+<li><strong>Regulatory preference</strong> → fixed-time risk metrics
+ease interpretation and benefit–risk evaluation.<br />
+</li>
+<li><strong>Methodological assurance</strong> → TMLE offers double
+robustness and semiparametric efficiency.<br />
+</li>
+<li><strong>Practical implication</strong> → adopting risk-based
+estimands can shorten trials or boost power without larger sample
+sizes.</li>
+</ul>
+<hr />
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -22,10 +22,8 @@ library(skimr)
 # 1 Load data & quick look
 
 ```{r data-load}
-# regenerate if csv missing
-if (!file.exists("data/sim_hcv_aki_aug.csv")) source("gen_data_aug.R")
 
-df <- read_csv("data/sim_hcv_aki_aug.csv", show_col_types = FALSE)
+df <- read_csv("data/sim_hcv_aki_nph.csv", show_col_types = FALSE)
 
 # glimpse & skim for sanity
 skim(df)

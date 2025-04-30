@@ -1,177 +1,171 @@
-simulate_data <- function(n = 5000,
-                          treat_override = c("random","all_treated","all_untreated"),
-                          # The rest of the parameters can remain hard-coded or made flexible.
-                          seed = 42) {
-  set.seed(seed)
+
+library(tidyverse)
+
+
+##############################################################
+##  generate_hcv_data()  —  HCV-AKI plasmode generator      ##
+##############################################################
+#  Args
+#   N              cohort size *after* baseline exclusions
+#   max_follow     administrative window (days)
+#   risk_window    grace period after switch (days)
+#   h0             baseline hazard – set lower to reduce event prevalence
+#   HR_early       hazard multiplier (SOF vs non)   0–90 d
+#   HR_late        multiplier beyond 90 d
+#   p_sof          target marginal prevalence of SOF (if treat_override = "simulate")
+#   impute         logical; use missForest to impute region & CKD
+#   treat_override     "simulate", "all_treated", or "all_control"
+#   seed           RNG seed
+#
+#  Returns         tibble ready for analysis  (one row per subject)
+generate_hcv_data <- function(
+    ## core knobs --------------------------------------------------------
+    N            = 125000,
+    p_sof        = 0.36,
+    h0           = 3.5e-4,
+    HR_early     = 1.50,     # causal HR up to τ
+    HR_late      = 0.70,     # causal HR after τ  (ignored if np_hazard = FALSE)
+    tau          = 90,       # change-point (days)
+    max_follow   = 180,
+    risk_window  = 30,
+    ## NEW options -------------------------------------------------------
+    np_hazard    = FALSE,    # time-varying treatment effect?
+    dep_censor   = FALSE,    # censoring depends on risk + treatment?
+    censor_base  = 1/100,    # baseline censoring rate
+    ## misc --------------------------------------------------------------
+    treat_override = c("simulate","all_treated","all_control"),
+    add_missing  = FALSE,
+    impute       = FALSE,
+    seed         = NULL)
+{
+  if (!is.null(seed)) set.seed(seed)
   treat_override <- match.arg(treat_override)
+  if (impute) requireNamespace("missForest")
+  requireNamespace("tidyverse")
 
-  #### 1) Baseline Covariates ####
-  age <- pmax(rnorm(n, mean=48, sd=13), 18)
-  sex <- rbinom(n, 1, 0.58)
-
-  race_levels <- c("white","black","hispanic","asian","other")
-  race_probs  <- c(0.48, 0.14, 0.06, 0.02, 0.30)
-  race_raw <- sample(race_levels, size=n, replace=TRUE, prob=race_probs)
-  race_missing_ix <- sample.int(n, floor(0.20*n))
-  race_raw[race_missing_ix] <- NA
-
-  region_levels <- c("NE","MW","S","W")
-  region_probs  <- c(0.20, 0.18, 0.37, 0.25)
-  region_raw <- sample(region_levels, size=n, replace=TRUE, prob=region_probs)
-
-  # Some correlated covariates (example)
-  # mental illness depends on younger/female
-  logit_ment <- -1 + 0.01*(60 - age) + 0.2*(1 - sex)
-  prob_ment  <- plogis(logit_ment)
-  ment_ill   <- rbinom(n,1,prob_ment)
-
-  logit_subst <- -2 + 1.0*ment_ill
-  substance_abuse <- rbinom(n,1, plogis(logit_subst))
-
-  logit_smoke <- -1.5 + 0.7*substance_abuse + 0.3*sex
-  smoking     <- rbinom(n,1, plogis(logit_smoke))
-
-  # A few more
-  bmi   <- rnorm(n, mean=28, sd=5)
-  over_obesity <- as.integer(bmi > 30)
-
-  logit_diab <- -2.0 + 0.02*age + 0.5*over_obesity
-  diabetes   <- rbinom(n,1, plogis(logit_diab))
-
-  logit_htn  <- -1.5 + 0.03*age + 0.4*over_obesity
-  hypertension <- rbinom(n,1, plogis(logit_htn))
-
-  logit_cirr <- -2 + 1.2*substance_abuse
-  cirrhosis  <- rbinom(n,1, plogis(logit_cirr))
-
-  logit_ckd  <- -3 + 0.04*age + 0.5*hypertension
-  ckd        <- rbinom(n,1, plogis(logit_ckd))
-
-  hiv <- rbinom(n,1,0.04)
-  copd<- rbinom(n,1,0.20)
-  cancer <- rbinom(n,1,0.07)
-  baseline_gfr <- rnorm(n, mean=90, sd=15)
-
-  #### 2) Treatment Assignment ####
-  # If random: your logistic approach with interactions
-  # If override: set all=1 or all=0
-  logit_treat <- -1.2 +
-    0.015*age +
-    0.2*sex +
-    0.4*cirrhosis +
-    0.5*ckd +
-    0.3*diabetes +
-    0.2*hypertension +
-    0.3*ment_ill +
-    0.2*substance_abuse +
-    0.4*(ckd*cirrhosis) +
-    0.01*baseline_gfr
-
-  # region effect
-  logit_treat[region_raw=="S"] <- logit_treat[region_raw=="S"] - 0.2
-  logit_treat[region_raw=="W"] <- logit_treat[region_raw=="W"] + 0.1
-
-  # race effect
-  for (i in seq_len(n)) {
-    if (!is.na(race_raw[i])) {
-      if (race_raw[i]=="black")    logit_treat[i] <- logit_treat[i] + 0.1
-      if (race_raw[i]=="asian")    logit_treat[i] <- logit_treat[i] + 0.2
-      if (race_raw[i]=="other")    logit_treat[i] <- logit_treat[i] - 0.1
-    } else {
-      logit_treat[i] <- logit_treat[i] + runif(1, -0.05, 0.05)
-    }
-  }
-
-  if (treat_override == "random") {
-    p_treat   <- plogis(logit_treat)
-    treatment <- rbinom(n,1,p_treat)
-  } else if (treat_override == "all_treated") {
-    treatment <- rep(1, n)
-  } else {
-    treatment <- rep(0, n)
-  }
-
-  #### 3) Time-to-event with HR(treatment) ~ 1.06 ####
-  # e.g. baseline hazard=0.02
-  # We'll do main effect + small interactions, etc.
-  # If you want same outcome model for all scenarios, do exactly that:
-  # The only difference is we forcibly set 'treatment' above.
-  lp_outcome <- -2.5 +
-    0.03*age +
-    0.6*ckd +
-    0.4*cirrhosis +
-    0.2*ment_ill +
-    0.3*diabetes +
-    0.1*substance_abuse +
-    0.06*treatment +
-    0.04*(treatment*ckd)
-
-  rate_i <- 0.02*exp(lp_outcome)
-
-  time_to_event <- rexp(n, rate=rate_i)
-  censor_time   <- rexp(n, rate=1/100)
-  observed_time <- pmin(time_to_event, censor_time)
-  event         <- as.integer(time_to_event <= censor_time)
-
-  #### 4) Build DF ####
-  df <- data.frame(
-    age=age, sex=sex, race=race_raw, region=region_raw,
-    mental_illness=ment_ill, substance_abuse=substance_abuse, smoking=smoking,
-    over_obesity=over_obesity, diabetes=diabetes, hypertension=hypertension,
-    cirrhosis=cirrhosis, ckd=ckd, hiv=hiv, copd=copd, cancer=cancer,
-    baseline_gfr=baseline_gfr, bmi=bmi,
-    treatment=treatment,
-    time=observed_time,
-    event=event
+  ## 1  Demography -------------------------------------------------------
+  raw <- tibble::tibble(
+    id       = seq_len(N),
+    age      = pmax(rnorm(N, 48, 13), 18),
+    sex_male = rbinom(N, 1, 0.58),
+    race     = sample(c("white","black","hispanic","asian","other"), N, TRUE,
+                      prob = c(.48,.14,.06,.02,.30)),
+    region   = sample(c("NE","MW","S","W"), N, TRUE,
+                      prob = c(.20,.18,.37,.25)),
+    enroll_days = rpois(N, 420)
   )
 
-  #### 5) Some missingness (optional) ####
-  set.seed(999)
-  # region missing 5% except MW =>1%
-  p_region_miss <- ifelse(df$region=="MW", 0.01, 0.05)
-  reg_ix        <- runif(n) < p_region_miss
-  df$region[reg_ix] <- NA
+  ## 2  Clinical history & meds (unchanged) ------------------------------
+  add_bin <- function(p) rbinom(N, 1, p)
+  raw <- raw %>%
+    mutate(
+      ckd     = add_bin(.08),  prior_aki = add_bin(.05),
+      heart_failure = add_bin(.07), sepsis = add_bin(.03),
+      dehydration = add_bin(.06), obstruction = add_bin(.04),
+      cirrhosis = add_bin(.18), portal_htn = add_bin(.04),
+      esld   = add_bin(.02), hiv = add_bin(.04),
+      diabetes = add_bin(.20), hypertension = add_bin(.45),
+      bmi    = rnorm(N, 28, 5), overweight_obese = add_bin(.20),
+      smoking = add_bin(.40), alcohol = add_bin(.18),
+      substance_abuse = add_bin(.25), cancer = add_bin(.08),
+      chemo  = add_bin(.01),
+      nsaid  = add_bin(.25), acearb = add_bin(.30), diuretic = add_bin(.22),
+      aminoglycoside = add_bin(.05), contrast = add_bin(.08),
+      statin = add_bin(.15), aspirin = add_bin(.10),
+      beta_blocker = add_bin(.14), ccb = add_bin(.16), art = add_bin(.05),
+      prior_sof = add_bin(.05), prior_nonsof = add_bin(.05)
+    )
 
-  # 10% missing ckd
-  p_ckd_miss <- plogis(-3 + 1.0*df$ckd + 0.5*df$cirrhosis)
-  ckd_ix     <- runif(n) < p_ckd_miss
-  df$ckd[ckd_ix] <- NA
+  ## 3  Baseline exclusions --------------------------------------------
+  cohort <- raw %>%
+    filter(enroll_days >= 365,
+           age >= 18,
+           prior_aki == 0,
+           !(prior_sof == 1 | prior_nonsof == 1))
 
-  return(df)
+  ## 4  Treatment assignment -------------------------------------------
+  if (treat_override == "simulate") {
+    lp <- with(cohort,
+               0.015*age +
+                 0.30*cirrhosis + 0.35*portal_htn + 0.25*ckd +
+                 0.20*hiv + 0.15*substance_abuse + 0.10*diabetes +
+                 0.05*hypertension -0.10*cancer -0.05*overweight_obese +
+                 if_else(region=="W", 0.05, if_else(region=="S", -0.05, 0)) +
+                 case_when(race=="black" ~ 0.05,
+                           race=="asian" ~ 0.10,
+                           race=="other" ~ -0.05,
+                           TRUE ~ 0) +
+                 rnorm(nrow(cohort), 0, 0.6))
+    alpha0 <- qlogis(p_sof) - mean(lp)
+    p_trt  <- plogis(alpha0 + lp) |> pmin(0.95) |> pmax(0.05)
+    cohort$treatment <- rbinom(nrow(cohort), 1, p_trt)
+  } else {
+    cohort$treatment <- ifelse(treat_override=="all_treated",1L,0L)
+  }
+
+  ## 5  Individual baseline hazard -------------------------------------
+  lp_out <- with(cohort,
+                 -2.8 + 0.03*age + 0.7*ckd + 0.5*cirrhosis +
+                   0.3*heart_failure + 0.25*nsaid + 0.20*contrast)
+  base_rate <- h0 * exp(lp_out)
+
+  ## 6  Event times -----------------------------------------------------
+  if (!np_hazard) {
+    # proportional hazards
+    rate  <- base_rate * ifelse(cohort$treatment==1, HR_early, 1)
+    cohort$event_time <- rexp(nrow(cohort), rate = rate)
+  } else {
+    # piece-wise HR (early vs late)
+    rpexp_piece <- function(n, r1, r2, tau){
+      u  <- runif(n); p1 <- 1-exp(-r1*tau); t <- numeric(n)
+      early <- u <= p1
+      t[early]  <- -log(1-u[early]) / r1[early]
+      t[!early] <- tau - log((1-u[!early])/(1-p1[!early])) / r2[!early]
+      t
+    }
+    r1 <- base_rate * ifelse(cohort$treatment==1, HR_early, 1)
+    r2 <- base_rate * ifelse(cohort$treatment==1, HR_late,  1)
+    cohort$event_time <- rpexp_piece(nrow(cohort), r1, r2, tau)
+  }
+
+  ## 7  Administrative censoring (independent or informative) ----------
+  if (!dep_censor) {
+    censor_admin <- rexp(nrow(cohort), rate = censor_base)
+  } else {
+    cens_rate <- censor_base * exp(0.4*lp_out + 0.3*cohort$treatment)
+    censor_admin <- rexp(nrow(cohort), rate = cens_rate)
+  }
+  cohort$censor_admin <- pmin(censor_admin, max_follow)
+
+  ## switch censoring stays as before
+  cohort$tx_days <- ifelse(cohort$treatment==1, rpois(nrow(cohort),84),
+                           rpois(nrow(cohort),70))
+  cohort$switch  <- rbinom(nrow(cohort), 1, .03)
+  cohort$censor_switch <- ifelse(cohort$switch==1,
+                                 cohort$tx_days + risk_window,
+                                 max_follow)
+
+  cohort$follow_time <- pmin(cohort$event_time,
+                             cohort$censor_admin,
+                             cohort$censor_switch)
+  cohort$event <- as.integer(cohort$event_time <= cohort$follow_time)
+
+  ## 8  Analysis data ---------------------------------------------------
+  ana <- cohort %>%
+    dplyr::select(-enroll_days, -prior_aki, -prior_sof, -prior_nonsof,
+                  -tx_days, -event_time, -censor_admin, -censor_switch)
+
+  ## 9  Optional missingness & imputation -------------------------------
+  if (add_missing) {
+    ana$region[runif(nrow(ana)) < .05] <- NA
+    ana$ckd[   runif(nrow(ana)) < .10] <- NA
+    if (impute) {
+      imp_vars <- c("age","race","region","ckd","cirrhosis","hiv",
+                    "diabetes","hypertension","bmi")
+      imp_in <- ana[,imp_vars] %>% mutate(across(c(race,region), as.factor))
+      ana[,imp_vars] <- missForest::missForest(as.data.frame(imp_in),
+                                               verbose = FALSE)$ximp
+    }
+  }
+  ana
 }
-
-
-df0 <- simulate_data(n=5000, treat_override="all_untreated")
-df1 <- simulate_data(n=5000, treat_override="all_treated")
-
-# Combine them, label group=0 or 1
-df0$group <- 0
-df1$group <- 1
-df_combined <- rbind(df0, df1)
-
-# Now we have 10k rows, half are forced treatment=0, half=1
-fit <- coxph(Surv(time, event) ~ group, data=df_combined)
-summary(fit)  # This should recover the "true" HR ~ 1.06 (assuming big enough n)
-
-
-# Using the function from above:
-
-# 1) Everyone untreated
-df0 <- simulate_data(n=5000, treat_override="all_untreated")
-
-# 2) Everyone treated
-df1 <- simulate_data(n=5000, treat_override="all_treated")
-
-# Suppose we look at 1-year risk
-t_star <- 365
-
-risk_untreated <- mean(df0$time <= t_star & df0$event==1)
-risk_treated   <- mean(df1$time <= t_star & df1$event==1)
-risk_diff      <- risk_treated - risk_untreated
-risk_ratio     <- risk_treated / risk_untreated
-
-cat("1-year risk (untreated):", round(risk_untreated,4), "\n")
-cat("1-year risk (treated):  ", round(risk_treated,4),   "\n")
-cat("Risk difference:        ", round(risk_diff,4),      "\n")
-cat("Risk ratio:        ", round(risk_diff,4),      "\n")
-
