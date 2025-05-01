@@ -10,12 +10,13 @@ output:
 ---
 
 
-# calculate truth of generated data and compare difference estimates across methods
-
+# calculate truth of generated data and compare difference estimates across methods - simple DGP
 
 
 ```{r}
 
+library(survival)
+library(tmle)
 source("DGP.R")   # assumes the updated function is in your working dir
 
 
@@ -28,23 +29,36 @@ df0 <- generate_hcv_data(N=1000000, treat_override="all_control")
 df1 <- generate_hcv_data(N=1000000, treat_override="all_treated")
 
 # Suppose we look at 90 day risk
-t_star <- 180
+t_star <- 90
 
-risk_untreated <- mean(df0$follow_time <= t_star & df0$event==1)
-risk_treated   <- mean(df1$follow_time <= t_star & df1$event==1)
-risk_diff      <- risk_treated - risk_untreated
-risk_ratio     <- risk_treated / risk_untreated
+calc_true_risk <- function(df0, df1, t_star){
+  
+  risk_untreated <- mean(df0$follow_time <= t_star & df0$event==1)
+  risk_treated   <- mean(df1$follow_time <= t_star & df1$event==1)
+  risk_diff      <- risk_treated - risk_untreated
+  risk_ratio     <- risk_treated / risk_untreated
+  
+  cat(t_star,"-day risk (untreated):", round(risk_untreated,4), "\n")
+  cat(t_star,"-day risk (treated):  ", round(risk_treated,4),   "\n")
+  cat("Risk difference:        ", round(risk_diff,4),      "\n")
+  cat("Risk ratio:        ", round(risk_ratio,4),      "\n")
+  
+  truth <- data.frame(t=t_star, 
+                    RD = risk_diff,
+                    RR = risk_ratio)
+  return(truth)
+}
 
-cat("1-year risk (untreated):", round(risk_untreated,4), "\n")
-cat("1-year risk (treated):  ", round(risk_treated,4),   "\n")
-cat("Risk difference:        ", round(risk_diff,4),      "\n")
-cat("Risk ratio:        ", round(risk_ratio,4),      "\n")
+
+calc_true_risk(df0, df1, 90)
+calc_true_risk(df0, df1, 180)
 
 
 
-
-
-#------------------------------------------------------------
+truth <- data.frame(t=180, 
+                    HR = true_HR_0_180,
+                    RD = risk_diff,
+                    RR = risk_ratio)#------------------------------------------------------------
 #  true_hr_period()
 #------------------------------------------------------------
 #  Nbig        large sample to remove Monte-Carlo noise
@@ -88,6 +102,15 @@ true_hr_period <- function(Nbig      = 1000000,
 
 set.seed(12345)
 
+
+true_HR_0_90 <- true_hr_period(start = 0,
+                                 end   = 90,
+                                 np_hazard = TRUE,   # if using NP hazards
+                                 HR_early = 1.5,
+                                 HR_late  = 0.7)
+
+true_HR_0_90
+
 true_HR_0_180 <- true_hr_period(start = 0,
                                  end   = 180,
                                  np_hazard = TRUE,   # if using NP hazards
@@ -105,3 +128,59 @@ saveRDS(truth, file = "results/truth.rds")
 
 ```
 
+# calculate truth of generated data and compare difference estimates across methods - complex DGP
+
+
+```{r}
+
+
+
+set.seed(12345)
+# 1) Everyone untreated
+df0 <- generate_hcv_data(N=1000000, treat_override="all_control", np_hazard     = TRUE,
+                            dep_censor    = TRUE,
+                            complexity    = TRUE)
+
+# 2) Everyone treated
+df1 <- generate_hcv_data(N=1000000, treat_override="all_treated", np_hazard     = TRUE,
+                            dep_censor    = TRUE,
+                            complexity    = TRUE)
+
+
+calc_true_risk(df0, df1, 90)
+calc_true_risk(df0, df1, 180)
+
+
+
+
+set.seed(12345)
+
+true_HR_0_180 <- true_hr_period(start = 0,
+                                 end   = 180,
+                                 np_hazard = TRUE,   
+                                 HR_early = 1.5,
+                                 HR_late  = 0.7,
+                            dep_censor    = TRUE,
+                            complexity    = TRUE)
+
+true_HR_0_180
+
+
+true_HR_0_90 <- true_hr_period(start = 0,
+                                 end   = 90,
+                                 np_hazard = TRUE,   
+                                 HR_early = 1.5,
+                                 HR_late  = 0.7,
+                            dep_censor    = TRUE,
+                            complexity    = TRUE)
+
+true_HR_0_90
+
+
+truth <- data.frame(t=180, 
+                    HR = true_HR_0_180,
+                    RD = risk_diff,
+                    RR = risk_ratio)
+saveRDS(truth, file = "results/truth_complexDGP.rds")
+
+```

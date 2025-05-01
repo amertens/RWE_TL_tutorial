@@ -1,26 +1,8 @@
 library(tidyverse)
 
-N             = 125000
-p_sof         = 0.36
-h0            = 3.5e-4
-HR_early      = 1.50
-HR_late       = 0.70
-tau           = 90
-max_follow    = 180
-risk_window   = 30
-## NEW options -------------------------------------------------------
-np_hazard     = FALSE
-dep_censor    = FALSE
-censor_base   = 1/100
-complexity    = FALSE
-## misc --------------------------------------------------------------
-treat_override= "simulate"
-add_missing   = FALSE
-impute        = FALSE
-seed          = NULL
+
 
 generate_hcv_data <- function(
-    ## core knobs --------------------------------------------------------
     N             = 125000,
     p_sof         = 0.36,
     h0            = 3.5e-4,
@@ -29,12 +11,10 @@ generate_hcv_data <- function(
     tau           = 90,
     max_follow    = 180,
     risk_window   = 30,
-    ## NEW options -------------------------------------------------------
     np_hazard     = FALSE,
     dep_censor    = FALSE,
     censor_base   = 1/100,
     complexity    = FALSE,
-    ## misc --------------------------------------------------------------
     treat_override= c("simulate","all_treated","all_control"),
     add_missing   = FALSE,
     impute        = FALSE,
@@ -54,9 +34,7 @@ generate_hcv_data <- function(
                           prob = c(.48,.14,.06,.02,.30)),
     region       = sample(c("NE","MW","S","W"), N, TRUE,
                           prob = c(.20,.18,.37,.25)),
-    enroll_days  = rpois(N, 420),
-    Nobs=N
-  )
+    enroll_days  = rpois(N, 420))
 
   ## 2  Clinical history & meds -----------------------------------------
   add_bin <- function(p) rbinom(N, 1, p)
@@ -89,7 +67,7 @@ generate_hcv_data <- function(
     ## linear lp for simple case
     lp0 <- with(cohort,
                 0.015*age + 0.30*cirrhosis + 0.25*ckd + 0.15*hiv + 0.10*diabetes -
-                  0.10*cancer + rnorm(Nobs,0,0.6)
+                  0.10*cancer + rnorm(nrow(cohort),0,0.6)
     )
     if (complexity) {
       ## add nonlinear & interaction terms
@@ -121,8 +99,8 @@ generate_hcv_data <- function(
                      0.7*ckd + 0.5*cirrhosis +
                      0.02*(bmi^2)/100 -
                      0.3*sin(0.1*bmi) +
-                     0.4*heart_failure*acearb +     # interaction
-                     0.6*nsaid*cohort$treatment +
+                     0.4*heart_failure*acearb +
+                     0.6*nsaid*treatment +
                      0.3*contrast*log1p(age)
     )
   }
@@ -169,13 +147,13 @@ generate_hcv_data <- function(
 
   ## 8  Analysis dataset ------------------------------------------------
   ana <- cohort %>%
-    select(-enroll_days,-prior_aki,-prior_sof,-prior_nonsof,
+    dplyr::select(-enroll_days,-prior_aki,-prior_sof,-prior_nonsof,
            -tx_days,-event_time,-censor_admin,-censor_switch)
 
   ## 9  Missingness & imputation ----------------------------------------
   if (add_missing) {
-    ana$region[sample(Nobs, 0.05*Nobs)] <- NA
-    ana$ckd[sample(Nobs, 0.10*Nobs)] <- NA
+    ana$region[sample(nrow(ana), 0.05*nrow(ana))] <- NA
+    ana$ckd[sample(nrow(ana), 0.10*nrow(ana))] <- NA
     if (impute) {
       imp_vars <- c("age","race","region","ckd","cirrhosis","hiv",
                     "diabetes","hypertension","bmi")
@@ -192,7 +170,13 @@ generate_hcv_data <- function(
 
 df <- generate_hcv_data(    np_hazard     = FALSE,
                             dep_censor    = FALSE,
-                            complexity    = FALSE,
-                            add_missing   = FALSE)
+                            complexity    = FALSE)
 
 write.csv(df,here::here("data/sim_hcv_aki.csv"))
+
+
+df_complex <- generate_hcv_data(    np_hazard     = TRUE,
+                            dep_censor    = TRUE,
+                            complexity    = TRUE)
+
+write.csv(df_complex,here::here("data/sim_hcv_aki_complex.csv"))
