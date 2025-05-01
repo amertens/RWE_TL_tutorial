@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="AKI Safety Working Group" />
+
+<meta name="date" content="2025-04-30" />
+
+<title>Step 1 – Causal Question, Causal Model, and Causal Estimand</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="roadmapV2.html">Case study Roadmap in RWE</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="TMLE_analysis.html">Targeted learning analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Step 1 – Causal Question, Causal Model, and
+Causal Estimand</h1>
+<h4 class="author">AKI Safety Working Group</h4>
+<h4 class="date">2025-04-30</h4>
+
+</div>
+
+
+<div id="scientific-question" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> 1 Scientific
+Question</h1>
+<blockquote>
+<p><em>Among U.S. adults with chronic hepatitis C (HCV) who initiate
+antiviral therapy, does starting a
+<strong>sofosbuvir-containing</strong> direct-acting antiviral (DAA)
+regimen, compared with starting a <strong>non-sofosbuvir</strong> DAA
+regimen, change the 90-day cumulative risk of first acute kidney injury
+(AKI)?</em></p>
+</blockquote>
+<p><strong>Study setting</strong></p>
+<ul>
+<li><strong>Population</strong> – commercial &amp; Medicare Advantage
+enrollees, 18–79 y, ≥12 m continuous coverage, no baseline AKI, chronic
+HCV.<br />
+</li>
+<li><strong>Treatment strategies</strong>
+<ul>
+<li><em>A = 1</em>: initiate any SOF-containing DAA regimen<br />
+</li>
+<li><em>A = 0</em>: initiate any non-SOF DAA regimen (G/P, EBR/GZR,
+OMB/PTV/r±DAS, …)<br />
+</li>
+</ul></li>
+<li><strong>Outcome Y</strong> – first AKI claim / EHR record within 90
+days.<br />
+</li>
+<li><strong>Intercurrent events</strong> – regimen switch, death,
+disenrollment.<br />
+</li>
+<li><strong>Summary measure</strong> – marginal risk difference (RD) and
+risk ratio (RR) at 90 days.</li>
+</ul>
+</div>
+<div id="causal-model-informal-dag" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> 2 Causal Model
+(informal DAG)</h1>
+<p>W ─▶ A0 ─▶ Y(90d) │ │ ▲ │ └──────────────┘ └────────────▶</p>
+<ul>
+<li><strong>W</strong> – baseline confounders (age, sex, CKD, diabetes,
+eGFR, cirrhosis, utilisation, …)<br />
+</li>
+<li><strong>A0</strong> – initial regimen choice at time 0<br />
+</li>
+<li><strong>C(t)</strong> – censoring: death, switch, loss of
+coverage<br />
+</li>
+<li><strong>Y(t)</strong> – indicator of AKI by day <em>t</em></li>
+</ul>
+<p>Assumed for identification:</p>
+<ol style="list-style-type: decimal">
+<li><em>Consistency</em><br />
+</li>
+<li><em>Positivity</em>: 0 &lt; P(A0 = a |W) &lt; 1<br />
+</li>
+<li><em>Conditional exchangeability</em>: no unmeasured common causes of
+<em>(A0, C(t))</em> and <em>Y(t)</em> given <em>W</em>.</li>
+</ol>
+</div>
+<div id="target-estimands" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> 3 Target Estimands</h1>
+<p>The AKI study used an <strong>as-treated, censor-at-switch</strong>
+estimand (★).<br />
+Alternative estimands answer related questions or relax assumptions.</p>
+<table>
+<colgroup>
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Label</th>
+<th>Strategy for switch / death</th>
+<th>90-day target</th>
+<th>Question addressed</th>
+<th>Identification caveats</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>★ As-treated (censor at switch)</strong></td>
+<td>Censor follow-up 30 d after switch; admin censoring for
+death/loss</td>
+<td>RD / RR if everyone <strong>remains on their original
+regimen</strong></td>
+<td>Effect of staying on initial therapy</td>
+<td>Requires ignorability of censoring given <em>W, A0</em> (+
+time-varying covariates if used)</td>
+</tr>
+<tr class="even">
+<td>ITT (ignore switch)</td>
+<td>Keep follow-up regardless of switch</td>
+<td>RD / RR for <strong>initiation</strong> of SOF vs non-SOF</td>
+<td>Policy effect of starting SOF</td>
+<td>No informative censoring; effect diluted by cross-over</td>
+</tr>
+<tr class="odd">
+<td>Per-protocol (model switch)</td>
+<td>Treat switch as time-varying exposure; g-formula / MSM</td>
+<td>Risk if everyone <strong>remained</strong> on assigned therapy</td>
+<td>Pure biologic effect</td>
+<td>Requires measurement &amp; modelling of time-varying confounders and
+switching process</td>
+</tr>
+<tr class="even">
+<td>Hypothetical “no-switch”</td>
+<td>Censor at switch <strong>and</strong> weight by inverse probability
+of switching</td>
+<td>Risk had switching been prevented</td>
+<td>Safety absent regimen changes</td>
+<td>Correct model for switching hazard necessary</td>
+</tr>
+<tr class="odd">
+<td>Composite (AKI <em>or</em> switch)</td>
+<td>Count switch as event</td>
+<td>RD / RR for <strong>AKI or regimen change</strong></td>
+<td>Captures clinical concern that switch may signal renal toxicity</td>
+<td>Blurs pathways; easier for decision-making</td>
+</tr>
+<tr class="even">
+<td>Controlled direct effect</td>
+<td>Treat death as competing risk (censor)</td>
+<td>AKI risk if death eliminated</td>
+<td>Kidney toxicity independent of mortality</td>
+<td>Counterfactual elimination of death; strong &amp; possibly
+implausible</td>
+</tr>
+</tbody>
+</table>
+<div id="choosing-among-estimands" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Choosing among
+estimands</h2>
+<ul>
+<li><strong>Regulatory safety signal</strong> – ★ As-treated is
+customary: isolates renal risk during exposure; beware informative
+switching.<br />
+</li>
+<li><strong>Clinical decision (“start vs do not start”)</strong> – ITT
+may be preferable.<br />
+</li>
+<li><strong>Mechanistic/toxicology</strong> – hypothetical or
+per-protocol estimands focus on inherent nephro-toxicity.</li>
+</ul>
+<p>Subsequent Roadmap steps (identification, estimation, sensitivity)
+must align with the chosen estimand.</p>
+</div>
+</div>
+<div id="place-holder-for-code" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> 4 Place-holder for
+Code</h1>
+<ul>
+<li><strong>W</strong> – baseline confounders (age, sex, CKD, diabetes,
+eGFR, cirrhosis, utilisation, …)<br />
+</li>
+<li><strong>A0</strong> – initial regimen choice at time 0<br />
+</li>
+<li><strong>C(t)</strong> – censoring: death, switch, loss of
+coverage<br />
+</li>
+<li><strong>Y(t)</strong> – indicator of AKI by day <em>t</em></li>
+</ul>
+<p>Assumed for identification:</p>
+<ol style="list-style-type: decimal">
+<li><em>Consistency</em><br />
+</li>
+<li><em>Positivity</em>: 0 &lt; P(A0 = a |W) &lt; 1<br />
+</li>
+<li><em>Conditional exchangeability</em>: no unmeasured common causes of
+<em>(A0, C(t))</em> and <em>Y(t)</em> given <em>W</em>.</li>
+</ol>
+</div>
+<div id="target-estimands-1" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> 3 Target Estimands</h1>
+<p>The AKI study used an <strong>as-treated, censor-at-switch</strong>
+estimand (★).<br />
+Alternative estimands answer related questions or relax assumptions.</p>
+<table>
+<colgroup>
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Label</th>
+<th>Strategy for switch or death</th>
+<th>90-day target</th>
+<th>Question addressed</th>
+<th>Identification caveats</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>★ As-treated (censor at switch)</strong></td>
+<td>Censor follow-up 30 d after switch; admin censoring for
+death/loss</td>
+<td>RD / RR if everyone <strong>remains on their original
+regimen</strong></td>
+<td>Effect of staying on initial therapy</td>
+<td>Requires ignorability of censoring given <em>W, A0</em> (+
+time-varying covariates if used)</td>
+</tr>
+<tr class="even">
+<td>ITT (ignore switch)</td>
+<td>Keep follow-up regardless of switch</td>
+<td>RD / RR for <strong>initiation</strong> of SOF vs non-SOF</td>
+<td>Policy effect of starting SOF</td>
+<td>No informative censoring; effect diluted by cross-over</td>
+</tr>
+<tr class="odd">
+<td>Per-protocol (model switch)</td>
+<td>Treat switch as time-varying exposure; g-formula / MSM</td>
+<td>Risk if everyone <strong>remained</strong> on assigned therapy</td>
+<td>Pure biologic effect</td>
+<td>Requires measurement &amp; modelling of time-varying confounders and
+switching process</td>
+</tr>
+<tr class="even">
+<td>Hypothetical “no-switch”</td>
+<td>Censor at switch <strong>and</strong> weight by inverse probability
+of switching</td>
+<td>Risk had switching been prevented</td>
+<td>Safety absent regimen changes</td>
+<td>Correct model for switching hazard necessary</td>
+</tr>
+<tr class="odd">
+<td>Composite (AKI <em>or</em> switch)</td>
+<td>Count switch as event</td>
+<td>RD / RR for <strong>AKI or regimen change</strong></td>
+<td>Captures clinical concern that switch may signal renal toxicity</td>
+<td>Blurs pathways; easier for decision-making</td>
+</tr>
+<tr class="even">
+<td>Controlled direct effect</td>
+<td>Treat death as competing risk (censor)</td>
+<td>AKI risk if death eliminated</td>
+<td>Kidney toxicity independent of mortality</td>
+<td>Counterfactual elimination of death; strong &amp; possibly
+implausible</td>
+</tr>
+</tbody>
+</table>
+<div id="choosing-among-estimands-1" class="section level2"
+number="5.1">
+<h2><span class="header-section-number">5.1</span> Choosing among
+estimands</h2>
+<ul>
+<li><strong>Regulatory safety signal</strong> – ★ As-treated is
+customary: isolates renal risk during exposure; beware informative
+switching.<br />
+</li>
+<li><strong>Clinical decision (“start vs do not start”)</strong> – ITT
+may be preferable.<br />
+</li>
+<li><strong>Mechanistic/toxicology</strong> – hypothetical or
+per-protocol estimands focus on inherent nephro-toxicity.</li>
+</ul>
+<p>Subsequent Roadmap steps (identification, estimation, sensitivity)
+must align with the chosen estimand.</p>
+</div>
+<div id="causal-model-ggdag-plot" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> 2 Causal Model –
+ggdag plot</h2>
+<pre class="r"><code>library(tidyverse) </code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+## ✔ purrr     1.0.2     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(dagitty) </code></pre>
+<pre><code>## Warning: package &#39;dagitty&#39; was built under R version 4.4.3</code></pre>
+<pre class="r"><code>library(ggdag)</code></pre>
+<pre><code>## Warning: package &#39;ggdag&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## 
+## Attaching package: &#39;ggdag&#39;
+## 
+## The following object is masked from &#39;package:stats&#39;:
+## 
+##     filter</code></pre>
+<pre class="r"><code># DAG specification -------------------------------------------------------
+#   W  = baseline confounders
+#   A0 = initial DAA regimen (SOF vs non-SOF)
+#   C  = censoring processes (death, switch, disenroll)
+#   Y  = 90-day AKI
+
+dag_txt &lt;- &quot;
+dag {
+  W  -&gt; A0
+  W  -&gt; Y
+  A0 -&gt; Y
+  W  -&gt; C
+  A0 -&gt; C
+}&quot;
+
+aki_dag &lt;- dagitty(dag_txt)
+
+# Visualise ---------------------------------------------------------------
+ggdag(aki_dag, text = FALSE, use_labels = &#39;name&#39;, seed = 123) +
+  theme_dag() +
+  ggtitle(&#39;AKI Safety DAG: Sofosbuvir vs Non-Sofosbuvir&#39;)</code></pre>
+<p><img src="step1_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+</div>
+</div>
+<div id="step-1-defining-the-causal-question-model-and-estimands"
+class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Step 1 — Defining the
+Causal Question, Model, and Estimands</h1>
+<p>In the causal inference roadmap, clearly defining the scientific
+question, causal model, and target estimands is critical for valid
+analysis and interpretability. This first step sets the foundation for
+the entire analysis. ## 1.1 Defining the Causal Question The first step
+in the causal roadmap involves translating a clinical or regulatory
+question into a clearly defined causal question. A well-formulated
+causal question clearly identifies the target population, interventions
+(or exposures), and outcomes of interest. <strong>Example:</strong> &gt;
+<em>Among U.S. adults diagnosed with chronic hepatitis C virus (HCV) who
+initiate antiviral therapy, what is the effect of initiating a
+<strong>sofosbuvir-containing direct-acting antiviral (DAA)
+regimen</strong> compared to initiating a <strong>non-sofosbuvir DAA
+regimen</strong> on the 90-day cumulative risk of experiencing acute
+kidney injury (AKI)?</em> This question explicitly identifies: -
+<strong>Target population:</strong> Adults aged 18–79 with chronic HCV,
+continuously enrolled for ≥12 months. - <strong>Interventions:</strong>
+Initiation of SOF-containing regimen versus non-SOF regimen. -
+<strong>Outcome:</strong> AKI occurrence within 90 days. This clarity
+ensures all subsequent steps in the roadmap remain aligned with the
+original scientific intent. ## 1.2 Specifying the Causal Model (DAG)
+Causal inference typically involves representing relationships between
+variables visually using directed acyclic graphs (DAGs). A DAG helps
+clarify the assumptions necessary for valid causal inference,
+particularly: - <strong>Exchangeability (no unmeasured
+confounding)</strong> - <strong>Positivity (treatment assignment
+possible across covariates)</strong> - <strong>Consistency (treatment
+definitions correspond to reality)</strong> Consider the following
+simplified DAG illustrating relationships in our AKI study:</p>
+<p><strong>Explanation of DAG components:</strong> - <strong>W (Baseline
+Covariates):</strong> Factors like age, sex, baseline kidney function,
+diabetes, liver cirrhosis, healthcare utilization. These influence both
+treatment selection (A) and AKI outcome (Y). - <strong>A
+(Treatment):</strong> Initial choice between SOF-containing or
+non-SOF-containing DAAs. - <strong>Y (Outcome):</strong> AKI event
+within 90 days after treatment initiation. - <strong>C (Censoring
+events):</strong> Events that lead to incomplete follow-up, such as
+death, regimen switching, or loss of insurance. The DAG explicitly
+assumes no direct arrows from unknown or unmeasured variables to A and Y
+(conditional on W), reflecting the key assumption of conditional
+exchangeability. ## 1.3 Defining Causal Estimands An
+<strong>estimand</strong> is a precisely defined causal parameter
+representing what we aim to estimate. The International Council for
+Harmonisation (ICH) guideline E9(R1) highlights the importance of
+clearly defining estimands in clinical trials and real-world studies to
+ensure clarity about the causal effects being studied. Different ways of
+handling intercurrent events—such as treatment switching—lead to
+different estimands, each with distinct interpretations. Clearly
+specifying the estimand upfront is crucial for study validity. ###
+Common Estimand Choices We summarize several common estimands below,
+indicating clearly which was selected as the primary in the original AKI
+analysis (<strong>marked ★</strong>):</p>
+<table>
+<colgroup>
+<col width="7%" />
+<col width="38%" />
+<col width="17%" />
+<col width="20%" />
+<col width="17%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Label</th>
+<th>How are intercurrent events handled?</th>
+<th>Target (90-day)</th>
+<th>Scientific meaning</th>
+<th>Key assumptions</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>^As-treated</strong></td>
+<td>Censor follow-up after regimen switch (30-day wash-out), death,
+loss</td>
+<td>Risk if patients adhered to initial regimen (RD/RR)</td>
+<td>Direct toxicity of regimen while taken</td>
+<td>Non-informative censoring (no unmeasured predictors of
+switching)</td>
+</tr>
+<tr class="even">
+<td>ITT (Treatment Policy)</td>
+<td>Ignore switching events, follow regardless</td>
+<td>Risk for initial treatment assignment (RD/RR)</td>
+<td>Real-world policy decision: start SOF vs not</td>
+<td>Switching dilutes effect; requires no assumption about
+censoring</td>
+</tr>
+<tr class="odd">
+<td>Per-protocol</td>
+<td>Model switching explicitly (time-varying exposure), adjust via
+weighting/g-formula</td>
+<td>Risk if all remained on assigned treatment</td>
+<td>“Biological” toxicity unaffected by treatment changes</td>
+<td>Needs correctly specified time-dependent exposure/confounder
+models</td>
+</tr>
+<tr class="even">
+<td>Composite endpoint</td>
+<td>Include regimen switch as outcome event</td>
+<td>Combined risk of AKI or treatment change</td>
+<td>Practical endpoint capturing clinical action driven by renal
+issues</td>
+<td>Blurs biological and clinical decision-making pathways</td>
+</tr>
+<tr class="odd">
+<td>Controlled Direct Effect</td>
+<td>Treat death as competing event</td>
+<td>AKI risk if death eliminated</td>
+<td>Toxicity independent of mortality</td>
+<td>Counterfactual scenario (removing death) potentially
+unrealistic</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>Roadmap Component</th>
+<th>Section Covered</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Question definition</strong></td>
+<td>Section 1.1</td>
+</tr>
+<tr class="even">
+<td><strong>Causal Model (DAG)</strong></td>
+<td>Section 1.2</td>
+</tr>
+<tr class="odd">
+<td><strong>Estimand definition</strong></td>
+<td>Section 1.3, Table</td>
+</tr>
+<tr class="even">
+<td><strong>Choice of primary estimand</strong></td>
+<td>Section 1.4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Next Steps:</strong> Subsequent chapters will detail
+identification assumptions, estimation procedures (TMLE, Super Learner),
+sensitivity analyses, and interpretation strategies in alignment with
+this foundational framework. —</p>
+<div id="references" class="section level3" number="6.0.1">
+<h3><span class="header-section-number">6.0.1</span> References</h3>
+<p>Dang et al. (2023). JCTS. Rufibach (2019). Pharmaceutical Statistics.
+Stensrud et al. (2019). Eur Heart J. Martinussen (2022). Ann Rev Stat
+Appl.</p>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+---
+title: "Step 3 – Estimation of the Causal Effect"
+output: html_document
+---
+
+# 3 Estimation of the Causal Effect 
+
+In Steps 1–2, we clearly defined our causal question, estimand, and assumptions necessary for causal identification. 
+
+Now in Step 3, we select and detail the statistical methods used to estimate our causal effect. This step compares traditional methods (propensity score matching followed by Cox regression) with our selected modern approach: Targeted Maximum Likelihood Estimation (TMLE) combined with Super Learner. ## 3.1 Previously Used Method: Propensity Score Matching and Cox Regression In the original AKI safety analysis, propensity score matching followed by Cox proportional hazards regression was used. While this approach is common in real-world evidence (RWE) studies, it has important limitations in providing causal interpretations. ### Propensity Score Matching (PSM) **What is it?** Propensity score matching attempts to control confounding by matching treated and untreated subjects who have similar estimated probabilities (propensity scores) of receiving the treatment, based on baseline characteristics. **Limitations of PSM:** - **Residual confounding:** Matching relies heavily on correctly modeling treatment assignment. Incorrect or incomplete models can lead to unmatched confounding. - **Loss of sample:** Matching can exclude subjects who don't find close matches, reducing generalizability and statistical power. - **Balance is not guaranteed on unmeasured confounders.** ### Cox Proportional Hazards Model **What does it estimate?** A Cox model estimates the hazard ratio (HR), which compares instantaneous event rates between treated and untreated groups, assuming proportional hazards over time. **Key Limitations of Cox Model for Causal Inference:** - **Non-collapsibility:** Hazard ratios estimated from Cox models can vary unpredictably when adding or removing covariates, complicating causal interpretation. - **Proportional hazards assumption:** If the hazard ratio changes over time (violating proportional hazards), the HR does not have a clear causal interpretation. - **Lack of direct interpretability:** HRs don't easily translate into clinically actionable quantities such as absolute risk differences or risk ratios, which are often more relevant for clinical decisions and policymaking. Thus, the Cox HR is generally not ideal as a primary causal estimand in safety studies aiming for clear causal interpretation. ## 3.2 Why Move Beyond Cox Regression? Given these limitations, we seek an alternative causal inference method that explicitly estimates a clearly defined estimand (e.g., risk difference) and provides robust inference. ### Desired characteristics of a causal estimator: - **Double robustness:** Accurate estimation if either the outcome or treatment model is correct. - **Efficiency:** Minimal variance among consistent estimators. - **Transparency and direct interpretability:** Provides straightforward estimates of clinically meaningful causal effects (e.g., absolute risk differences). These features are specifically addressed by Targeted Maximum Likelihood Estimation (TMLE). ## 3.3 Introduction to Targeted Maximum Likelihood Estimation (TMLE) TMLE is a modern causal inference method combining strengths of both outcome regression and propensity score-based methods. TMLE has key advantages: - **Double robustness:** Valid inference if at least one of the models (outcome regression or treatment assignment) is correct. - **Efficient statistical inference:** TMLE achieves the smallest possible standard error among consistent estimators. - **Clinically meaningful estimates:** Directly provides absolute risk differences or risk ratios. - **Flexible modeling:** Easily incorporates machine learning approaches through Super Learner. ## 3.4 TMLE Estimation Approach TMLE estimation proceeds through two clear steps: ### Step 1: Initial Estimation - Predict the conditional outcome mean: \[ \bar{Q}(A,W) = E[Y|A,W] \] - Estimate the treatment assignment probabilities (propensity scores): \[ g(A|W) = P(A|W) \] We perform these steps using flexible machine learning methods (Super Learner). ### Step 2: Targeting Step (Bias Reduction) - Update initial predictions with a clever covariate: \[ H(A,W) = \frac{I(A=a)}{g(A|W)} \] - This step specifically targets the chosen causal estimand (e.g., risk difference) ensuring minimal bias. ## 3.5 Super Learner Implementation We implement TMLE using Super Learner, an ensemble learning technique combining multiple algorithms to optimize prediction accuracy: $$${r super-learner, eval=FALSE} library(sl3) sl_lib <- list( Lrnr_glm_fast$new(), Lrnr_ranger$new(num.trees = 500), Lrnr_xgboost$new(nrounds = 200), Lrnr_gam$new(), Lrnr_hal9001$new(max_degree = 2), Lrnr_mean$new() )
+3.6 TMLE Implementation in R
+Using the tmle3 package in R:
+
+library(tmle3) # Node definitions node_list <- list( W = covariate_names, A = "A", Y = "Y", C = "censor", id = "pat_id", t = "time" ) # Define TMLE specification tmle_spec <- tmle_Survival$new( tau = 90, contrast = treatmentwise ) # Fit TMLE tmle_fit <- tmle3( tmle_spec, data = dataset_long_format, node_list = node_list, learner_list = list(Y = sl_lib, A = sl_lib, C = sl_lib) ) # TMLE Results Summary summary(tmle_fit)
+3.7 Advantages of TMLE Over Cox Regression
+Feature	Cox Regression + PSM	TMLE with Super Learner
+Causal interpretation	Often unclear due to assumptions	Clear causal interpretation
+Double robustness	No (depends heavily on matching accuracy)	Yes
+Handles non-proportionality	No (violates proportional hazards)	Yes (nonparametric and flexible)
+Direct clinical interpretability	Limited (hazard ratios)	Clear (risk differences, risk ratios)
+Efficiency	No (less efficient)	Yes (optimal efficiency)
+Robustness to modeling errors	Limited (model misspecification bias)	Yes (ensemble learning reduces bias)
+
+3.8 Practical Considerations and Limitations
+Positivity: TMLE still requires sufficient overlap of propensity scores.
+
+Computational complexity: Super Learner increases computational time, though manageable with modern computing resources.
+
+Interpretability for non-statisticians: More education needed for clinical teams less familiar with TMLE and causal inference methods.
+
+3.9 Summary of Step 3
+TMLE provides a robust, efficient, and causally interpretable alternative to traditional propensity-matched Cox regression. Given limitations inherent in standard approaches (non-collapsibility, proportional hazards assumptions), TMLE paired with Super Learner is strongly preferred for answering causal safety questions clearly.
+
+Roadmap Component	Section Covered
+Traditional Methods & Issues	3.1–3.2
+TMLE Approach	3.3–3.4
+Super Learner	3.5
+TMLE R implementation	3.6
+Comparison TMLE vs Cox	3.7
+Practical considerations	3.8
+
+Next Step: Step 4 – Sensitivity Analyses, addressing robustness to key assumption violations.

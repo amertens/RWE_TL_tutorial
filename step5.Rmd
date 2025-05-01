@@ -1,0 +1,97 @@
+---
+title: "Interpretation of Findings and Reporting"
+author: "Andrew Mertens"
+date: "2025-05-01"
+output: html_document
+---
+
+# 5 Interpretation of Findings and Reporting 
+
+After completing estimation (Step 3) and sensitivity analyses (Step 4), the final step involves clearly interpreting results and transparently reporting findings. Here we integrate primary TMLE results, assess sensitivity analyses, and discuss implications for clinical practice, policy, and future research. ## 5.1 Integrating Primary Results ### Primary Causal Effect Estimate (TMLE) Our primary analysis used Targeted Maximum Likelihood Estimation (TMLE) with Super Learner, estimating the causal effect of initiating a sofosbuvir-containing (SOF) regimen versus a non-SOF regimen on the 90-day risk of acute kidney injury (AKI): - **Risk difference (RD):** Absolute change in AKI risk attributable to SOF initiation. - **Risk ratio (RR):** Relative change in AKI risk comparing SOF initiation to non-SOF. $$${r primary-results-placeholder, eval=FALSE} # Replace with your actual TMLE results: # RD: 0.02 (95% CI: 0.01, 0.03); RR: 1.5 (95% CI: 1.2, 1.9)
+Interpretation of Primary Results
+A positive risk difference (RD) indicates an increased absolute risk of AKI from initiating a SOF-containing regimen.
+
+A risk ratio (RR) greater than 1 suggests relative harm associated with SOF compared to non-SOF regimens.
+
+Example interpretation:
+
+"Initiating SOF was associated with an estimated absolute increase in 90-day AKI risk of 2% (95% CI: 1%, 3%) compared to non-SOF regimens, translating to a 50% relative increase."
+
+5.2 Evaluating Sensitivity Analysis Results
+Sensitivity analyses (Step 4) evaluated robustness of results to assumptions about positivity, unmeasured confounding, censoring, measurement error, and model specification.
+
+Sensitivity analysis	Concern addressed	Potential influence on interpretation
+Positivity analysis	Poor overlap	Check whether results differ in high-overlap regions
+Unmeasured confounding (E-value)	Residual bias from confounders	Evaluate E-value: large E-value supports robustness
+Negative control outcome	Residual confounding	No association suggests minimal residual bias
+IPCW censoring	Informative censoring	Similar IPCW results indicate robustness
+Measurement error	Outcome definition accuracy	Consistency across definitions suggests robust findings
+Alternative SL models	Model misspecification	Similar results suggest robustness to modeling decisions
+
+Discuss clearly how each sensitivity result impacts confidence in the primary finding:
+
+If estimates remain consistent across sensitivity analyses, this increases confidence in the primary causal interpretation.
+
+If estimates differ notably under sensitivity conditions, explicitly acknowledge potential biases or limitations.
+
+5.3 Clinical and Regulatory Implications
+Clearly communicate how findings inform clinical and regulatory decisions:
+
+Clinical impact: If a significant safety signal is detected, clinicians might consider alternative DAAs or increased renal monitoring.
+
+Regulatory impact: Findings may inform FDA labeling, safety communications, or further post-marketing studies.
+
+Example summary for stakeholders:
+
+"The observed association between SOF and increased AKI risk suggests clinicians should closely monitor renal function during initial treatment weeks. Regulators may consider updating safety labeling or recommending enhanced renal surveillance protocols."
+
+5.4 Limitations of the Study
+Explicitly address limitations to ensure transparency:
+
+Observational design: Despite advanced methods, residual unmeasured confounding can never be completely ruled out.
+
+Measurement error: Claims-based AKI outcomes might misclassify true renal events; sensitivity analyses help mitigate this concern.
+
+Generalizability: The studied population (commercially insured) may differ from other populations (e.g., uninsured, Medicaid).
+
+5.5 Recommendations for Future Research
+Outline clear directions for additional research informed by the current analysis:
+
+Validation studies: Replicate findings in external populations or using clinical registries to confirm robustness.
+
+Mechanistic studies: Explore biological mechanisms underlying observed renal toxicity.
+
+Additional safety studies: Extend observation windows beyond 90 days, evaluating long-term renal outcomes.
+
+5.6 Transparent Reporting and Communication
+Adopt transparent reporting standards to facilitate stakeholder understanding and regulatory compliance:
+
+Follow reporting guidelines: Utilize standards like STROBE or ICH E9(R1) guidance.
+
+Share code and analytic pipeline: Ensuring reproducibility and transparency of analyses (e.g., via GitHub repositories).
+
+Example Reporting Template
+Population studied: U.S. adults 18–79 years, commercially insured, initiating DAA therapy for chronic HCV.
+
+Treatment contrast: SOF-containing vs. non-SOF regimens.
+
+Primary outcome: AKI diagnosis within 90 days.
+
+Estimand: As-treated, censor-at-switch estimand.
+
+Methodology: TMLE with Super Learner ensemble.
+
+Primary Results: Clearly present RD, RR, confidence intervals.
+
+Sensitivity Results: Clearly state implications on robustness.
+
+Clinical & Regulatory implications: Direct recommendations based on findings.
+
+Limitations and Future Directions: Transparent acknowledgment and clear next steps.
+
+5.7 Final Conclusions
+Provide a concise and clear statement summarizing key findings and their clinical, policy, and methodological implications.
+
+Example final summary:
+
+"This analysis using robust causal inference methods found a clinically meaningful and statistically significant increased risk of AKI within 90 days associated with SOF-containing DAA regimens. Results were robust across multiple sensitivity analyses. Clinicians and regulators should consider these findings to guide patient monitoring and inform safety communications. Future research should confirm these findings externally and further explore potential underlying mechanisms."

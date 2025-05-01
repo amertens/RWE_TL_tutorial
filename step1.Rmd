@@ -1,0 +1,163 @@
+---
+title:  "Step 1 – Causal Question, Causal Model, and Causal Estimand"
+author: "AKI Safety Working Group"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+date: "`r format(Sys.Date())`"
+---
+
+# 1 Scientific Question
+
+> *Among U.S. adults with chronic hepatitis C (HCV) who initiate antiviral therapy, does starting a **sofosbuvir-containing** direct-acting antiviral (DAA) regimen, compared with starting a **non-sofosbuvir** DAA regimen, change the 90-day cumulative risk of first acute kidney injury (AKI)?*
+
+**Study setting**
+
+-   **Population** – commercial & Medicare Advantage enrollees, 18–79 y, ≥12 m continuous coverage, no baseline AKI, chronic HCV.\
+-   **Treatment strategies**
+    -   *A = 1*: initiate any SOF-containing DAA regimen\
+    -   *A = 0*: initiate any non-SOF DAA regimen (G/P, EBR/GZR, OMB/PTV/r±DAS, …)\
+-   **Outcome Y** – first AKI claim / EHR record within 90 days.\
+-   **Intercurrent events** – regimen switch, death, disenrollment.\
+-   **Summary measure** – marginal risk difference (RD) and risk ratio (RR) at 90 days.
+
+# 2 Causal Model (informal DAG)
+
+W ─▶ A0 ─▶ Y(90d) │ │ ▲ │ └──────────────┘ └────────────▶
+
+-   **W** – baseline confounders (age, sex, CKD, diabetes, eGFR, cirrhosis, utilisation, …)\
+-   **A0** – initial regimen choice at time 0\
+-   **C(t)** – censoring: death, switch, loss of coverage\
+-   **Y(t)** – indicator of AKI by day *t*
+
+Assumed for identification:
+
+1.  *Consistency*\
+2.  *Positivity*: 0 \< P(A0 = a |W) \< 1\
+3.  *Conditional exchangeability*: no unmeasured common causes of *(A0, C(t))* and *Y(t)* given *W*.
+
+# 3 Target Estimands
+
+The AKI study used an **as-treated, censor-at-switch** estimand (★).\
+Alternative estimands answer related questions or relax assumptions.
+
+| Label | Strategy for switch / death | 90-day target | Question addressed | Identification caveats |
+|---------------|---------------|---------------|---------------|---------------|
+| **★ As-treated (censor at switch)** | Censor follow-up 30 d after switch; admin censoring for death/loss | RD / RR if everyone **remains on their original regimen** | Effect of staying on initial therapy | Requires ignorability of censoring given *W, A0* (+ time-varying covariates if used) |
+| ITT (ignore switch) | Keep follow-up regardless of switch | RD / RR for **initiation** of SOF vs non-SOF | Policy effect of starting SOF | No informative censoring; effect diluted by cross-over |
+| Per-protocol (model switch) | Treat switch as time-varying exposure; g-formula / MSM | Risk if everyone **remained** on assigned therapy | Pure biologic effect | Requires measurement & modelling of time-varying confounders and switching process |
+| Hypothetical “no-switch” | Censor at switch **and** weight by inverse probability of switching | Risk had switching been prevented | Safety absent regimen changes | Correct model for switching hazard necessary |
+| Composite (AKI *or* switch) | Count switch as event | RD / RR for **AKI or regimen change** | Captures clinical concern that switch may signal renal toxicity | Blurs pathways; easier for decision-making |
+| Controlled direct effect | Treat death as competing risk (censor) | AKI risk if death eliminated | Kidney toxicity independent of mortality | Counterfactual elimination of death; strong & possibly implausible |
+
+## Choosing among estimands
+
+-   **Regulatory safety signal** – ★ As-treated is customary: isolates renal risk during exposure; beware informative switching.\
+-   **Clinical decision (“start vs do not start”)** – ITT may be preferable.\
+-   **Mechanistic/toxicology** – hypothetical or per-protocol estimands focus on inherent nephro-toxicity.
+
+Subsequent Roadmap steps (identification, estimation, sensitivity) must align with the chosen estimand.
+
+# 4 Place-holder for Code
+
+-   **W** – baseline confounders (age, sex, CKD, diabetes, eGFR, cirrhosis, utilisation, …)\
+-   **A0** – initial regimen choice at time 0\
+-   **C(t)** – censoring: death, switch, loss of coverage\
+-   **Y(t)** – indicator of AKI by day *t*
+
+Assumed for identification:
+
+1.  *Consistency*\
+2.  *Positivity*: 0 \< P(A0 = a |W) \< 1\
+3.  *Conditional exchangeability*: no unmeasured common causes of *(A0, C(t))* and *Y(t)* given *W*.
+
+# 3 Target Estimands
+
+The AKI study used an **as-treated, censor-at-switch** estimand (★).\
+Alternative estimands answer related questions or relax assumptions.
+
+| Label | Strategy for switch or death | 90-day target | Question addressed | Identification caveats |
+|---------------|---------------|---------------|---------------|---------------|
+| **★ As-treated (censor at switch)** | Censor follow-up 30 d after switch; admin censoring for death/loss | RD / RR if everyone **remains on their original regimen** | Effect of staying on initial therapy | Requires ignorability of censoring given *W, A0* (+ time-varying covariates if used) |
+| ITT (ignore switch) | Keep follow-up regardless of switch | RD / RR for **initiation** of SOF vs non-SOF | Policy effect of starting SOF | No informative censoring; effect diluted by cross-over |
+| Per-protocol (model switch) | Treat switch as time-varying exposure; g-formula / MSM | Risk if everyone **remained** on assigned therapy | Pure biologic effect | Requires measurement & modelling of time-varying confounders and switching process |
+| Hypothetical “no-switch” | Censor at switch **and** weight by inverse probability of switching | Risk had switching been prevented | Safety absent regimen changes | Correct model for switching hazard necessary |
+| Composite (AKI *or* switch) | Count switch as event | RD / RR for **AKI or regimen change** | Captures clinical concern that switch may signal renal toxicity | Blurs pathways; easier for decision-making |
+| Controlled direct effect | Treat death as competing risk (censor) | AKI risk if death eliminated | Kidney toxicity independent of mortality | Counterfactual elimination of death; strong & possibly implausible |
+
+## Choosing among estimands
+
+-   **Regulatory safety signal** – ★ As-treated is customary: isolates renal risk during exposure; beware informative switching.\
+-   **Clinical decision (“start vs do not start”)** – ITT may be preferable.\
+-   **Mechanistic/toxicology** – hypothetical or per-protocol estimands focus on inherent nephro-toxicity.
+
+Subsequent Roadmap steps (identification, estimation, sensitivity) must align with the chosen estimand.
+
+## 2 Causal Model – ggdag plot
+
+```{r}
+
+library(tidyverse) 
+library(dagitty) 
+library(ggdag)
+
+# DAG specification -------------------------------------------------------
+#   W  = baseline confounders
+#   A0 = initial DAA regimen (SOF vs non-SOF)
+#   C  = censoring processes (death, switch, disenroll)
+#   Y  = 90-day AKI
+
+dag_txt <- "
+dag {
+  W  -> A0
+  W  -> Y
+  A0 -> Y
+  W  -> C
+  A0 -> C
+}"
+
+aki_dag <- dagitty(dag_txt)
+
+# Visualise ---------------------------------------------------------------
+ggdag(aki_dag, text = FALSE, use_labels = 'name', seed = 123) +
+  theme_dag() +
+  ggtitle('AKI Safety DAG: Sofosbuvir vs Non-Sofosbuvir')
+```
+
+# Step 1 — Defining the Causal Question, Model, and Estimands
+
+In the causal inference roadmap, clearly defining the scientific question, causal model, and target estimands is critical for valid analysis and interpretability. This first step sets the foundation for the entire analysis. \## 1.1 Defining the Causal Question The first step in the causal roadmap involves translating a clinical or regulatory question into a clearly defined causal question. A well-formulated causal question clearly identifies the target population, interventions (or exposures), and outcomes of interest. **Example:** \> *Among U.S. adults diagnosed with chronic hepatitis C virus (HCV) who initiate antiviral therapy, what is the effect of initiating a **sofosbuvir-containing direct-acting antiviral (DAA) regimen** compared to initiating a **non-sofosbuvir DAA regimen** on the 90-day cumulative risk of experiencing acute kidney injury (AKI)?* This question explicitly identifies: - **Target population:** Adults aged 18–79 with chronic HCV, continuously enrolled for ≥12 months. - **Interventions:** Initiation of SOF-containing regimen versus non-SOF regimen. - **Outcome:** AKI occurrence within 90 days. This clarity ensures all subsequent steps in the roadmap remain aligned with the original scientific intent. \## 1.2 Specifying the Causal Model (DAG) Causal inference typically involves representing relationships between variables visually using directed acyclic graphs (DAGs). A DAG helps clarify the assumptions necessary for valid causal inference, particularly: - **Exchangeability (no unmeasured confounding)** - **Positivity (treatment assignment possible across covariates)** - **Consistency (treatment definitions correspond to reality)** Consider the following simplified DAG illustrating relationships in our AKI study:
+
+```{r dag, echo=FALSE, eval=FALSE}
+
+
+dag_txt <- " dag { W -> A W -> Y W -> C A -> Y A -> C }" 
+ggdag(dagitty(dag_txt), text=FALSE, use_labels='name', seed=873) + theme_dag() + ggtitle('DAG: Sofosbuvir (SOF) vs Non-SOF DAAs and AKI risk')
+```
+
+**Explanation of DAG components:** - **W (Baseline Covariates):** Factors like age, sex, baseline kidney function, diabetes, liver cirrhosis, healthcare utilization. These influence both treatment selection (A) and AKI outcome (Y). - **A (Treatment):** Initial choice between SOF-containing or non-SOF-containing DAAs. - **Y (Outcome):** AKI event within 90 days after treatment initiation. - **C (Censoring events):** Events that lead to incomplete follow-up, such as death, regimen switching, or loss of insurance. The DAG explicitly assumes no direct arrows from unknown or unmeasured variables to A and Y (conditional on W), reflecting the key assumption of conditional exchangeability. \## 1.3 Defining Causal Estimands An **estimand** is a precisely defined causal parameter representing what we aim to estimate. The International Council for Harmonisation (ICH) guideline E9(R1) highlights the importance of clearly defining estimands in clinical trials and real-world studies to ensure clarity about the causal effects being studied. Different ways of handling intercurrent events—such as treatment switching—lead to different estimands, each with distinct interpretations. Clearly specifying the estimand upfront is crucial for study validity. \### Common Estimand Choices We summarize several common estimands below, indicating clearly which was selected as the primary in the original AKI analysis (**marked ★**):
+
+| Label |How are intercurrent events handled? |Target (90-day) |Scientific meaning |Key assumptions|
+|-------|--------------------------------------|-----------------|--------------------|-----------------|
+| **\^As-treated** |Censor follow-up after regimen switch (30-day wash-out), death, loss |Risk if patients adhered to initial regimen (RD/RR) |Direct toxicity of regimen while taken |Non-informative censoring (no unmeasured predictors of switching) |
+| ITT (Treatment Policy) |Ignore switching events, follow regardless |Risk for initial treatment assignment (RD/RR) |Real-world policy decision: start SOF vs not |Switching dilutes effect; requires no assumption about censoring |
+| Per-protocol |Model switching explicitly (time-varying exposure), adjust via weighting/g-formula |Risk if all remained on assigned treatment |"Biological" toxicity unaffected by treatment changes |Needs correctly specified time-dependent exposure/confounder models ||Hypothetical "no-switch" |Censor at switch and use inverse probability weighting |Risk if no one switched |Idealized scenario without regimen changes |Correct modeling of switching events |
+| Composite endpoint |Include regimen switch as outcome event |Combined risk of AKI or treatment change |Practical endpoint capturing clinical action driven by renal issues |Blurs biological and clinical decision-making pathways |
+| Controlled Direct Effect |Treat death as competing event |AKI risk if death eliminated |Toxicity independent of mortality |Counterfactual scenario (removing death) potentially unrealistic |### Why consider alternative estimands? - **Intention-to-treat (ITT)** aligns with clinical decision-making or policy perspectives ("Should we initiate SOF treatment in real-world conditions?"). - **Per-protocol or hypothetical** estimands address potential bias from informative switching, providing insight into inherent treatment effects under strict adherence scenarios. - **Composite endpoints** increase statistical power and align with regulatory frameworks interested in signals triggering clinical action. - **Controlled direct effects** are relevant if substantial mortality exists and understanding direct drug-toxicity independent of death is critical. ## 1.4 Choosing the Primary Estimand The AKI safety study primarily adopted an **as-treated, censor-at-switch estimand (★)**. This choice reflects a regulatory and clinical preference for quantifying the direct, drug-induced renal toxicity experienced while actually receiving the assigned therapy. **Why choose the as-treated estimand?** - Aligns closely with standard regulatory practice for safety signals. - Clearly interpretable in terms of drug-exposure-related harm. - Assumptions required (non-informative censoring) considered acceptable in this short-term context. Alternative estimands are planned as secondary or sensitivity analyses to assess robustness and potential biases arising from informative censoring or switching. ## 1.5 Summarizing Step 1 This step highlights the importance of clearly defining the scientific question, causal model (DAG), and causal estimands early in the analysis roadmap. Each decision made here shapes the analytic approach, informs interpretation, and provides transparency regarding the assumptions and their potential impact on results.|
+
+
+
+| Roadmap Component              | Section Covered    |
+|--------------------------------|--------------------|
+| **Question definition**        | Section 1.1        |
+| **Causal Model (DAG)**         | Section 1.2        |
+| **Estimand definition**        | Section 1.3, Table |
+| **Choice of primary estimand** | Section 1.4        |
+
+**Next Steps:** Subsequent chapters will detail identification assumptions, estimation procedures (TMLE, Super Learner), sensitivity analyses, and interpretation strategies in alignment with this foundational framework. ---
+
+### References
+
+Dang et al. (2023). JCTS. Rufibach (2019). Pharmaceutical Statistics. Stensrud et al. (2019). Eur Heart J. Martinussen (2022). Ann Rev Stat Appl.
