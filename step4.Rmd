@@ -112,6 +112,12 @@ to alternative Super Learner specifications. Example:
 
 If results remain consistent, findings are robust to model choices.
 
+
+G-value Reporting: Introduces the concept of a "G-value," the minimal causal gap on the risk-difference scale needed to move the observed confidence interval to the null, providing stakeholders a clear quantitative metric of robustness.
+
+Multiverse Analysis: Recommends explicitly performing sensitivity analyses varying key analytic choices (propensity-score specifications, weight truncation rules, outcome definitions), helping clarify robustness of causal estimates to analytic decisions.
+
+
 4.7 Summary of Sensitivity Analyses Sensitivity analyses provide
 assurance of robustness or help uncover weaknesses requiring attention.
 A structured approach addressing potential violations of positivity,

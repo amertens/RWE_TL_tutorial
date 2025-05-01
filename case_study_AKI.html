@@ -324,19 +324,31 @@ div.tocify {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
   <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
 </li>
 <li>
   <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
 </li>
 <li>
-  <a href="roadmapV2.html">Case study Roadmap in RWE</a>
-</li>
-<li>
   <a href="PS_analysis.html">Propensity score matching analysis</a>
-</li>
-<li>
-  <a href="TMLE_analysis.html">Targeted learning analysis</a>
 </li>
 <li>
   <a href="results_comparisons.html">Analysis comparisons</a>
@@ -805,17 +817,17 @@ impute_result &lt;- missForest(as.data.frame(imp_in), verbose = TRUE)</code></pr
 <pre><code>##   missForest iteration 1 in progress...done!
 ##     estimated error(s): 0 0.3716469 
 ##     difference(s): 0 0.07127157 
-##     time: 2.38 seconds
+##     time: 5.43 seconds
 ## 
 ##   missForest iteration 2 in progress...done!
 ##     estimated error(s): 0 0.3731112 
 ##     difference(s): 0 0.03021092 
-##     time: 1.97 seconds
+##     time: 4.99 seconds
 ## 
 ##   missForest iteration 3 in progress...done!
 ##     estimated error(s): 0 0.3694213 
 ##     difference(s): 0 0.03030445 
-##     time: 2.2 seconds</code></pre>
+##     time: 5.06 seconds</code></pre>
 <pre class="r"><code># Extract the imputed data
 imp_out &lt;- impute_result$ximp
 

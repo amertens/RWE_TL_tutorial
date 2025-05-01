@@ -1,0 +1,27 @@
+---
+title: "Untitled"
+author: "Andrew Mertens"
+date: "2025-05-01"
+output: html_document
+---
+
+## 1 Unified Estimand Table 
+
+
+| # | Estimand Label | Population (P) | Intervention / Comparator (A) | Outcome / Endpoint (Y) | Handling of Intercurrent Events | Summary Measure | Identification Assumptions | Primary Estimation Strategy | Rationale / Use-case | **Used in AKI Study?** |
+|---|---------------|----------------|------------------------------|------------------------|---------------------------------|-----------------|----------------------------|-----------------------------|----------------------|------------------------| 
+| 1 | **Primary “Per-Protocol with Censoring at Switch”** | Adults with chronic HCV initiating first SOF vs non-SOF DAA, U.S. claims 2016–2023 | Start SOF-containing DAA (vs active non-SOF comparator) — baseline new-user design | First AKI event within treatment + 30-day risk window | *Treatment switch → censor*; other treatment stops → censor; disenrol/death → censor | 180-day risk difference & risk ratio; cause-specific HR (Cox/TMLE) | Consistency; conditional exchangeability at baseline; non-informative censoring conditional on measured covariates | 1:1 PS-matching ➜ Cox; doubly-robust TMLE for RD/RR | Aligns with regulatory signal-evaluation practice; simple to communicate | **✓** | 
+| 2 | “Treatment-Policy (Intention-to-Treat)” | Same as #1 | Initiation strategy only; *ignore* subsequent switching or adherence | AKI as above, regardless of later regimen | *No censoring* for treatment changes; death/disenrol → censor | 180-day risk difference & risk ratio | Standard identifiability + independent administrative censoring | Kaplan–Meier / TMLE-IPW | Captures net public-health effect if switching is part of real-world care | | 
+| 3 | “Hypothetical No-Switch World (Modelled)” | Same as #1 | Counterfactual risk if patients had remained on initial regimen for full follow-up | AKI up to 180 days | Model treatment switching as time-varying confounder; set switch hazard = 0 in g-comp | Counterfactual risk difference at 180 days | Positivity for remaining on assigned drug; correct specification or flexible ML for hazards | Continuous-time TMLE (concrete) with crossover-hazard set to 0 | Removes bias from informative switching while retaining all person-time | | 
+| 4 | “Per-Protocol Weighted (IPCW for Switch)” | Same as #1 | Remain on initial regimen; switch events yield IPC weights instead of simple censor | AKI as above | *Switch → weight* by inverse prob. of not switching; death/disenrol → censor | Weighted cumulative incidence; risk difference | Positivity & correct model for switch process; independent censoring given covariates | Stabilised IPCW ➜ KM / TMLE | Improves efficiency over straight censoring; transparent assumptions | | |
+5 | “Composite Endpoint (AKI or Treatment Switch)” | Same as #1 | Same as #1 | First of AKI **or** treatment switch | Switch **included** as part of outcome (composite) | Cause-specific HR & CIF difference | Competing-risk assumptions; independence of censoring | Fine–Gray or non-parametric CIF ➜ TMLE | Regulatory interest in *any* kidney-safety signal including early switches | | 
+| 6 | “AKI with Death as Competing Risk” | Same as #1 | Same as #1 | AKI; death treated as competing risk (cumulative incidence) | *Death → competing event*; switch → censor (or weight) | Sub-distribution HR; CIF difference | Independent censoring/death given covariates | Fine–Gray / Aalen–Johansen TMLE | Gives policy-relevant risk if mortality high in cohort | | 
+| 7 | “Long-Term (365-day) Treatment-Policy” | Same as #1 but follow-up 1 year | Same as #2 | AKI within 365 days | Ignore treatment changes | 1-year risk difference & RR | As in #2 | Targeted risk-difference TMLE | Long-term public-health perspective | | 
+| 8 | “On-Treatment (While-on-Regimen) Estimand” | Same as #1 | Effect during exposed time only; follow participants until they stop ALL DAA | AKI during exposed time | Off-drug time → censor; switch to other DAA → censor | Incidence rate difference; IRR | Independent censoring given covariates | Poisson model / TMLE with offset | Biological mechanism hypothesis (drug vs no-drug) | | 
+
+
+### Notes on Column Harmonisation 
+
+* **Population (P), Treatment (A), Outcome (Y)** — language kept exactly as in the original 
+
+Step 1 tables. * **Handling of Intercurrent Events** now captures every strategy that previously sat in separate tables (censor, weight, composite, compete). * **Identification Assumptions & Estimation Strategy** columns were merged verbatim; where two tables listed different estimators for the same estimand, both are shown separated by “/”. * The right-hand tick (**✓**) flags the estimand that underpinned all subsequent design and analysis decisions in the AKI signal evaluation. --- ```{r, message=FALSE} # placeholder for any future code (eval = FALSE) ```

@@ -1,5 +1,5 @@
 ---
-title: "Propensity‑Score & Cox Analysis — Augmented HCV‑AKI Simulation"
+title: "Propensity‑Score & Cox Analysisn"
 author: "Gilead RWE demo"
 date: "`r Sys.Date()`"
 output:
@@ -23,7 +23,7 @@ library(skimr)
 
 ```{r data-load}
 
-df <- read_csv("data/sim_hcv_aki_nph.csv", show_col_types = FALSE)
+df <- read_csv("data/sim_hcv_aki.csv", show_col_types = FALSE)
 
 # glimpse & skim for sanity
 skim(df)

@@ -22,11 +22,6 @@ library(ggplot2)
 # 1 Data import
 
 ```{r data}
-# Generate / load data created by **gen_data_aug.R**
-if(!file.exists(here("data/imputed_case_study_data.csv"))){
-  source("gen_data_aug.R")   # produces df_final and writes csv
-}
-
 
 df_final <- read_csv(here("data/sim_hcv_aki_aug.csv"), show_col_types = FALSE)
 # Ensure treatment is 0/1 and outcome encoded for concrete (0=censor,1=event)
@@ -76,11 +71,12 @@ ConcreteArgs <- formatArguments(
   EventType    = "status",
   Treatment    = "trt",
   Intervention = 0:1,                      # compare non-SOF vs SOF
-  TargetTime   = seq(30, 180, 30),         # monthly landmarks
+  TargetTime   = 90,         # monthly landmarks
   TargetEvent  = 1,                        # AKI
   CVArg        = list(V = 2),              # 2-fold CV (speed)
   Model        = list(
-    trt = c("SL.glm", "SL.glmnet", "SL.ranger"),
+    #trt = c("SL.glm", "SL.glmnet", "SL.ranger"),
+    trt = c("SL.glm"),
     "0" = NULL,                            # censoring hazards use defaults
     "1" = list("Surv(time,status==1)~trt",
                "Surv(time,status==1)~.")
@@ -89,41 +85,21 @@ ConcreteArgs <- formatArguments(
   Verbose       = TRUE
 )
 
-tmle_fit <- ctet(ConcreteArgs)
+# tmle_fit <- ctet(ConcreteArgs)
+# 
+# ## ------------------------------------------------------------------
+# ## 2.  Diagnostics ---------------------------------------------------
+# print(tmle_fit)
+# 
+# # clever covariate & EIC checks
+# hist(tmle_fit$Dstar, breaks = 50,
+#      main = "Efficient influence curve", xlab = "IC values")
+# 
+# qqnorm(tmle_fit$Dstar); qqline(tmle_fit$Dstar)
+# 
+# # bounded-weight report
+# tmle_fit$BoundSummary
 
-## ------------------------------------------------------------------
-## 2.  Diagnostics ---------------------------------------------------
-print(tmle_fit)
-
-# clever covariate & EIC checks
-hist(tmle_fit$Dstar, breaks = 50,
-     main = "Efficient influence curve", xlab = "IC values")
-
-qqnorm(tmle_fit$Dstar); qqline(tmle_fit$Dstar)
-
-# bounded-weight report
-tmle_fit$BoundSummary
-
-
-ConcreteArgs <- formatArguments(
-  DataTable   = DataTbl, # %>% slice(1:200),
-  EventTime   = "time",
-  EventType   = "status",
-  Treatment   = "trt",
-  Intervention= 0:1,                # non‑SOF vs SOF
-  TargetTime  = seq(30,180,30),     # monthly risk curve
-  TargetEvent = 1,                  # AKI only
-  CVArg       = list(V = 2),        # 2‑fold CV (n≈5k) for speed
-  Model       = list(               # Super Learner libraries
-    #trt = c("SL.glm","SL.xgboost","SL.glmnet"),
-    trt = c("SL.glm"), # temp for speed
-    "0" = NULL,                    # censor hazard (defaults: treatment‑only + main terms Cox)
-    "1" = list("Surv(time, status==1)~trt", "Surv(time,status==1)~.")
-  ),
-  MaxUpdateIter = 10, # temp for speed
-  Verbose = TRUE
-)
-print(ConcreteArgs, Verbose = TRUE)
 ```
 
 > **Note.** `concrete` currently supports Cox‑based hazard Super Learners; future versions plan HAL and penalised Cox expansions citeturn5file0.
@@ -136,7 +112,7 @@ saveRDS(ConcreteEst, file = here::here("results/concrete_est.rds"))
 print(ConcreteEst, Verbose = FALSE)
 ```
 
-```{r tmle, echo=F}
+```{r, echo=F}
 ConcreteEst <- readRDS(file = here::here("results/concrete_est.rds"))
 print(ConcreteEst, Verbose = FALSE)
 ```

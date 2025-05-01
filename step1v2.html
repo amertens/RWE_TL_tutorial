@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Your Team Name" />
+
+<meta name="date" content="2025-05-01" />
+
+<title>Estimand Selection for Real-World Evidence: The SOF vs Non-SOF AKI Case Study</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Estimand Selection for Real-World Evidence:
+The SOF vs Non-SOF AKI Case Study</h1>
+<h4 class="author">Your Team Name</h4>
+<h4 class="date">2025-05-01</h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#background" id="toc-background"><span
+class="toc-section-number">1</span> Background</a>
+<ul>
+<li><a href="#case-study-sof-vs-non-sof-acute-kidney-injury-aki"
+id="toc-case-study-sof-vs-non-sof-acute-kidney-injury-aki"><span
+class="toc-section-number">1.1</span> Case Study: SOF vs Non-SOF Acute
+Kidney Injury (AKI)</a>
+<ul>
+<li><a href="#study-data-and-population"
+id="toc-study-data-and-population"><span
+class="toc-section-number">1.1.1</span> Study Data and
+Population</a></li>
+<li><a href="#endpoint-definition" id="toc-endpoint-definition"><span
+class="toc-section-number">1.1.2</span> Endpoint Definition</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#defining-the-estimand"
+id="toc-defining-the-estimand"><span class="toc-section-number">2</span>
+Defining the Estimand</a>
+<ul>
+<li><a href="#strategies-for-intercurrent-events"
+id="toc-strategies-for-intercurrent-events"><span
+class="toc-section-number">2.1</span> Strategies for Intercurrent
+Events</a>
+<ul>
+<li><a href="#treatment-policy" id="toc-treatment-policy"><span
+class="toc-section-number">2.1.1</span> 1. Treatment-policy</a></li>
+<li><a href="#while-on-treatment-recommended"
+id="toc-while-on-treatment-recommended"><span
+class="toc-section-number">2.1.2</span> 2. While-on-treatment
+(Recommended)</a></li>
+<li><a href="#hypothetical" id="toc-hypothetical"><span
+class="toc-section-number">2.1.3</span> 3. Hypothetical</a></li>
+<li><a href="#principal-stratum" id="toc-principal-stratum"><span
+class="toc-section-number">2.1.4</span> 4. Principal Stratum</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#estimation-methods" id="toc-estimation-methods"><span
+class="toc-section-number">3</span> Estimation Methods</a>
+<ul>
+<li><a href="#target-trial-emulation"
+id="toc-target-trial-emulation"><span
+class="toc-section-number">3.1</span> Target Trial Emulation</a></li>
+<li><a href="#targeted-maximum-likelihood-estimation-tmle"
+id="toc-targeted-maximum-likelihood-estimation-tmle"><span
+class="toc-section-number">3.2</span> Targeted Maximum Likelihood
+Estimation (TMLE)</a></li>
+<li><a href="#sensitivity-analyses" id="toc-sensitivity-analyses"><span
+class="toc-section-number">3.3</span> Sensitivity Analyses</a></li>
+</ul></li>
+<li><a href="#interpretation-and-communication-of-results"
+id="toc-interpretation-and-communication-of-results"><span
+class="toc-section-number">4</span> Interpretation and Communication of
+Results</a></li>
+<li><a href="#regulatory-considerations"
+id="toc-regulatory-considerations"><span
+class="toc-section-number">5</span> Regulatory Considerations</a></li>
+<li><a href="#summary-and-recommendations"
+id="toc-summary-and-recommendations"><span
+class="toc-section-number">6</span> Summary and Recommendations</a></li>
+</ul>
+</div>
+
+<div id="background" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Background</h1>
+<p>Regulatory and methodological developments, particularly the ICH
+E9(R1) Addendum on estimands, emphasize the importance of clearly
+defining the estimand—what precisely the study aims to estimate—in
+clinical trials and increasingly in real-world evidence (RWE) studies.
+The estimand explicitly addresses the scientific question by defining
+five elements:</p>
+<ul>
+<li>Population</li>
+<li>Treatment conditions</li>
+<li>Endpoint</li>
+<li>Handling of intercurrent events</li>
+<li>Population-level summary measure</li>
+</ul>
+<p>Proper estimand selection guides study design, data collection,
+analysis, and reporting, making the results more interpretable and
+actionable, particularly in regulatory contexts.</p>
+<div id="case-study-sof-vs-non-sof-acute-kidney-injury-aki"
+class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span> Case Study: SOF vs
+Non-SOF Acute Kidney Injury (AKI)</h2>
+<p>We illustrate estimand selection through a real-world evidence (RWE)
+analysis comparing the risk of acute kidney injury (AKI) among chronic
+hepatitis C virus (HCV) patients treated with sofosbuvir
+(SOF)-containing versus non-SOF direct-acting antiviral (DAA) regimens.
+AKI risk has emerged as a safety signal of interest from post-marketing
+surveillance.</p>
+<div id="study-data-and-population" class="section level3"
+number="1.1.1">
+<h3><span class="header-section-number">1.1.1</span> Study Data and
+Population</h3>
+<p>The data source is HealthVerity, containing claims linked with
+electronic medical records (EMR). The population includes U.S. adults
+initiating reimbursed SOF or non-SOF DAA regimens between January 2016
+and September 2023. Baseline covariates are captured 365 days prior to
+treatment initiation (index date).</p>
+</div>
+<div id="endpoint-definition" class="section level3" number="1.1.2">
+<h3><span class="header-section-number">1.1.2</span> Endpoint
+Definition</h3>
+<p>The primary endpoint is defined as time from index date to the first
+occurrence of AKI, identified through relevant ICD-10 codes (e.g.,
+N17.x, N19, R34, R94.4). Patients were followed until AKI occurrence,
+death, disenrollment, switching/stopping DAA regimen plus 31 days, or
+end of study period (September 21, 2023).</p>
+</div>
+</div>
+</div>
+<div id="defining-the-estimand" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Defining the
+Estimand</h1>
+<p>According to the ICH E9(R1) framework, we explicitly specify the
+estimand by clearly defining population, treatment, endpoint, handling
+of intercurrent events, and summary measure:</p>
+<table>
+<colgroup>
+<col width="31%" />
+<col width="68%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Estimand Element</th>
+<th>SOF vs Non-SOF AKI Case Study Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Population</td>
+<td>US adult chronic HCV patients initiating SOF or non-SOF DAA</td>
+</tr>
+<tr class="even">
+<td>Treatment</td>
+<td>SOF-containing vs. Non-SOF-containing DAA regimens</td>
+</tr>
+<tr class="odd">
+<td>Endpoint</td>
+<td>Time to first AKI event</td>
+</tr>
+<tr class="even">
+<td>Intercurrent events</td>
+<td>Treatment discontinuation or switching</td>
+</tr>
+<tr class="odd">
+<td>Summary Measure</td>
+<td>Hazard Ratio (HR) or Risk Difference (RD) at specified times</td>
+</tr>
+</tbody>
+</table>
+<div id="strategies-for-intercurrent-events" class="section level2"
+number="2.1">
+<h2><span class="header-section-number">2.1</span> Strategies for
+Intercurrent Events</h2>
+<p>Four main strategies from the estimand framework:</p>
+<div id="treatment-policy" class="section level3" number="2.1.1">
+<h3><span class="header-section-number">2.1.1</span> 1.
+Treatment-policy</h3>
+<ul>
+<li><strong>Definition</strong>: Compares initiators irrespective of
+subsequent changes (stopping/switching).</li>
+<li><strong>Interpretation</strong>: Effect of assigning SOF regimen,
+regardless of adherence or switches.</li>
+<li><strong>Strengths</strong>: Reflects pragmatic, real-world policy
+decisions.</li>
+<li><strong>Weaknesses</strong>: Interpretation muddled if switching
+common.</li>
+</ul>
+</div>
+<div id="while-on-treatment-recommended" class="section level3"
+number="2.1.2">
+<h3><span class="header-section-number">2.1.2</span> 2.
+While-on-treatment (Recommended)</h3>
+<ul>
+<li><strong>Definition</strong>: Follow-up censored at treatment
+switching/stopping.</li>
+<li><strong>Interpretation</strong>: Effect of continuous treatment
+exposure.</li>
+<li><strong>Strengths</strong>: Relevant for safety signals during
+active exposure.</li>
+<li><strong>Weaknesses</strong>: Requires careful modeling of
+censoring.</li>
+</ul>
+</div>
+<div id="hypothetical" class="section level3" number="2.1.3">
+<h3><span class="header-section-number">2.1.3</span> 3.
+Hypothetical</h3>
+<ul>
+<li><strong>Definition</strong>: Estimates risk if no switching/stopping
+occurred.</li>
+<li><strong>Interpretation</strong>: Biological or pharmacological
+effect without interruption.</li>
+<li><strong>Strengths</strong>: Pure causal interpretation.</li>
+<li><strong>Weaknesses</strong>: Unrealistic scenario; complex modeling
+assumptions.</li>
+</ul>
+</div>
+<div id="principal-stratum" class="section level3" number="2.1.4">
+<h3><span class="header-section-number">2.1.4</span> 4. Principal
+Stratum</h3>
+<ul>
+<li><strong>Definition</strong>: Effect within subgroup who would never
+switch/stop.</li>
+<li><strong>Interpretation</strong>: Efficacy in adherent subgroup.</li>
+<li><strong>Strengths</strong>: Clear subgroup interpretation.</li>
+<li><strong>Weaknesses</strong>: Difficult to identify subgroup
+reliably; limited generalizability.</li>
+</ul>
+<p>Given the clinical and regulatory context for AKI, the
+<strong>while-on-treatment</strong> estimand is recommended.</p>
+</div>
+</div>
+</div>
+<div id="estimation-methods" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Estimation Methods</h1>
+<div id="target-trial-emulation" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Target Trial
+Emulation</h2>
+<p>To align RWE analyses with causal inference principles, we use a
+target trial emulation approach:</p>
+<ol style="list-style-type: decimal">
+<li>Clearly articulate estimand (done above).</li>
+<li>Emulate eligibility, treatment assignment, and follow-up strategies
+from randomized trials.</li>
+<li>Adjust for confounding and censoring biases explicitly using robust
+estimation methods (e.g., TMLE).</li>
+</ol>
+</div>
+<div id="targeted-maximum-likelihood-estimation-tmle"
+class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Targeted Maximum
+Likelihood Estimation (TMLE)</h2>
+<p>TMLE is recommended due to its double robustness and incorporation of
+machine learning:</p>
+<ul>
+<li>Combines estimation of the outcome mechanism and treatment
+assignment mechanism (propensity scores).</li>
+<li>Employs Super Learner ensemble modeling for flexible nuisance
+parameter estimation.</li>
+<li>Provides robust inference with valid confidence intervals.</li>
+</ul>
+<pre class="r"><code>library(tmle)
+library(SuperLearner)
+
+# Example pseudo-code (specific details depend on data structure)
+tmle_out &lt;- tmle(Y = AKI_event,
+                 A = Treatment (SOF vs non-SOF),
+                 W = baseline_covariates,
+                 family = &quot;binomial&quot;,
+                 Q.SL.library = c(&quot;SL.glm&quot;, &quot;SL.randomForest&quot;),
+                 g.SL.library = c(&quot;SL.glm&quot;, &quot;SL.randomForest&quot;))
+
+summary(tmle_out)</code></pre>
+</div>
+<div id="sensitivity-analyses" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Sensitivity
+Analyses</h2>
+<ul>
+<li>Informative censoring: Apply inverse-probability weighting.</li>
+<li>Alternative estimands (treatment-policy, hypothetical
+scenario).</li>
+<li>Competing risks: Conduct Fine-Gray or cause-specific hazard
+analyses.</li>
+<li>Evaluate unmeasured confounding via E-values.</li>
+</ul>
+</div>
+</div>
+<div id="interpretation-and-communication-of-results"
+class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Interpretation and
+Communication of Results</h1>
+<ul>
+<li>Clearly state the chosen estimand and its clinical
+implications.</li>
+<li>Present both TMLE and traditional survival (e.g., Cox regression)
+estimates for transparency.</li>
+<li>Explicitly acknowledge limitations and assumptions underpinning
+causal interpretation.</li>
+</ul>
+</div>
+<div id="regulatory-considerations" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Regulatory
+Considerations</h1>
+<p>The FDA and EMA increasingly expect clarity in estimand specification
+in RWE submissions. The while-on-treatment estimand closely aligns with
+regulatory interests for post-market safety signals, especially those
+emerging under continuous treatment exposure.</p>
+</div>
+<div id="summary-and-recommendations" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Summary and
+Recommendations</h1>
+<ul>
+<li>Define estimands clearly at the outset of analyses.</li>
+<li>The while-on-treatment estimand is particularly relevant for
+evaluating acute safety signals like AKI in real-world treatment
+settings.</li>
+<li>Adopt TMLE with Super Learner methods for robust causal inference,
+explicitly handling censoring and confounding.</li>
+<li>Include sensitivity analyses for robustness assessment.</li>
+</ul>
+<p>Explicit estimand definition coupled with robust statistical methods
+like TMLE not only ensures clarity and scientific rigor but also
+enhances regulatory relevance and interpretability.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

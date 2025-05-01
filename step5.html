@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Andrew Mertens" />
+
+<meta name="date" content="2025-05-01" />
+
+<title>Interpretation of Findings and Reporting</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Interpretation of Findings and
+Reporting</h1>
+<h4 class="author">Andrew Mertens</h4>
+<h4 class="date">2025-05-01</h4>
+
+</div>
+
+
+<div id="interpretation-of-findings-and-reporting"
+class="section level1">
+<h1>5 Interpretation of Findings and Reporting</h1>
+<p>After completing estimation (Step 3) and sensitivity analyses (Step
+4), the final step involves clearly interpreting results and
+transparently reporting findings. Here we integrate primary TMLE
+results, assess sensitivity analyses, and discuss implications for
+clinical practice, policy, and future research. ## 5.1 Integrating
+Primary Results ### Primary Causal Effect Estimate (TMLE) Our primary
+analysis used Targeted Maximum Likelihood Estimation (TMLE) with Super
+Learner, estimating the causal effect of initiating a
+sofosbuvir-containing (SOF) regimen versus a non-SOF regimen on the
+90-day risk of acute kidney injury (AKI): - <strong>Risk difference
+(RD):</strong> Absolute change in AKI risk attributable to SOF
+initiation. - <strong>Risk ratio (RR):</strong> Relative change in AKI
+risk comparing SOF initiation to non-SOF. $$${r
+primary-results-placeholder, eval=FALSE} # Replace with your actual TMLE
+results: # RD: 0.02 (95% CI: 0.01, 0.03); RR: 1.5 (95% CI: 1.2, 1.9)
+Interpretation of Primary Results A positive risk difference (RD)
+indicates an increased absolute risk of AKI from initiating a
+SOF-containing regimen.</p>
+<p>A risk ratio (RR) greater than 1 suggests relative harm associated
+with SOF compared to non-SOF regimens.</p>
+<p>Example interpretation:</p>
+<p>“Initiating SOF was associated with an estimated absolute increase in
+90-day AKI risk of 2% (95% CI: 1%, 3%) compared to non-SOF regimens,
+translating to a 50% relative increase.”</p>
+<p>5.2 Evaluating Sensitivity Analysis Results Sensitivity analyses
+(Step 4) evaluated robustness of results to assumptions about
+positivity, unmeasured confounding, censoring, measurement error, and
+model specification.</p>
+<p>Sensitivity analysis Concern addressed Potential influence on
+interpretation Positivity analysis Poor overlap Check whether results
+differ in high-overlap regions Unmeasured confounding (E-value) Residual
+bias from confounders Evaluate E-value: large E-value supports
+robustness Negative control outcome Residual confounding No association
+suggests minimal residual bias IPCW censoring Informative censoring
+Similar IPCW results indicate robustness Measurement error Outcome
+definition accuracy Consistency across definitions suggests robust
+findings Alternative SL models Model misspecification Similar results
+suggest robustness to modeling decisions</p>
+<p>Discuss clearly how each sensitivity result impacts confidence in the
+primary finding:</p>
+<p>If estimates remain consistent across sensitivity analyses, this
+increases confidence in the primary causal interpretation.</p>
+<p>If estimates differ notably under sensitivity conditions, explicitly
+acknowledge potential biases or limitations.</p>
+<p>5.3 Clinical and Regulatory Implications Clearly communicate how
+findings inform clinical and regulatory decisions:</p>
+<p>Clinical impact: If a significant safety signal is detected,
+clinicians might consider alternative DAAs or increased renal
+monitoring.</p>
+<p>Regulatory impact: Findings may inform FDA labeling, safety
+communications, or further post-marketing studies.</p>
+<p>Example summary for stakeholders:</p>
+<p>“The observed association between SOF and increased AKI risk suggests
+clinicians should closely monitor renal function during initial
+treatment weeks. Regulators may consider updating safety labeling or
+recommending enhanced renal surveillance protocols.”</p>
+<p>5.4 Limitations of the Study Explicitly address limitations to ensure
+transparency:</p>
+<p>Observational design: Despite advanced methods, residual unmeasured
+confounding can never be completely ruled out.</p>
+<p>Measurement error: Claims-based AKI outcomes might misclassify true
+renal events; sensitivity analyses help mitigate this concern.</p>
+<p>Generalizability: The studied population (commercially insured) may
+differ from other populations (e.g., uninsured, Medicaid).</p>
+<p>5.5 Recommendations for Future Research Outline clear directions for
+additional research informed by the current analysis:</p>
+<p>Validation studies: Replicate findings in external populations or
+using clinical registries to confirm robustness.</p>
+<p>Mechanistic studies: Explore biological mechanisms underlying
+observed renal toxicity.</p>
+<p>Additional safety studies: Extend observation windows beyond 90 days,
+evaluating long-term renal outcomes.</p>
+<p>5.6 Transparent Reporting and Communication Adopt transparent
+reporting standards to facilitate stakeholder understanding and
+regulatory compliance:</p>
+<p>Follow reporting guidelines: Utilize standards like STROBE or ICH
+E9(R1) guidance.</p>
+<p>Share code and analytic pipeline: Ensuring reproducibility and
+transparency of analyses (e.g., via GitHub repositories).</p>
+<p>Example Reporting Template Population studied: U.S. adults 18–79
+years, commercially insured, initiating DAA therapy for chronic HCV.</p>
+<p>Treatment contrast: SOF-containing vs. non-SOF regimens.</p>
+<p>Primary outcome: AKI diagnosis within 90 days.</p>
+<p>Estimand: As-treated, censor-at-switch estimand.</p>
+<p>Methodology: TMLE with Super Learner ensemble.</p>
+<p>Primary Results: Clearly present RD, RR, confidence intervals.</p>
+<p>Sensitivity Results: Clearly state implications on robustness.</p>
+<p>Clinical &amp; Regulatory implications: Direct recommendations based
+on findings.</p>
+<p>Limitations and Future Directions: Transparent acknowledgment and
+clear next steps.</p>
+<p>Fit-for-purpose Checklist: Encourages explicitly checking data
+quality and completeness (e.g., pharmacy claims, baseline eGFR from
+electronic health records (EHR), and validated ICD codes for
+outcomes).</p>
+<p>Transparent Reporting Templates: RoadmapV2 emphasizes structured
+reporting aligned with regulatory guidelines (ICH E9 R1), including
+detailed documentation of all modeling decisions, sensitivity analyses,
+and diagnostics clearly and transparently.</p>
+<p>5.7 Final Conclusions Provide a concise and clear statement
+summarizing key findings and their clinical, policy, and methodological
+implications.</p>
+<p>Example final summary:</p>
+<p>“This analysis using robust causal inference methods found a
+clinically meaningful and statistically significant increased risk of
+AKI within 90 days associated with SOF-containing DAA regimens. Results
+were robust across multiple sensitivity analyses. Clinicians and
+regulators should consider these findings to guide patient monitoring
+and inform safety communications. Future research should confirm these
+findings externally and further explore potential underlying
+mechanisms.”</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

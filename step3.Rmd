@@ -13,6 +13,7 @@ Using the tmle3 package in R:
 
 library(tmle3) # Node definitions node_list <- list( W = covariate_names, A = "A", Y = "Y", C = "censor", id = "pat_id", t = "time" ) # Define TMLE specification tmle_spec <- tmle_Survival$new( tau = 90, contrast = treatmentwise ) # Fit TMLE tmle_fit <- tmle3( tmle_spec, data = dataset_long_format, node_list = node_list, learner_list = list(Y = sl_lib, A = sl_lib, C = sl_lib) ) # TMLE Results Summary summary(tmle_fit)
 3.7 Advantages of TMLE Over Cox Regression
+
 Feature	Cox Regression + PSM	TMLE with Super Learner
 Causal interpretation	Often unclear due to assumptions	Clear causal interpretation
 Double robustness	No (depends heavily on matching accuracy)	Yes
@@ -21,12 +22,23 @@ Direct clinical interpretability	Limited (hazard ratios)	Clear (risk differences
 Efficiency	No (less efficient)	Yes (optimal efficiency)
 Robustness to modeling errors	Limited (model misspecification bias)	Yes (ensemble learning reduces bias)
 
+
+∗∗Whywedo∗∗not∗∗relyontheCoxHR
+∗>1.Thehazardratiois∗∗non−collapsible∗∗;evenwithperfectconfoundingcontrol,addinganirrelevantcovariatecanchangetheHR.>2.Whenproportional−hazardsfails(log‐logcurvescrossedinSOFvsnon−SOF),theHRisaweightedaverageoftime−varyingcausaleffectsandlacksclinicalmeaning.>3.TheCoxHRestimatesan∗instantaneous∗effect,whileregulatorsandcliniciansneed∗∗absoluterisks∗∗overclinicallyrelevanthorizons.>4.TMLEwithRMSTorrisk−differencetargetsan∗∗interpretable,collapsibleestimand∗∗andremainsvalidundernon−PHbyconstruction.
+
+
 3.8 Practical Considerations and Limitations
 Positivity: TMLE still requires sufficient overlap of propensity scores.
 
 Computational complexity: Super Learner increases computational time, though manageable with modern computing resources.
 
 Interpretability for non-statisticians: More education needed for clinical teams less familiar with TMLE and causal inference methods.
+
+Weight stabilization and truncation: The roadmap explicitly recommends truncating inverse probability weights at approximately √n·ln(n)/5 for stability.
+
+>∗∗Outcome−blindsandboxsimulations.
+∗∗>Priortoun−maskingAKIoutcomeswewillgenerate1000Monte−Carlodatasetsinwhichtheobservedcovariatesandtreatmentassignmentsareretainedbutoutcomesarepermutedordrawnfromauser−specifiedgenerativemodelconsistentwiththeDAGinFigure\@ref(fig:dag).Thesesimulationswill:>∗examinepropensity−scoreoverlapandpositivity;>∗estimatestatisticalpowerforrisk−differencedetectionunderplausibleeffectsizes;>∗quantifyfinite−samplebiasandvarianceoftheTMLEestimatorundercorrectandmisspecifiednuisancemodels.>Resultsguideweighttruncation,SuperLearnerlibrarysize,andsample−sizeadequacy∗∗before∗∗anyrealoutcomesareviewed,preservinganalyticobjectivity.
+
 
 3.9 Summary of Step 3
 TMLE provides a robust, efficient, and causally interpretable alternative to traditional propensity-matched Cox regression. Given limitations inherent in standard approaches (non-collapsibility, proportional hazards assumptions), TMLE paired with Super Learner is strongly preferred for answering causal safety questions clearly.

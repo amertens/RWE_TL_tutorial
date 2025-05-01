@@ -2,20 +2,28 @@ name: "R Markdown Websites Tutorial"
 navbar:
   title: "HOME"
   left:
+    - text: "Roadmap step 1-alt"
+      href: step1v2.html
+    - text: "Roadmap step 1"
+      href: step1.html
+    - text: "Roadmap step 2"
+      href: step2.html
+    - text: "Roadmap step 3"
+      href: step3.html
+    - text: "Roadmap step 4"
+      href: step4.html
+    - text: "Roadmap step 5"
+      href: step5.html
     - text: "Introduction: TL Roadmap in RWE"
       href: RWE_tutorial.html
     - text: "Case study intro: Hep. C and AKI"
       href: case_study_AKI.html
-    - text: "Case study Roadmap in RWE"
-      href: roadmapV2.html
     - text: "Propensity score matching analysis"
       href: PS_analysis.html
-    # - text: "Inverse probability weighted analysis"
-    #   href: IPW_analysis.html
-    - text: "Targeted learning analysis"
-      href: TMLE_analysis.html
-    - text: "Analysis comparisons"
-      href: results_comparisons.html
+    # - text: "Targeted learning analysis4"
+    #   href: TMLE_analysisV4.html
+    - text: "Appendix"
+      href: appendix.html
 output_dir: "."
 output:
   html_document:

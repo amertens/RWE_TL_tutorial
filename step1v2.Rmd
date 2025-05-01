@@ -1,0 +1,135 @@
+---
+title: "Estimand Selection for Real-World Evidence: The SOF vs Non-SOF AKI Case Study"
+author: "Your Team Name"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    number_sections: true
+fontsize: 11pt
+---
+
+# Background
+
+Regulatory and methodological developments, particularly the ICH E9(R1) Addendum on estimands, emphasize the importance of clearly defining the estimand—what precisely the study aims to estimate—in clinical trials and increasingly in real-world evidence (RWE) studies. The estimand explicitly addresses the scientific question by defining five elements:
+
+- Population
+- Treatment conditions
+- Endpoint
+- Handling of intercurrent events
+- Population-level summary measure
+
+Proper estimand selection guides study design, data collection, analysis, and reporting, making the results more interpretable and actionable, particularly in regulatory contexts.
+
+## Case Study: SOF vs Non-SOF Acute Kidney Injury (AKI)
+
+We illustrate estimand selection through a real-world evidence (RWE) analysis comparing the risk of acute kidney injury (AKI) among chronic hepatitis C virus (HCV) patients treated with sofosbuvir (SOF)-containing versus non-SOF direct-acting antiviral (DAA) regimens. AKI risk has emerged as a safety signal of interest from post-marketing surveillance.
+
+### Study Data and Population
+
+The data source is HealthVerity, containing claims linked with electronic medical records (EMR). The population includes U.S. adults initiating reimbursed SOF or non-SOF DAA regimens between January 2016 and September 2023. Baseline covariates are captured 365 days prior to treatment initiation (index date).
+
+### Endpoint Definition
+
+The primary endpoint is defined as time from index date to the first occurrence of AKI, identified through relevant ICD-10 codes (e.g., N17.x, N19, R34, R94.4). Patients were followed until AKI occurrence, death, disenrollment, switching/stopping DAA regimen plus 31 days, or end of study period (September 21, 2023).
+
+# Defining the Estimand
+
+According to the ICH E9(R1) framework, we explicitly specify the estimand by clearly defining population, treatment, endpoint, handling of intercurrent events, and summary measure:
+
+| Estimand Element | SOF vs Non-SOF AKI Case Study Definition |
+|------------------|----------------------------------------|
+| Population       | US adult chronic HCV patients initiating SOF or non-SOF DAA |
+| Treatment        | SOF-containing vs. Non-SOF-containing DAA regimens |
+| Endpoint         | Time to first AKI event |
+| Intercurrent events | Treatment discontinuation or switching |
+| Summary Measure  | Hazard Ratio (HR) or Risk Difference (RD) at specified times |
+
+## Strategies for Intercurrent Events
+
+Four main strategies from the estimand framework:
+
+### 1. Treatment-policy
+- **Definition**: Compares initiators irrespective of subsequent changes (stopping/switching).
+- **Interpretation**: Effect of assigning SOF regimen, regardless of adherence or switches.
+- **Strengths**: Reflects pragmatic, real-world policy decisions.
+- **Weaknesses**: Interpretation muddled if switching common.
+
+### 2. While-on-treatment (Recommended)
+- **Definition**: Follow-up censored at treatment switching/stopping.
+- **Interpretation**: Effect of continuous treatment exposure.
+- **Strengths**: Relevant for safety signals during active exposure.
+- **Weaknesses**: Requires careful modeling of censoring.
+
+### 3. Hypothetical
+- **Definition**: Estimates risk if no switching/stopping occurred.
+- **Interpretation**: Biological or pharmacological effect without interruption.
+- **Strengths**: Pure causal interpretation.
+- **Weaknesses**: Unrealistic scenario; complex modeling assumptions.
+
+### 4. Principal Stratum
+- **Definition**: Effect within subgroup who would never switch/stop.
+- **Interpretation**: Efficacy in adherent subgroup.
+- **Strengths**: Clear subgroup interpretation.
+- **Weaknesses**: Difficult to identify subgroup reliably; limited generalizability.
+
+Given the clinical and regulatory context for AKI, the **while-on-treatment** estimand is recommended.
+
+# Estimation Methods
+
+## Target Trial Emulation
+
+To align RWE analyses with causal inference principles, we use a target trial emulation approach:
+
+1. Clearly articulate estimand (done above).
+2. Emulate eligibility, treatment assignment, and follow-up strategies from randomized trials.
+3. Adjust for confounding and censoring biases explicitly using robust estimation methods (e.g., TMLE).
+
+## Targeted Maximum Likelihood Estimation (TMLE)
+
+TMLE is recommended due to its double robustness and incorporation of machine learning:
+
+- Combines estimation of the outcome mechanism and treatment assignment mechanism (propensity scores).
+- Employs Super Learner ensemble modeling for flexible nuisance parameter estimation.
+- Provides robust inference with valid confidence intervals.
+
+```{r, eval=FALSE}
+library(tmle)
+library(SuperLearner)
+
+# Example pseudo-code (specific details depend on data structure)
+tmle_out <- tmle(Y = AKI_event,
+                 A = Treatment (SOF vs non-SOF),
+                 W = baseline_covariates,
+                 family = "binomial",
+                 Q.SL.library = c("SL.glm", "SL.randomForest"),
+                 g.SL.library = c("SL.glm", "SL.randomForest"))
+
+summary(tmle_out)
+```
+
+## Sensitivity Analyses
+
+- Informative censoring: Apply inverse-probability weighting.
+- Alternative estimands (treatment-policy, hypothetical scenario).
+- Competing risks: Conduct Fine-Gray or cause-specific hazard analyses.
+- Evaluate unmeasured confounding via E-values.
+
+# Interpretation and Communication of Results
+
+- Clearly state the chosen estimand and its clinical implications.
+- Present both TMLE and traditional survival (e.g., Cox regression) estimates for transparency.
+- Explicitly acknowledge limitations and assumptions underpinning causal interpretation.
+
+# Regulatory Considerations
+
+The FDA and EMA increasingly expect clarity in estimand specification in RWE submissions. The while-on-treatment estimand closely aligns with regulatory interests for post-market safety signals, especially those emerging under continuous treatment exposure.
+
+# Summary and Recommendations
+
+- Define estimands clearly at the outset of analyses.
+- The while-on-treatment estimand is particularly relevant for evaluating acute safety signals like AKI in real-world treatment settings.
+- Adopt TMLE with Super Learner methods for robust causal inference, explicitly handling censoring and confounding.
+- Include sensitivity analyses for robustness assessment.
+
+Explicit estimand definition coupled with robust statistical methods like TMLE not only ensures clarity and scientific rigor but also enhances regulatory relevance and interpretability.

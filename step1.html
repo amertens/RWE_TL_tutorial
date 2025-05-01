@@ -11,7 +11,7 @@
 
 <meta name="author" content="AKI Safety Working Group" />
 
-<meta name="date" content="2025-04-30" />
+<meta name="date" content="2025-05-01" />
 
 <title>Step 1 – Causal Question, Causal Model, and Causal Estimand</title>
 
@@ -321,22 +321,34 @@ div.tocify {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
   <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
 </li>
 <li>
   <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
 </li>
 <li>
-  <a href="roadmapV2.html">Case study Roadmap in RWE</a>
-</li>
-<li>
   <a href="PS_analysis.html">Propensity score matching analysis</a>
 </li>
 <li>
-  <a href="TMLE_analysis.html">Targeted learning analysis</a>
-</li>
-<li>
-  <a href="results_comparisons.html">Analysis comparisons</a>
+  <a href="appendix.html">Appendix</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -353,7 +365,7 @@ div.tocify {
 <h1 class="title toc-ignore">Step 1 – Causal Question, Causal Model, and
 Causal Estimand</h1>
 <h4 class="author">AKI Safety Working Group</h4>
-<h4 class="date">2025-04-30</h4>
+<h4 class="date">2025-05-01</h4>
 
 </div>
 
@@ -418,8 +430,710 @@ coverage<br />
 <em>(A0, C(t))</em> and <em>Y(t)</em> given <em>W</em>.</li>
 </ol>
 </div>
-<div id="target-estimands" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> 3 Target Estimands</h1>
+<div id="existing-analysis" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> 3 Existing
+analysis</h1>
+<p>Background and motivation. A pharmacovigilance “dry-run” signal
+evaluation suggested a possible link between acute kidney injury (AKI)
+and sofosbuvir-containing (SOF) direct-acting antiviral (DAA) regimens
+used to treat chronic hepatitis C virus (HCV) infection. To inform
+ongoing safety monitoring, Gilead undertook a rapid, supportive
+real-world evidence (RWE) study comparing AKI risk in patients
+initiating SOF-containing DAAs with those starting non-SOF DAAs. The
+analysis leveraged a large US administrative-claims and
+electronic‐medical-record data source (HealthVerity) covering more than
+550 million patients (2015-2023) to provide timely, supplementary
+evidence on whether the observed signal represented an increased,
+clinically meaningful risk.</p>
+<p>Methods. A retrospective new-user cohort was drawn from an HCV
+“standing cohort” of adults with ≥1 year of continuous medical- and
+drug-coverage enrollment. Eligible initiators of SOF or non-SOF DAAs
+between 1 October 2016 and 21 September 2023 entered follow-up on the
+first dispense date (index). Exposure was handled “as treated”: patients
+were censored 31 days after treatment discontinuation or at crossover to
+the other DAA class. AKI was identified by ICD-10 codes (e.g., N17.x,
+N19, R34). Baseline demographics and 50+ comorbidities/medication
+variables were assessed in the prior year and used to build a
+logistic-regression propensity score (PS). After 1:1 nearest-neighbor PS
+matching, AKI incidence was compared with Cox proportional-hazards
+models: unadjusted, covariate-adjusted, PS-stratified and PS-matched
+specifications served as sensitivity and diagnostic checks.</p>
+<p>Results. Among 105 636 eligible patients (67 720 non-SOF; 37 916
+SOF), crude AKI incidence was 8.9 vs 16.0 per 1000 persons, but crude
+comparability was poor. PS matching produced 37 220 well-balanced pairs
+(absolute covariate differences ≤1%). In the matched analysis, AKI
+occurred in 608 SOF vs 605 non-SOF users over 26 387 person-years,
+yielding a hazard ratio (HR) of 1.14 (95% CI 1.00–1.30; p = 0.05) and an
+absolute risk difference of +7.1 AKI cases per 1000 patients . Fully
+covariate-adjusted and PS-stratified Cox models in the unmatched cohort
+gave similar, non-significant estimates (e.g., HR 1.11, 95% CI
+0.99–1.26) . Model diagnostics indicated adequate overlap and balance
+post-matching, but residual confounding could not be excluded. Overall,
+the analysis did not confirm an elevated AKI risk for SOF-containing
+DAAs; rather, after careful adjustment, risk estimates were null to
+modest and statistically inconclusive, suggesting the initial signal may
+reflect confounding or chance rather than a true safety concern.</p>
+</div>
+<div
+id="estimand-introduction-ich-e9r1-estimand-framework-in-rwe-analysis"
+class="section level1" number="4">
+<h1><span class="header-section-number">4</span> 1. Estimand
+Introduction – ICH E9(R1) Estimand Framework in RWE Analysis</h1>
+<p>What is an estimand? An estimand is a precise description of the
+treatment effect or quantity we aim to estimate, aligning the study
+objective with how data are collected and analyzed. The ICH E9(R1)
+Addendum (2019) introduced the estimand framework to ensure clarity and
+consistency from study design through analysis and interpretation. The
+document was drafted and agreed by the ICH E9(R1) Expert Working Group
+(EWG)— team of statisticians drawn from the regulatory authorities of
+every ICH Regulatory Member. The International Council for Harmonisation
+of Technical Requirements for Pharmaceuticals for Human Use (ICH) is a
+non-governmental consortium whose purpose is to create harmonised
+scientific and technical guidelines. In essence, an estimand defines
+“the target of estimation to address the scientific question of
+interest” for a study. By adopting the estimand mindset, RWE analyses
+can be more regulatory-aligned, as they explicitly state the causal
+question and handling of complexities in a way that regulators
+increasingly expect.</p>
+<p>Key attributes of an estimand: (1) Population (the patients of
+interest), (2) Treatment (the therapy or exposure condition and
+comparator), (3) Endpoint (outcome variable), (4) Intercurrent Events
+(post-treatment events that can affect interpretation or existence of
+the outcome), and (5) Summary measure (how the treatment contrast is
+quantified, e.g. risk difference, hazard ratio).</p>
+<p>For time-to-event outcomes (like time to acute kidney injury), this
+framework is especially important because multiple intercurrent events
+can occur during follow-up (patients might discontinue treatment, switch
+therapies, die, etc.), complicating how we interpret the outcome. ICH
+E9(R1) emphasizes that an estimand must address how each intercurrent
+event is handled as part of the clinical question; we cannot fully
+define “what effect we’re estimating” without specifying what we do if
+something like treatment discontinuation, addition of a rescue
+medication, or death happens during the study. This clarity is
+especially crucial in RWE studies, where such events are common and not
+under investigator control. By pre-specifying the estimand, we ensure
+the study design and analysis align with the real objective, avoiding
+common pitfalls. Historically, analyses sometimes defaulted to
+“intent-to-treat” principles or ad-hoc censoring without explicitly
+stating the question being answered. The estimand framework forces us to
+be explicit: Are we estimating the effect of initiating treatment no
+matter what happens after, or the effect while actually on the
+treatment, or under some hypothetical scenario, etc.? This upfront
+clarity improves communication with regulators and stakeholders, since
+everyone knows which treatment effect we mean. In fact as you will see
+in this example analysis, the estimand drives all subsequent study steps
+– design, conduct, analysis, and interpretation – ensuring they target
+the same goal.</p>
+<ol start="2" style="list-style-type: decimal">
+<li>The Implicit Estimand in the Completed SOF vs Non-SOF AKI Analysis
+Current analysis approach: In the original cohort analysis, patients
+were classified at baseline into “SOF” vs “non-SOF” groups, and then
+followed for the outcome (AKI) over a period of time. The critical
+question is: how did the analysis handle patients who discontinued their
+treatment early or switched to a different regimen? This determines the
+implicit estimand. The analysis used a “while on treatment” (as-treated)
+estimand – meaning it focused on AKI occurrences during the period
+patients stayed on their initial therapy. In practical terms, if a
+patient stopped the initially prescribed treatment or switched to a
+different therapy, the analysis would censor their follow-up at that
+point (no longer counting their later time or events) so that only time
+actually exposed to SOF or to the comparison regimen contributed to the
+risk calculations. This corresponds to an estimand where the treatment
+effect is defined up until discontinuation of the originally assigned
+treatment. Intercurrent events like stopping or switching therapy are
+handled by essentially excluding (censoring) data after those events,
+rather than following the patient regardless. The underlying scientific
+question for this estimand is: “What is the effect of continuous
+treatment with SOF vs non-SOF on the hazard of AKI, while patients
+adhere to the initial treatment?” Assumptions and implications: This
+implicit as-treated/while-on-treatment estimand assumes that once a
+patient ceases the initial treatment, any further risk of AKI is no
+longer attributable to that treatment (hence not counted). It treats
+treatment changes as censoring events, which conceptually asks: what
+would the incidence of AKI be if patients had remained on their
+originally assigned treatment (up until the time of AKI or treatment
+cessation)? An important assumption here is that censoring due to
+treatment discontinuation or switch is not introducing bias – i.e. that
+patients who stop treatment are not systematically different (in
+unmeasured ways) in their risk of AKI than those who continue. In
+reality, this can be a strong assumption: for example, if some patients
+discontinued SOF because their renal function was worsening (an early
+sign of AKI risk), censoring them at discontinuation might miss AKI
+events related to the drug, underestimating the true harm. An
+alternative approach is to explicitly model the probability of censoring
+due to switch and re-weight the analysis through an inverse probability
+of censoring weighed analysis. Despite this risk, the as-treated
+approach aligns with how drug safety is often assessed (focusing on
+events during exposure). It answers a clinically relevant question:
+“What is the kidney safety profile of the drug during the time patients
+are actually taking it?” Alternatively, had the analysis ignored
+treatment changes and simply followed everyone from initial treatment
+assignment to outcome (no matter if they switched or stopped therapy),
+it would correspond to a treatment-policy estimand (an ITT-like
+approach). A treatment-policy estimand treats intercurrent events as
+irrelevant – each patient is analyzed in their original group regardless
+of subsequent adherence or changes.</li>
+</ol>
+<p>If the SOF vs non-SOF analysis was done this way, it would implicitly
+be answering a different question: “What is the effect of starting SOF
+vs not, on risk of AKI, irrespective of whether patients stay on that
+initial treatment or not?” This would include AKI events even after
+therapy changes. Such an approach might be more pragmatic (reflecting
+real-world usage patterns), but in a short-term safety context like AKI
+during HCV therapy, it could dilute the observable effect of the drug.
+(For instance, if many SOF patients switched off the drug early, an
+ITT-style analysis might show little difference in AKI rates because
+those who would have been harmed stopped taking it – essentially
+comparing groups that become similar in exposure over time.) Hernán and
+Scharfstein caution against blindly using an ITT estimand when it
+doesn’t match the clinical question – e.g. an analysis that effectively
+compares “treat until completion” in one group vs “start treatment but
+possibly stop if toxicity arises” in the other could be asking an
+irrelevant or misleading question (<a
+href="https://www.researchgate.net/publication/333705608_A_constructive_critique_of_the_draft_ICH_E9_Addendum#"
+class="uri">https://www.researchgate.net/publication/333705608_A_constructive_critique_of_the_draft_ICH_E9_Addendum#</a>:~:text=ICE%29%20and%20treatment%20%28e).
+In our case, a treatment-policy estimand would be akin to comparing
+“initiating SOF (even if one has to stop due to AKI risk) vs not
+initiating SOF”. That’s arguably not the question clinicians or
+regulators care about if the goal is to understand the drug’s inherent
+safety – they would be more interested in “what happens under the
+treatment while it’s given.” In summary, the retrospective SOF vs
+non-SOF AKI analysis most likely (even if not stated outright) adopted
+an as-treated (while-on-treatment) estimand, censoring at treatment
+discontinuation or switch. This approach interprets the AKI outcome as a
+treatment-emergent adverse event – focusing on the period of exposure to
+each treatment. It inherently assumes that once a patient leaves the
+original treatment, their subsequent risk is outside the scope of our
+comparison. This estimand is appropriate for capturing on-treatment
+causal effects, but we must be mindful of its limitations: if patients
+who discontinue are different, or if the drug causes some latent injury
+that only manifests after stopping, the as-treated estimand could bias
+or undercount the true effect. These considerations motivate examining
+alternative estimand strategies. 3. Alternative Estimand Strategies and
+Their Causal Questions Different estimand strategies address
+intercurrent events in different ways, each corresponding to a slightly
+different causal question. The ICH E9(R1) Addendum outlines several
+strategies (treatment-policy, hypothetical, while-on-treatment,
+principal stratum, etc.) (<a
+href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8112325/#"
+class="uri">https://pmc.ncbi.nlm.nih.gov/articles/PMC8112325/#</a>:~:text=Estimand%20strategy%20Measurement%20of%20interest,32).
+Here are four key strategies applied to the context of post-market drug
+safety and our SOF vs non-SOF case study, and clarify what question each
+estimand is answering: ● Treatment-Policy (Intention-to-Treat-like):
+Under a treatment-policy strategy, intercurrent events are ignored in
+the sense that patients are analyzed according to the initial treatment
+assignment regardless of what happens afterward. ● This is analogous to
+the classical ITT principle in trials. The outcome of interest is
+measured no matter if the patient discontinued the drug, switched to
+another therapy, or took additional treatments. The causal question
+answered is: “What is the effect of starting treatment A versus
+treatment B on the outcome, considering the policy of initially
+assigning that treatment and following patients thereafter, no matter if
+they continue it or not?” For our case: a treatment-policy estimand
+would compare all patients who started SOF to all who started non-SOF,
+in terms of AKI risk, regardless of treatment changes. This could be
+relevant for a public health or intent-to-treat perspective, e.g. a
+regulator might ask: “If we introduce SOF broadly, what is the overall
+impact on AKI rates in the population, accounting for the fact that some
+patients may stop or switch treatments?” The advantage of this strategy
+is that it uses all data and isn’t biased by who adheres to treatment –
+it mimics a pragmatic scenario. However, the trade-off is
+interpretability for safety: if many patients discontinue SOF due to
+early renal problems, a treatment-policy estimand will still count their
+later AKI (or lack thereof) in the SOF group, potentially
+underestimating the drug’s true nephrotoxic potential. It effectively
+answers a more diluted question, combining both the drug’s effect and
+the impact of stopping it. For drug safety questions, regulators and
+clinicians often find a pure ITT approach less informative, because it
+doesn’t isolate the period of actual drug exposure (as Hernán and
+colleagues note, an estimand that compares “never treat” vs “treat even
+in the face of contraindications/toxicity” is not clinically
+relevant.</p>
+<p>● While-On-Treatment (As-Treated): The while-on-treatment strategy
+(also called “as-treated” or “per-protocol” in some contexts) focuses on
+outcomes up until the time an intercurrent event occurs. Essentially, we
+follow patients only while they remain on the originally assigned
+treatment; if they discontinue or switch, we stop counting their
+outcomes thereafter (often treating them as censored at that point). The
+causal question here is: *“What is the effect of treatment A vs B on the
+outcome during the time patients actually stay on their intended
+treatment?**” This is the strategy we deduced the current SOF analysis
+used. In a safety context, this estimand is often most aligned with
+identifying the drug’s direct effects. For SOF vs non-SOF, it asks:
+“Comparing patients continuously treated with SOF to those continuously
+treated with an alternative, what is the difference in AKI risk while on
+therapy?” Any AKI that occurs after a patient stops or changes treatment
+is not attributed to the original treatment under this strategy. The
+benefit is clear interpretability for causation – it captures the period
+when the drug is actually present in the body and can cause harm. It
+aligns with the idea of treatment-emergent adverse events, which is
+often how clinical trials report safety (events are attributed to the
+treatment if they happened on or shortly after it). The strategy is
+particularly relevant to post-market pharmacovigilance if we want to
+know the risk during exposure – for example, it would feed into labeling
+like “AKI occurred in X% of patients during treatment”. The drawback is
+potential bias if the act of discontinuation is related to the outcome
+risk. In observational studies, one must consider that censoring at
+discontinuation assumes “non-informative” censoring (all prognostic
+factors leading to stopping are accounted for). If, say, patients with
+rising creatinine (a precursor to AKI) are more likely to stop SOF, a
+naive while-on-treatment analysis could censor them right before an AKI
+would have been observed, thereby underestimating AKI incidence on SOF.
+Despite this, analytic techniques (like modeling or inverse probability
+weighting) can mitigate some of this bias, and the while-on-treatment
+estimand remains very relevant for causal inference about the drug’s
+effect. It addresses the question most pertinent to clinicians: “What is
+the risk to my patient’s kidneys if they continue this drug versus if
+they were on an alternative?” ● Hypothetical Strategy: A hypothetical
+estimand poses a “what-if” question by assuming a certain intercurrent
+event did not occur, and then evaluating the outcome under that
+scenario. In other words, we imagine a hypothetical world in which, for
+example, all patients remained on their originally assigned treatment
+(no one discontinued or switched), and ask what the treatment effect on
+AKI would be in that world. This requires modeling or extrapolation
+because the data for patients after they discontinue are essentially
+missing in that hypothetical scenario. In our SOF example, a
+hypothetical estimand might be: “What would the incidence of AKI be
+comparing SOF vs non-SOF if no patient in either group ever discontinued
+or switched treatments (i.e., if everyone completed the full intended
+course of therapy)?” This is conceptually similar to the
+while-on-treatment approach, with the difference that it explicitly
+frames it as a counterfactual scenario and often involves imputing or
+modeling outcomes for those who did discontinue. The hypothetical
+strategy is useful if we want to remove the effect of certain real-world
+behaviors to isolate the treatment’s effect under optimal conditions or
+specific conditions. In post-market safety, one might use a hypothetical
+estimand if interested in, say, the safety profile had patients been
+able to tolerate the drug continuously. It is somewhat less common in
+pure safety analyses, but could be relevant for understanding intrinsic
+drug effects. The challenge with the hypothetical approach is
+implementation – because some outcomes are not observed (due to the
+event we assume away), one must rely on assumptions or statistical
+models (e.g., modeling the AKI risk as if treatment had continued for
+those who stopped). If those assumptions are wrong, it can introduce
+bias. Conceptually, though, it asks a clear causal question and is
+aligned with counterfactual reasoning. Regulatory guidance acknowledges
+hypothetical estimands as valid in certain cases (for example, in
+trials, “what would outcome be if patients did not take rescue
+medication” is a common hypothetical scenario. In RWE, we would use this
+strategy sparingly and carefully, usually to supplement an analysis –
+for instance, to estimate the full-course effect of SOF vs non-SOF if
+early discontinuation is frequent. ● Principal Stratum Strategy: The
+principal stratum strategy focuses on a subset of patients defined by
+some post-treatment behavior or event (often a subset in which an
+intercurrent event does or does not occur). The estimand is then the
+treatment effect within that subgroup – the subgroup is defined in a way
+that is not affected by treatment assignment (hence “principal stratum”
+in causal inference terms). A classic example: “the effect of treatment
+among those patients who would adhere to treatment in both the treatment
+and control conditions.” In our context, one could think of a principal
+stratum like “patients who would complete a full course of therapy
+regardless of whether they were on SOF or non-SOF.” That stratum would
+exclude patients prone to discontinuation. The causal question becomes:
+“Among patients who (hypothetically) would stay on their assigned
+treatment no matter which treatment they got, what is the effect of SOF
+vs non-SOF on AKI?” This is appealing because it compares outcomes in a
+group of patients unaffected by adherence issues – essentially a
+per-protocol effect without the usual adherence bias, if it could be
+identified. Another principal stratum of interest could be “the effect
+in patients who would not experience acute liver failure (another
+competing event) under either treatment” – any intercurrent event can
+define a stratum. The issue is that principal strata are defined
+counterfactually and can’t be directly observed (we don’t know which
+patients would adhere under both scenarios, for example). Estimating
+effects in principal strata often requires strong assumptions or
+specialized methods (e.g. monotonicity assumptions, sensitivity
+analyses). It’s rarely used as the primary estimand in observational
+studies because of these challenges. However, it’s conceptually
+relevant: for instance, regulators might be interested in the “intrinsic
+efficacy or safety in patients who can tolerate the drug”. In our SOF
+example, a principal stratum estimand might help answer: “If we consider
+only those patients who are able to complete therapy, does SOF have a
+different impact on AKI than comparator?” One could attempt to
+approximate this by analyzing a subset of patients who actually
+completed treatment in both groups (acknowledging that introduces
+selection bias). Trade-offs: principal stratum estimands improve
+interpretability for a specific scenario (e.g., ideal adherers), but
+sacrifice generalizability (the effect may not apply to all patients)
+and are hard to estimate without bias. They are more often seen in
+clinical trial contexts or sensitivity analyses. For routine
+pharmacovigilance, one would typically not choose principal stratum as
+the primary approach, but it’s good to be aware of it as a conceptual
+tool – it reminds us that treatment effects can differ in
+sub-populations defined by post-treatment events (for example,
+“compliers” vs “non-compliers”).</p>
+<p>Figure 1: Illustration of how a hypothetical patient’s AKI event
+would be handled under different estimand strategies. In this scenario,
+the patient starts treatment at time 0, discontinues therapy at month 3
+(gray circle), and then experiences an AKI at month 4 (star symbol).
+Under a treatment-policy estimand (blue line), we ignore the
+discontinuation and count the AKI as an outcome for the original
+treatment group (the patient is analyzed as if they were still on
+treatment). Under a while-on-treatment estimand (green line), we would
+censor the patient at the moment of discontinuation (vertical tick mark
+at month 3); any AKI occurring after stopping (the red “X” at month 4)
+is not counted for the original treatment. The hypothetical estimand
+(orange dashed line) imagines the patient had not discontinued –
+effectively, it considers the AKI at month 4 as if the patient were
+still on treatment (treating the gray stop marker as ignored). The
+principal stratum estimand focusing on completers (purple dotted line)
+would exclude this patient entirely, since they did discontinue; thus,
+their AKI outcome is outside the analysis for that stratum. This figure
+highlights how each strategy defines the “effect of treatment” slightly
+differently: treatment-policy uses all outcomes regardless of adherence,
+while-on-treatment uses only outcomes during actual treatment,
+hypothetical projects outcomes as if adherence were perfect, and
+principal stratum restricts to those without the intercurrent event.
+Each of these strategies can be appropriate depending on the objective
+of the study. In a post-market safety setting, we typically ask: “Does
+the drug cause the adverse outcome when used in practice?” If we are
+aiming to isolate the drug’s causal effect, a while-on-treatment or
+certain hypothetical estimand is often most suitable. If instead we care
+about the public health impact of using the drug (where adherence issues
+are part of the picture), a treatment-policy estimand might be
+informative. It’s important to formulate the estimand that best matches
+the causal question we want answered, as we will do next for the SOF vs
+non-SOF analysis. 5. Choosing an Estimand for the SOF vs Non-SOF AKI
+Analysis We propose using a while-on-treatment estimand (as-treated
+approach) as the primary estimand for the SOF vs non-SOF AKI analysis,
+which is the same approach as in the completed analysis, but we lay it
+out explicitly here. This means our estimand will target the causal
+effect of continuous treatment with a SOF-containing regimen versus a
+non-SOF regimen on the incidence of AKI, while patients remain on their
+initial treatment. In practical terms, the population is all patients
+initiating treatment for which either SOF or an alternative could be
+used; the treatment condition is “initiate and continue SOF-based
+therapy” vs “initiate and continue non-SOF therapy”; the outcome is time
+to AKI; intercurrent events: treatment discontinuation or switching will
+be handled with a treatment-period (while-on-treatment) strategy (we’ll
+censor follow-up at the time of regimen discontinuation/switch in each
+group), and perhaps define death as a competing risk or censoring event
+(since death can preclude observing AKI – one could treat death as
+censoring if unrelated to treatment or make a composite if considering
+“AKI or death” as a broader safety outcome, but for simplicity, let’s
+say we censor at death as well). The summary measure could be a hazard
+ratio or risk difference in AKI at a certain time point during therapy
+(e.g., by 12 weeks) -later we will advocate for the use of risk
+differences or ratios over hazard ratios for a more causal
+interpretation. This estimand aligns with asking: “Comparing SOF to
+no-SOF, what is the difference in probability of AKI during the
+treatment period?” The table below summarizes the proposed estimand: |
+Attribute | Recommended specification | |—|—| |
+<strong>Population</strong> | Adults with chronic HCV who meet labelled
+indications for either SOF-containing or non-SOF DAA as first
+contemporary treatment. | | <strong>Treatment strategies</strong> |
+<em>Initiate and continue</em> a SOF regimen <strong>vs</strong>
+<em>initiate and continue</em> a non-SOF regimen for the standard
+treatment course (e.g., 8–12 weeks). | | <strong>Intercurrent-event
+strategies</strong> | • <strong>Treatment discontinuation /
+switch</strong> → <em>treatment-period</em> strategy: censor
+<strong>at</strong> last dose (or within a pre-specified ≤ 30-day grace
+window justified by PK/PD and AKI latency).<br>• <strong>Death</strong>
+→ treated as a <em>competing risk</em> in the primary analysis
+(Fine-Gray); also analysed as administrative censoring in sensitivity
+analysis.<br>• <strong>Lost to follow-up</strong> → handled as missing
+data; address with inverse-probability-of-censoring weights. | |
+<strong>Endpoint</strong> | Time to first AKI meeting a KDIGO-compatible
+ICD-10 algorithm, occurring on or within the grace window after
+exposure; document algorithm PPV. | | <strong>Summary measure</strong> |
+<strong>Primary:</strong> Cause-specific hazard ratio for AKI during
+treatment.<br><strong>Key secondary:</strong> 12-week risk difference
+(e.g., RMST or Aalen estimator). | | <strong>Sensitivity / supplementary
+estimands</strong> | Pre-specified: (i) ITT-style treatment-policy
+estimand, (ii) hypothetical “no discontinuation” estimand, (iii)
+per-protocol / principal-stratum proxy among completers. | |
+<strong>Rationale</strong> | Aligns with clinical objective of
+quantifying direct nephrotoxic effect during exposure; obeys ICH E9(R1)
+principles; analytic plan mitigates informative censoring and
+competing-risk bias; eases regulatory review. | *Detailed Justification
+for chosen estimand in the appendix 6. Alternative Estimand Strategies
+and Trade-offs for SOF vs Non-SOF (Discussion) Having recommended the
+while-on-treatment estimand, it’s important to acknowledge other
+reasonable estimand choices and discuss their pros and cons in this
+context: ● Treatment-Policy as an alternative: A treatment-policy
+estimand (ITT-like) could be justified if our objective was more about
+the overall impact of initiating SOF on patient outcomes, rather than
+the direct causal effect of the drug. For example, a public health
+authority might be interested in “if 1,000 patients are started on SOF
+vs 1,000 on older regimens, how many AKI cases will ultimately occur in
+each group?” This includes the fact that some patients may stop the drug
+– which in practice could limit the harm (because those who experience
+issues stop early). A treatment-policy analysis would capture that
+dynamic. The advantage is it reflects “real-world use” including
+adherence patterns. It also avoids the need to model or adjust for
+post-baseline variables – you simply follow everyone. In a randomized
+trial, ITT is king for efficacy to avoid bias; for safety in
+observational data, however, the situation is trickier. The drawback of
+treatment-policy here is potential dilution of the drug’s effect. If SOF
+truly causes AKI, many patients might discontinue at first sign of
+kidney issues – those patients might avoid full-blown AKI (which is good
+for them, but the analysis would then count them as not having AKI while
+on SOF, even though SOF precipitated the problem that made them stop).
+Thus, the ITT estimand might conclude “no big difference in AKI rates,”
+whereas in truth SOF had nephrotoxic potential but it was mitigated by
+clinicians stopping the drug. From a regulator’s perspective, that ITT
+result is less useful because it doesn’t reveal the drug’s inherent
+risk. That said, a treatment-policy estimand could be an equally valid
+secondary analysis – it answers a complementary question: “what is the
+risk difference in a world where patients and doctors behave normally
+(stopping when needed)?” This might be relevant for risk-benefit
+assessment on a population level. For instance, if ITT shows only a tiny
+increase in AKI (because many at-risk patients stopped early),
+regulators might consider that in context of drug benefits. But they
+would still want to know the on-treatment risk to properly caution and
+manage patients. In summary, treatment-policy is not our choice for
+primary estimand due to interpretability concerns for safety, but it is
+not “wrong” – it’s just answering a different question. It has lower
+internal bias (no selection due to censoring) but mixes in the effects
+of patient management. ● Hypothetical estimand trade-offs: The
+hypothetical strategy (imagine no one discontinued) in practice often
+ends up looking similar to the while-on-treatment analysis, except
+achieved via modeling rather than actual censoring. If our data shows,
+say, 90% of patients completed therapy, a while-on-treatment estimand
+already is very close to “everyone continued” scenario. If
+discontinuation rates are higher, one might consider a hypothetical
+estimand to estimate “if 100% continued.” The benefit of the
+hypothetical approach is that it directly addresses the question of full
+adherence without excluding those patients from the analysis (unlike
+censoring). Modern methods (like multiple imputation for treatment
+continuation) could be used to estimate what their outcomes might have
+been. The cost, however, is the strong modeling assumptions required. If
+we model kidney outcomes beyond discontinuation, we must correctly
+account for why they discontinued and how that relates to AKI risk.
+Mis-specification can lead to bias as well. In regulatory settings,
+hypothetical estimands have been used for efficacy (e.g. “if no rescue
+medication, what would the outcome have been” in glucose trials). For
+safety, it’s less common to explicitly do a hypothetical because the
+while-on-treatment analysis already addresses a similar question in a
+more straightforward way (by using observed data up to discontinuation).
+Nevertheless, one could consider a hypothetical estimand as a
+sensitivity analysis: for example, “assuming patients who stopped SOF
+had the same risk profile as if they stayed on it, how many AKIs would
+have occurred?” If that yields similar results to the as-treated
+analysis, it increases confidence; if it differs, it suggests the
+censoring might have missed something. In the SOF vs non-SOF study, a
+hypothetical estimand isn’t necessary given we can handle things via
+censoring, but it’s conceptually equivalent to ensuring our inference is
+about the treatment effect under continuous use. ● Principal Stratum
+considerations: As noted, a principal stratum estimand like “effect
+among those who would adhere to treatment in both groups” is hard to
+identify but could be of scientific interest. It essentially removes the
+noise of non-adherence from both sides. The trade-off is that it
+pertains to a subset of patients (those who can tolerate and stick with
+therapy). If, for instance, younger patients with no comorbidities are
+the ones who would never stop either treatment, the principal stratum
+effect applies mostly to that kind of patient. It might be different
+from the effect in older patients who tend to discontinue more. Thus,
+principal stratum estimands sacrifice generalizability – you answer a
+very specific question about a hypothetical subgroup. They also require
+either simplifying assumptions or sophisticated causal inference
+techniques (like instrumental variable approaches or sensitivity
+analyses) to estimate. In an observational SOF vs non-SOF study, one way
+to approximate this is to restrict the analysis to patients who actually
+completed therapy in both groups (observational analog of per-protocol
+analysis). That is essentially conditioning on adherence, which is
+biased (adherers may differ from non-adherers). So, one might use
+inverse probability weighting to create a pseudo-population that
+represents the principal stratum of completers. This is advanced and
+would likely be beyond what an RWE team needs for a routine analysis
+unless there’s a strong reason to focus on that question. Generally,
+we’d mention principal stratum only if, say, the sponsor or regulator
+asked: “What is the effect in patients who can actually complete the
+therapy course? Is it different?” If that’s a concern, one could do a
+secondary analysis on completers, acknowledging its limitations. Bias,
+interpretability, generalizability summary: Each estimand involves
+trade-offs: ● Bias: Treatment-policy avoids bias from informative
+censoring but can “dilute” the effect; as-treated isolates the effect
+but can introduce bias if not handled properly (need to account for why
+censoring happens). Hypothetical relies on model assumptions (risk of
+model bias). Principal stratum avoids some biases by narrowing focus but
+introduces others (selection bias, unless perfectly adjusted). ●
+Interpretability: As-treated and hypothetical directly address causal
+effects of the drug (easy for clinicians to interpret “while on drug vs
+while off drug”). Treatment-policy is a mix of drug effect and adherence
+behavior – interpretability is a bit more complicated (“effect of
+starting treatment strategy”). Principal stratum is clear in meaning
+(“effect in this subgroup”) but that subgroup is not directly observable
+– a bit abstract. ● Generalizability: Treatment-policy might generalize
+best to broad practice (since it includes everything that happens in
+practice). As-treated/hypothetical generalize to situations of good
+adherence or controlled treatment use – which is often what we want for
+understanding the drug, but if adherence patterns differ across
+populations, the effect could differ. Principal stratum by definition is
+not aiming to generalize to the whole population, just a part. In the
+case of SOF vs non-SOF, we believe the bias introduced by as-treated is
+manageable (we can adjust for baseline differences and we will
+demonstrate techniques to handle differential censoring using targeted
+maximum likelihood estimation) and is worth the gain in causal
+interpretability. Treatment-policy would be more likely to understate a
+true causal harm if one exists (a form of bias in estimating the causal
+effect of continuous treatment, though it’s unbiased for the “policy”
+effect). Importantly, if the estimand is properly aligned to the
+question, then “bias” must be defined relative to that question. So an
+ITT analysis isn’t “biased” if the estimand of interest was truly the
+policy effect; it just might be answering a less relevant question for
+safety. Thus, a key part of estimand selection is picking the question
+such that the resulting estimate is meaningful and actionable. For
+completeness, we might pre-specify that we will also estimate a
+secondary treatment-policy estimand for AKI, to see the difference. If,
+for example, the as-treated analysis shows a significantly higher AKI
+risk on SOF, but the ITT analysis shows little difference, that tells a
+story: the drug causes problems, but patients and doctors are mitigating
+it by discontinuing (so ultimate outcomes converge). Both pieces of
+information can be valuable. We would explain that difference in
+regulatory discussions – it actually illustrates how clinical management
+can reduce harm. Conversely, if both ITT and as-treated show a similar
+elevated risk, it means even including the “real-world adherence”
+factor, SOF still carries the same risk, underscoring a robust safety
+signal. 7. General Advice on Estimand Selection in RWE Time-to-Event
+Safety Analyses To conclude, here are some generalizable tips for
+selecting estimands in real-world evidence studies of post-market safety
+(time-to-event outcomes): ● Start with a well-defined research question:
+Clearly articulate what decision or effect you are interested in. Is it
+the effect of initiating a therapy vs not (or vs another therapy) on an
+outcome, regardless of what happens later? Or the effect of actually
+being exposed to the therapy on that outcome? Or perhaps the effect in a
+particular patient subset? Writing this out in plain language helps
+identify the estimand. For example: “Do patients have a higher risk of
+AKI while on Drug A compared to Drug B?” points to a while-on-treatment
+estimand, whereas “If we prescribe Drug A instead of Drug B, will fewer
+patients develop AKI within 1 year?” points to a more treatment-policy
+estimand. ● Emulate a “target trial” to define estimand attributes: As a
+framework, imagine you were designing the ideal randomized trial to
+answer your question ● arxiv.org ● . Define who you would include
+(population), what the treatment and comparison arms would be (treatment
+strategies), how you’d handle changes in treatment in the protocol, when
+follow-up would start and end, and what outcome you’d measure. This
+exercise naturally defines the estimand. In the trial protocol you’d
+specify if patients are allowed to switch or if they’d be taken off
+study drug upon certain events – those translate to estimand strategies.
+By doing this, you make sure your observational study’s estimand is
+concrete. For instance, target trial emulation for a safety study might
+decide that if a patient in the trial has a toxicity, they discontinue
+per protocol – aligning with a while-on-treatment estimand (because
+after discontinuation, their outcome isn’t counted towards primary
+endpoint). You then ensure your observational analysis mirrors that
+(censor at discontinuation in analysis). Hernán et al. note that making
+the target trial explicit is a good practice and a “reasonably
+well-defined trial” should be emulated as closely as possible ●
+arxiv.org ● – if you can’t even define a meaningful target trial, the
+RWE study question might be too vague. ● Identify all relevant
+intercurrent events: In time-to-event analyses, common intercurrent
+events include treatment discontinuation, switching to a new treatment,
+addition of concomitant treatments, and death. Also consider events like
+hospitalization that might interrupt treatment, etc., if relevant. For
+each type of intercurrent event, consciously decide on a strategy before
+you see the data. Ask how each event impacts the interpretation of the
+outcome. For example, “If the patient switches to another drug, do I
+still attribute subsequent events to the original drug
+(treatment-policy), or do I stop follow-up at that point
+(while-on-treatment), or do I consider a hypothetical scenario where
+they hadn’t switched?” There isn’t one correct answer for all studies –
+it depends on the question. But you need to pre-specify it. This
+prevents bias and p-hacking, and it makes the study reproducible and
+transparent. ● Align the estimand with the study’s purpose (stakeholder
+needs): Different stakeholders may care about different effects ●
+pmc.ncbi.nlm.nih.gov ● . Clinicians might want to know the per-protocol
+effect (what happens if my patient actually takes this drug as
+intended). Regulators might want the policy effect (what happens in
+aggregate if this drug is on the market and used with typical
+adherence). Patients might want to know their personal risk if they
+adhere to treatment. Usually for safety, the clinical and regulatory
+interest is in the actual causal effect of the drug, so an estimand that
+gets closer to that (like while-on-treatment) is favored. But if your
+study is meant to inform, say, formulary decisions or
+cost-effectiveness, a more pragmatic estimand might be used. The key is:
+think from the end-user’s perspective – what question do they need
+answered? Then choose the estimand that answers it. This prevents
+situations where you present an analysis that, while statistically
+correct, doesn’t address the real concern of decision-makers. ● Beware
+of implicitly unrealistic estimands: As Hernán &amp; Scharfstein warned,
+don’t inadvertently answer a question that nobody is asking or that is
+not actionable ● researchgate.net ● . For example, an estimand that
+effectively compares “patients who stay on Drug A no matter what” to
+“patients who can switch away from Drug B if issues arise” would be a
+mismatched comparison. Ensure symmetry in comparisons and clinical
+relevance. If certain intercurrent events are very likely (e.g., many
+will switch), a pure hypothetical of “nobody switches” might be too far
+from reality to be useful (unless you’re specifically interested in that
+scenario). Balance realism with the desire to isolate effects. ● Plan
+for analysis methods that match the estimand: Once you choose an
+estimand, make sure your statistical approach follows suit. For a
+while-on-treatment estimand, you will likely be censoring data – so use
+methods to handle that (Kaplan-Meier, Cox models with appropriate
+censoring, maybe inverse probability of censoring weights if censoring
+is informative). For a treatment-policy estimand, ensure you’re not
+censoring at treatment changes (but you might need methods to handle
+treatment switching as a form of confounding if patients switched due to
+risk – e.g., rank-preserving structural models or treat switch as
+time-varying exposure in a sensitivity analysis). If using a
+hypothetical estimand, define the modeling approach to impute or project
+outcomes (like “we will use a joint model to extrapolate kidney function
+trajectory as if treatment continued”). Essentially, the estimand tells
+you what data to use or not use, and the analysis must implement that
+faithfully ● ema.europa.eu ● . Also, consider missing data separate from
+estimand – per ICH E9, missing data (loss to follow-up, etc.) is not an
+intercurrent event but a challenge to address analytically ●
+database.ich.org ● . So plan imputation or sensitivity for missing data
+after defining the estimand. ● Conduct sensitivity analyses for
+alternative estimands: It’s often informative to do your primary
+analysis under one estimand and a secondary under another to see how
+conclusions differ. Especially in RWE, where assumptions are strong,
+demonstrating consistency across estimand strategies can bolster
+confidence. For example, if you choose while-on-treatment as primary,
+you might also report an ITT-like analysis. If results converge (e.g.,
+both show elevated risk), great – robust finding. If they diverge, that
+tells a story (as discussed, perhaps indicating the effect is manifested
+only while on drug). Similarly, one could try a principal stratum
+approximation (like per-protocol analysis in those who adhered,
+acknowledging biases) to see if the effect is larger or smaller in that
+subset. Consistency across these gives insight into how intercurrent
+events influence the observed effect. When presenting to regulators,
+acknowledging these alternate analyses shows you have thoroughly
+examined the question from multiple angles and understand the impact of
+your assumptions ● database.ich.org ●<br />
+● database.ich.org ● . ● Document and justify your choices: In any
+protocol or report, explicitly state the estimand (with its components)
+and why it was chosen. For instance, “We chose a treatment-period
+estimand because we are interested in the on-treatment causal effect of
+Drug X on Event Y, and this aligns with how the adverse event would be
+attributed to the drug clinically.” Also explain how each type of
+intercurrent event is handled and why that is appropriate. This level of
+detail will make it easier for others (e.g., a regulatory reviewer) to
+follow your logic and agree that the analysis is answering the right
+question. It also makes the study reproducible, as another researcher
+could apply the same estimand definition to a different dataset and
+expect to address the same question. ● Involve clinical experts in
+estimand discussions: Estimand selection is inherently multidisciplinary
+● database.ich.org ● . Engage clinicians or pharmacovigilance experts
+who understand the disease, treatment, and real-world patient behavior.
+They can provide insight on which events are important and how best to
+define the question. For example, a clinician might say “If a patient’s
+creatinine starts rising, I’d stop the drug immediately” – which
+supports a while-on-treatment approach or a composite endpoint including
+“rise in creatinine leading to stop.” Such input ensures the estimand is
+grounded in real clinical pathways. ● Keep the estimand simple and
+focused: Especially for an audience not deeply familiar with the
+estimand framework, it’s important to communicate the estimand in a
+clear, concise way. Avoid overly technical language when explaining it
+to stakeholders – you can use plain language alongside the formal
+definition. For instance, you might say: “Our estimand is essentially
+looking at the risk difference in AKI between the two treatments during
+the time patients are actually on those treatments.” Once that concept
+is understood, you can layer in the finer points of censoring rules,
+etc. The goal is everyone (analysts, clinicians, decision-makers) has a
+shared understanding of what is being estimated. By following these
+principles, an RWE team can confidently select and implement an estimand
+that makes their analysis robust, transparent, and fit for purpose. In
+the case of our SOF vs non-SOF AKI analysis, this approach led us to
+focus on the treatment-period effect, providing a clear answer to the
+causal question of interest. Adopting the estimand framework in
+observational research ultimately improves the quality of evidence we
+generate, ensuring it answers the questions that matter in a rigorous
+way.</p>
+</div>
+<div id="target-estimands" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> 4 Target Estimands</h1>
 <p>The AKI study used an <strong>as-treated, censor-at-switch</strong>
 estimand (★).<br />
 Alternative estimands answer related questions or relax assumptions.</p>
@@ -491,8 +1205,8 @@ implausible</td>
 </tr>
 </tbody>
 </table>
-<div id="choosing-among-estimands" class="section level2" number="3.1">
-<h2><span class="header-section-number">3.1</span> Choosing among
+<div id="choosing-among-estimands" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Choosing among
 estimands</h2>
 <ul>
 <li><strong>Regulatory safety signal</strong> – ★ As-treated is
@@ -509,8 +1223,8 @@ per-protocol estimands focus on inherent nephro-toxicity.</li>
 must align with the chosen estimand.</p>
 </div>
 </div>
-<div id="place-holder-for-code" class="section level1" number="4">
-<h1><span class="header-section-number">4</span> 4 Place-holder for
+<div id="place-holder-for-code" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> 4 Place-holder for
 Code</h1>
 <ul>
 <li><strong>W</strong> – baseline confounders (age, sex, CKD, diabetes,
@@ -533,8 +1247,8 @@ coverage<br />
 <em>(A0, C(t))</em> and <em>Y(t)</em> given <em>W</em>.</li>
 </ol>
 </div>
-<div id="target-estimands-1" class="section level1" number="5">
-<h1><span class="header-section-number">5</span> 3 Target Estimands</h1>
+<div id="target-estimands-1" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> 3 Target Estimands</h1>
 <p>The AKI study used an <strong>as-treated, censor-at-switch</strong>
 estimand (★).<br />
 Alternative estimands answer related questions or relax assumptions.</p>
@@ -607,8 +1321,8 @@ implausible</td>
 </tbody>
 </table>
 <div id="choosing-among-estimands-1" class="section level2"
-number="5.1">
-<h2><span class="header-section-number">5.1</span> Choosing among
+number="7.1">
+<h2><span class="header-section-number">7.1</span> Choosing among
 estimands</h2>
 <ul>
 <li><strong>Regulatory safety signal</strong> – ★ As-treated is
@@ -624,8 +1338,8 @@ per-protocol estimands focus on inherent nephro-toxicity.</li>
 <p>Subsequent Roadmap steps (identification, estimation, sensitivity)
 must align with the chosen estimand.</p>
 </div>
-<div id="causal-model-ggdag-plot" class="section level2" number="5.2">
-<h2><span class="header-section-number">5.2</span> 2 Causal Model –
+<div id="causal-model-ggdag-plot" class="section level2" number="7.2">
+<h2><span class="header-section-number">7.2</span> 2 Causal Model –
 ggdag plot</h2>
 <pre class="r"><code>library(tidyverse) </code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
@@ -673,8 +1387,8 @@ ggdag(aki_dag, text = FALSE, use_labels = &#39;name&#39;, seed = 123) +
 </div>
 </div>
 <div id="step-1-defining-the-causal-question-model-and-estimands"
-class="section level1" number="6">
-<h1><span class="header-section-number">6</span> Step 1 — Defining the
+class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Step 1 — Defining the
 Causal Question, Model, and Estimands</h1>
 <p>In the causal inference roadmap, clearly defining the scientific
 question, causal model, and target estimands is critical for valid
@@ -789,6 +1503,938 @@ unrealistic</td>
 </tr>
 </tbody>
 </table>
+<p>Target trial emulation: Explicit framing of observational studies as
+emulations of hypothetical randomized controlled trials (RCTs) helps
+clarify causal questions and ensures proper alignment of the estimand
+with clinical or regulatory relevance.</p>
+<p>Restricted Mean Survival Time (RMST): Suggested as an additional
+estimand, especially beneficial under non-proportional hazards
+conditions due to interpretability as an average delay in event
+occurrence.</p>
+<div id="table-1" class="section level3" number="8.0.1">
+<h3><span class="header-section-number">8.0.1</span> Table 1</h3>
+<table style="width:100%;">
+<colgroup>
+<col width="1%" />
+<col width="17%" />
+<col width="10%" />
+<col width="36%" />
+<col width="30%" />
+<col width="4%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Menu of candidate estimands</th>
+<th>#</th>
+<th>Label</th>
+<th>Measure</th>
+<th>Population &amp; intercurrent-event strategy</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1</strong></td>
+<td><strong>Primary ITT</strong></td>
+<td>ΔRisk, RR</td>
+<td>All initiators; ignore switching (treatment-policy)</td>
+<td>Effect of <em>offering</em> SOF regimen</td>
+<td>Regulatory default</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>ITT RMST diff</td>
+<td>RMST_0-90</td>
+<td>Same as 1</td>
+<td>Average delay in AKI</td>
+<td>Non-PH robust</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>Per-protocol</td>
+<td>ΔRisk on-tx</td>
+<td>Censor 30 d after switch</td>
+<td>Effect of <em>continuous exposure</em></td>
+<td>Needs IPCW</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>Cause-specific HR</td>
+<td>Cox HR</td>
+<td>Censor at switch/death</td>
+<td>Instantaneous hazard ratio</td>
+<td>HR caveats</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>Sub-distribution HR</td>
+<td>Fine-Gray SHR</td>
+<td>Treat death as competing risk</td>
+<td>Effect on cumulative incidence</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>Principal stratum</td>
+<td>RD in adherers</td>
+<td>Restrict to “would adhere ≥ 8 wk” stratum</td>
+<td>Biological efficacy</td>
+<td>Strong assumptions</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>CKD subgroup</td>
+<td>RD | CKD</td>
+<td>eGFR &lt; 60 at baseline</td>
+<td>Effect in CKD population</td>
+<td>Lower power</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>Guideline g-formula</td>
+<td>ΔRisk under rule</td>
+<td>Dynamic rule: “start SOF if eGFR &gt; 30”</td>
+<td>Effect of guideline policy</td>
+<td>Needs longitudinal TMLE</td>
+</tr>
+</tbody>
+</table>
+<table>
+<colgroup>
+<col width="10%" />
+<col width="29%" />
+<col width="31%" />
+<col width="29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Strategy</th>
+<th>Core idea &amp; target quantity</th>
+<th>Scientific question answered</th>
+<th>Typical analytical choices</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Treatment-policy</strong> (“intention-to-treat–like”)</td>
+<td>The outcome is taken <strong>as observed</strong>, regardless of any
+post-randomization (intercurrent) events. The target parameter is the
+effect had <em>everyone been assigned</em> the experimental vs. control
+regimen, with no restrictions on what happens thereafter.</td>
+<td><em>“What is the effect of starting treatment X compared with Y in
+real-world clinical use, where dose changes, rescue meds and adherence
+issues occur?”</em></td>
+<td>Analyse all randomized patients from time 0 to the planned end of
+follow-up; do <strong>not</strong> censor at intercurrent events. For
+T2E endpoints this often implies Kaplan–Meier/Cox with administrative
+censoring only (but beware that the hazard ratio may then mix direct and
+indirect pathway effects).</td>
+</tr>
+<tr class="even">
+<td><strong>Hypothetical</strong></td>
+<td>Imagine a world in which a specific intercurrent event <strong>would
+not occur</strong>. The estimand contrasts the counterfactual outcomes
+under treatment vs. control <em>if</em> everyone were prevented from
+experiencing that event.</td>
+<td><em>“What would the treatment effect be if no patient discontinued
+because of intolerance?”</em></td>
+<td>Requires modelling or imputation: e.g. (i) censor at the
+intercurrent event <em>and</em> assume independent censoring (→ standard
+survival methods) or (ii) impute post-event outcomes via multiple
+imputation / g-formula / joint modelling. The key is to articulate (and
+justify) the assumptions used to emulate the hypothetical world.</td>
+</tr>
+<tr class="odd">
+<td><strong>While-on-treatment</strong></td>
+<td>Focus on outcomes <strong>up to</strong> the intercurrent event
+(treatment discontinuation, switch, etc.). The estimand is the treatment
+effect <em>while patients remain on their originally assigned
+therapy</em>.</td>
+<td><em>“What is the effect of treatment X compared with Y, up to the
+point a patient stops or switches?”</em></td>
+<td>Right-censor at the intercurrent event; then estimate
+survival/objective up to that time. Valid inference needs a “no
+unmeasured prognostic reason for stopping” assumption (independent
+censoring given covariates). The resulting quantity is sometimes called
+the <em>per-protocol</em> or <em>on-treatment</em> effect.</td>
+</tr>
+<tr class="even">
+<td><strong>Principal-stratum</strong></td>
+<td>Restrict comparison to the latent subgroup of patients who
+<strong>would not experience</strong> the intercurrent event <em>under
+either treatment</em>. The estimand is the causal effect within that
+principal stratum.</td>
+<td><em>“Among patients who would adhere fully irrespective of
+assignment, what is the treatment effect?”</em></td>
+<td>Requires methods from causal inference (e.g. instrumental-variable
+approaches, g-estimation, Bayesian mixture models) to identify the
+unobservable stratum. Generally complex and assumption-dependent; rarely
+the primary estimand in regulatory trials but useful for
+sensitivity/supportive analysis.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<colgroup>
+<col width="1%" />
+<col width="8%" />
+<col width="17%" />
+<col width="21%" />
+<col width="14%" />
+<col width="11%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Label / Estimand</th>
+<th>Measure (target statistical quantity)</th>
+<th>Population &amp; strategy for intercurrent events</th>
+<th>Interpretation of the estimand</th>
+<th>Notes / typical analysis</th>
+<th>Causal question for the HepC–AKI study (SOF vs non-SOF)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>Primary ITT</strong> (treatment-policy)</td>
+<td>ΔRisk or Risk Ratio over 0-90 d</td>
+<td>All initiators; ignore switching, discontinuation or death during
+the 90 d window</td>
+<td>Effect of <em>offering</em> a SOF-containing regimen versus a
+non-SOF regimen on 90-day cumulative AKI risk</td>
+<td>Regulatory default; implement with Kaplan–Meier risk difference /
+ratio or TMLE for risk</td>
+<td><em>“Among all HCV patients who start any DAA, how would the 90-day
+risk of AKI differ if every patient were assigned a SOF regimen versus
+if every patient were assigned a non-SOF regimen?”</em>
+:contentReference<span index="0">oaicite:0</span>​:contentReference<span
+index="1">oaicite:1</span></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>ITT RMST difference</strong></td>
+<td>Difference in Restricted Mean Survival Time (RMST) for event-free
+days 0-90</td>
+<td>Same population &amp; strategy as #1</td>
+<td>Average delay (or acceleration) of AKI within 90 d</td>
+<td>Robust to non-proportional hazards; estimate via RMST package or
+TMLE for RMST</td>
+<td><em>“What is the average increase (or decrease) in AKI-free days
+during the first 90 days if all initiators received SOF versus
+non-SOF?”</em></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>Per-protocol</strong> (while-on-treatment)</td>
+<td>ΔRisk while on-treatment; censor 30 d after switch/stop</td>
+<td>Patients followed until 30 d after discontinuation or switch; censor
+thereafter</td>
+<td>Effect of <em>continuous exposure</em> to SOF vs non-SOF</td>
+<td>Needs inverse-probability of censoring weights (IPCW) or
+longitudinal TMLE</td>
+<td><em>“Among patients who would remain on their initial DAA for ≥30
+days, what would be the difference in AKI risk had they stayed on SOF
+the whole time versus stayed on non-SOF?”</em></td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>Cause-specific HR</strong></td>
+<td>Cox cause-specific Hazard Ratio</td>
+<td>Censor at treatment switch and at death; competing events treated as
+censoring</td>
+<td>Instantaneous hazard among still-at-risk individuals</td>
+<td>HR depends on proportional-hazard assumption; interpret with caution
+:contentReference<span index="2">oaicite:2</span>​:contentReference<span
+index="3">oaicite:3</span></td>
+<td><em>“At any given day among patients still alive, what is the
+instantaneous rate of AKI if they were on SOF compared with if they were
+on non-SOF, assuming they have not switched regimens?”</em></td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>Sub-distribution HR</strong> (Fine–Gray)</td>
+<td>Sub-distribution Hazard Ratio</td>
+<td>Treat death as a competing risk, keep treatment switching as
+censoring</td>
+<td>Effect of treatment on cumulative incidence function of AKI
+accounting for competing death</td>
+<td>Useful when death precludes AKI and is common</td>
+<td><em>“How does initiating SOF (vs non-SOF) change the cumulative
+incidence of AKI over follow-up when deaths are treated as competing
+events?”</em></td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>Principal-stratum</strong></td>
+<td>Risk Difference among latent adherers (≥8 wk)</td>
+<td>Restrict to patients who <em>would</em> adhere ≥8 weeks under either
+regimen</td>
+<td>Biological efficacy in always-adherers</td>
+<td>Requires strong, unverifiable assumptions or IV/g-estimation</td>
+<td><em>“Among HCV patients who would adhere to ≥8 weeks of therapy
+regardless of which DAA they start, what is the difference in AKI risk
+if they took SOF versus non-SOF?”</em></td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td><strong>CKD subgroup estimand</strong></td>
+<td>Risk Difference in eGFR &lt; 60 subgroup</td>
+<td>Population limited to baseline CKD; treatment-policy for
+intercurrent events</td>
+<td>Effect in patients with chronic kidney disease</td>
+<td>Lower power; prespecified subgroup</td>
+<td><em>“Within the subgroup of HCV patients with baseline eGFR &lt; 60
+mL/min/1.73 m², how would the risk of AKI change if all received SOF
+rather than non-SOF?”</em></td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td><strong>Guideline g-formula rule</strong> (dynamic regimen)</td>
+<td>ΔRisk under a dynamic treatment rule</td>
+<td>Rule: “start SOF only if baseline eGFR &gt; 30”; censor
+deviations</td>
+<td>Effect of guideline-based policy compared with universal
+non-SOF</td>
+<td>Needs longitudinal TMLE / parametric g-formula</td>
+<td><em>“What would be the population 90-day AKI risk if clinicians
+followed the rule <em>‘prescribe SOF only when eGFR &gt; 30’</em> versus
+prescribing non-SOF to everyone?”</em></td>
+</tr>
+</tbody>
+</table>
+<table style="width:100%;">
+<colgroup>
+<col width="1%" />
+<col width="8%" />
+<col width="18%" />
+<col width="22%" />
+<col width="15%" />
+<col width="12%" />
+<col width="19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Label / Estimand</th>
+<th>Measure (target statistical quantity)</th>
+<th>Population &amp; strategy for intercurrent events</th>
+<th>Interpretation of the estimand</th>
+<th>Notes / typical analysis</th>
+<th><strong>Causal Roadmap &amp; TL considerations</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>Primary ITT</strong> (treatment-policy)</td>
+<td>ΔRisk or Risk Ratio 0-90 d</td>
+<td>All initiators; ignore switching, death</td>
+<td>Effect of <em>offering</em> SOF regimen</td>
+<td>Kaplan–Meier or TMLE for risk</td>
+<td>• Roadmap Step 0: confirm the clinical question really is pragmatic.
+• Prefer risk/RMST over Cox HR (HR non-causal). • Use TMLE + SL to
+adjust for baseline covariates and minimise model miss-specification. •
+Document assumptions (positivity, no un-measured confounding) and report
+a non-parametric sensitivity curve to show how large a “causal gap”
+would overturn inference. :contentReference<span
+index="1">oaicite:1</span></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>ITT RMST difference</strong></td>
+<td>Δ RMST<sub>0-90</sub></td>
+<td>Same as #1</td>
+<td>Mean delay/acceleration of AKI</td>
+<td>RMST plug-in or TMLE for RMST</td>
+<td>• RMST is a causal <em>contrast in the survival scale</em> endorsed
+by Chen 2023 as more interpretable than HR. • Same
+estimation/sensitivity principles as row 1, plus check administrative
+censoring assumptions. :contentReference<span
+index="2">oaicite:2</span>​:contentReference<span
+index="3">oaicite:3</span></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>Per-protocol</strong> (while-on-treatment)</td>
+<td>ΔRisk while on-tx (censor 30 d post-switch)</td>
+<td>Follow until 30 d after switch/stop</td>
+<td>Effect of <em>continuous exposure</em></td>
+<td>IPCW / longitudinal TMLE</td>
+<td>• Roadmap Step 1: encode time-varying data structure. • Identify
+longitudinal confounders of adherence and outcome; estimate dynamic
+weights or fit sequential-TMLE. • Positivity often fragile → report
+diagnostics &amp; truncate weights as in Williamson 2023.
+:contentReference<span index="4">oaicite:4</span>​:contentReference<span
+index="5">oaicite:5</span></td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>Cause-specific HR</strong></td>
+<td>Cox HR</td>
+<td>Censor at switch/death</td>
+<td>Instantaneous hazard among survivors</td>
+<td>Standard Cox ± IPCW</td>
+<td>• Roadmap warns HR rarely equals causal effect. • If kept, accompany
+with causal parameter such as risk difference and justify PH assumption;
+otherwise replace with TMLE-based risk or RMST. • Show how HR estimate
+shifts when g-computation or TMLE is applied. :contentReference<span
+index="6">oaicite:6</span></td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>Sub-distribution HR</strong> (Fine-Gray)</td>
+<td>SHR</td>
+<td>Death as competing risk</td>
+<td>Effect on cumulative incidence</td>
+<td>Fine-Gray / Aalen-Johansen</td>
+<td>• Prefer direct estimation of CIF difference with TMLE instead of
+SHR (non-collapsible). • Explicitly include competing death as
+intercurrent event per Roadmap Step 0. • Sensitivity: vary
+death-as-competing vs composite.</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>Principal-stratum</strong></td>
+<td>RD in latent adherers (≥8 wk)</td>
+<td>Restrict to “always-adherers”</td>
+<td>Biological efficacy</td>
+<td>IV / mixture models</td>
+<td>• Roadmap Step 3 highlights lack of identifiability. • State
+unverifiable assumptions; implement Bayesian or IV-based bounds; present
+a bias-robust interval (causal gap plot).</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td><strong>CKD subgroup</strong></td>
+<td>RD in eGFR &lt; 60</td>
+<td>Sub-pop of CKD; tx-policy for events</td>
+<td>Effect in CKD patients</td>
+<td>Stratified TMLE; lower power</td>
+<td>• Roadmap: prespecify subgroup, avoid post-hoc fishing. • Ensure
+positivity within subgroup; otherwise use pooled-targeted estimation
+with interaction term and report shrinkage-based CI (Gruber 2024 Sect
+4). :contentReference<span
+index="7">oaicite:7</span>​:contentReference<span
+index="8">oaicite:8</span></td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td><strong>Guideline g-formula rule</strong></td>
+<td>ΔRisk under dynamic rule</td>
+<td>“Start SOF if eGFR &gt; 30”; censor deviations</td>
+<td>Effect of guideline policy</td>
+<td>Parametric g-formula / longitudinal TMLE</td>
+<td>• Roadmap Step 2: define intervention as explicit stochastic policy.
+• Check support along rule‐defined paths (positivity). • Estimate with
+iterative TMLE; present policy-based risk curve and Monte-Carlo CI;
+perform causal-gap sensitivity to violations of sequential
+exchangeability. :contentReference<span
+index="9">oaicite:9</span>​:contentReference<span
+index="10">oaicite:10</span></td>
+</tr>
+</tbody>
+</table>
+<div id="legend-of-new-column" class="section level4" number="8.0.1.1">
+<h4><span class="header-section-number">8.0.1.1</span> Legend of new
+column</h4>
+<p>Roadmap Step 0–6 refer to the ordered tasks in the Causal Roadmap
+(formulate question, specify causal/statistical models, identify,
+estimate with TL, and conduct sensitivity analysis). TMLE + SL =
+Targeted-Minimum-Loss Estimation with Super-Learner ensemble; delivers
+double-robust, efficiency-optimal estimates recommended by Chen 2023 and
+Gruber 2024. “Causal gap” denotes the residual bias that would remain if
+any identifying assumption fails; Roadmap Step 5 advocates reporting how
+large a gap would flip the study’s conclusion.</p>
+<p>Additional Recommended Estimands from RoadmapV2: # Label Measure
+Strategy Interpretation Notes 2 ITT RMST difference RMST_0-90 Ignore
+switching (treatment-policy) Average delay in AKI Non-proportional
+hazard robust 5 Sub-distribution HR Fine-Gray Death as competing risk
+Effect on cumulative incidence Competing risk scenario 6 Principal
+stratum RD in adherers Restrict to adherers stratum Biological efficacy
+among adherent group Requires strong assumptions</p>
+<p>Negative Control Outcomes and Exposures: RoadmapV2 explicitly
+recommends negative controls such as “ankle sprain” and proton-pump
+inhibitor (PPI) use to assess residual confounding and strengthen the
+plausibility of causal inferences.</p>
+</div>
+</div>
+<div id="unified-estimand-table" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> 1 Unified Estimand
+Table</h2>
+<table>
+<colgroup>
+<col width="1%" />
+<col width="6%" />
+<col width="6%" />
+<col width="12%" />
+<col width="9%" />
+<col width="13%" />
+<col width="7%" />
+<col width="11%" />
+<col width="12%" />
+<col width="9%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Estimand Label</th>
+<th>Population (P)</th>
+<th>Intervention / Comparator (A)</th>
+<th>Outcome / Endpoint (Y)</th>
+<th>Handling of Intercurrent Events</th>
+<th>Summary Measure</th>
+<th>Identification Assumptions</th>
+<th>Primary Estimation Strategy</th>
+<th>Rationale / Use-case</th>
+<th><strong>Used in AKI Study?</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>Primary “Per-Protocol with Censoring at
+Switch”</strong></td>
+<td>Adults with chronic HCV initiating first SOF vs non-SOF DAA, U.S.
+claims 2016–2023</td>
+<td>Start SOF-containing DAA (vs active non-SOF comparator) — baseline
+new-user design</td>
+<td>First AKI event within treatment + 30-day risk window</td>
+<td><em>Treatment switch → censor</em>; other treatment stops → censor;
+disenrol/death → censor</td>
+<td>180-day risk difference &amp; risk ratio; cause-specific HR
+(Cox/TMLE)</td>
+<td>Consistency; conditional exchangeability at baseline;
+non-informative censoring conditional on measured covariates</td>
+<td>1:1 PS-matching ➜ Cox; doubly-robust TMLE for RD/RR</td>
+<td>Aligns with regulatory signal-evaluation practice; simple to
+communicate</td>
+<td><strong>✓</strong></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>“Treatment-Policy (Intention-to-Treat)”</td>
+<td>Same as #1</td>
+<td>Initiation strategy only; <em>ignore</em> subsequent switching or
+adherence</td>
+<td>AKI as above, regardless of later regimen</td>
+<td><em>No censoring</em> for treatment changes; death/disenrol →
+censor</td>
+<td>180-day risk difference &amp; risk ratio</td>
+<td>Standard identifiability + independent administrative censoring</td>
+<td>Kaplan–Meier / TMLE-IPW</td>
+<td>Captures net public-health effect if switching is part of real-world
+care</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>“Hypothetical No-Switch World (Modelled)”</td>
+<td>Same as #1</td>
+<td>Counterfactual risk if patients had remained on initial regimen for
+full follow-up</td>
+<td>AKI up to 180 days</td>
+<td>Model treatment switching as time-varying confounder; set switch
+hazard = 0 in g-comp</td>
+<td>Counterfactual risk difference at 180 days</td>
+<td>Positivity for remaining on assigned drug; correct specification or
+flexible ML for hazards</td>
+<td>Continuous-time TMLE (concrete) with crossover-hazard set to 0</td>
+<td>Removes bias from informative switching while retaining all
+person-time</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>“Per-Protocol Weighted (IPCW for Switch)”</td>
+<td>Same as #1</td>
+<td>Remain on initial regimen; switch events yield IPC weights instead
+of simple censor</td>
+<td>AKI as above</td>
+<td><em>Switch → weight</em> by inverse prob. of not switching;
+death/disenrol → censor</td>
+<td>Weighted cumulative incidence; risk difference</td>
+<td>Positivity &amp; correct model for switch process; independent
+censoring given covariates</td>
+<td>Stabilised IPCW ➜ KM / TMLE</td>
+<td>Improves efficiency over straight censoring; transparent
+assumptions</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>“Composite Endpoint (AKI or Treatment Switch)”</td>
+<td>Same as #1</td>
+<td>Same as #1</td>
+<td>First of AKI <strong>or</strong> treatment switch</td>
+<td>Switch <strong>included</strong> as part of outcome (composite)</td>
+<td>Cause-specific HR &amp; CIF difference</td>
+<td>Competing-risk assumptions; independence of censoring</td>
+<td>Fine–Gray or non-parametric CIF ➜ TMLE</td>
+<td>Regulatory interest in <em>any</em> kidney-safety signal including
+early switches</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>“AKI with Death as Competing Risk”</td>
+<td>Same as #1</td>
+<td>Same as #1</td>
+<td>AKI; death treated as competing risk (cumulative incidence)</td>
+<td><em>Death → competing event</em>; switch → censor (or weight)</td>
+<td>Sub-distribution HR; CIF difference</td>
+<td>Independent censoring/death given covariates</td>
+<td>Fine–Gray / Aalen–Johansen TMLE</td>
+<td>Gives policy-relevant risk if mortality high in cohort</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>“Long-Term (365-day) Treatment-Policy”</td>
+<td>Same as #1 but follow-up 1 year</td>
+<td>Same as #2</td>
+<td>AKI within 365 days</td>
+<td>Ignore treatment changes</td>
+<td>1-year risk difference &amp; RR</td>
+<td>As in #2</td>
+<td>Targeted risk-difference TMLE</td>
+<td>Long-term public-health perspective</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>“On-Treatment (While-on-Regimen) Estimand”</td>
+<td>Same as #1</td>
+<td>Effect during exposed time only; follow participants until they stop
+ALL DAA</td>
+<td>AKI during exposed time</td>
+<td>Off-drug time → censor; switch to other DAA → censor</td>
+<td>Incidence rate difference; IRR</td>
+<td>Independent censoring given covariates</td>
+<td>Poisson model / TMLE with offset</td>
+<td>Biological mechanism hypothesis (drug vs no-drug)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<colgroup>
+<col width="1%" />
+<col width="5%" />
+<col width="5%" />
+<col width="10%" />
+<col width="8%" />
+<col width="11%" />
+<col width="6%" />
+<col width="5%" />
+<col width="9%" />
+<col width="10%" />
+<col width="7%" />
+<col width="9%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Estimand Label</th>
+<th>Population (P)</th>
+<th>Intervention / Comparator (A)</th>
+<th>Outcome / Endpoint (Y)</th>
+<th>Handling of Intercurrent Events</th>
+<th><strong>Time-horizon</strong></th>
+<th>Summary Measure</th>
+<th>Identification Assumptions</th>
+<th>Primary Estimation Strategy</th>
+<th>Rationale / Use-case</th>
+<th><strong>Regulatory perspective</strong></th>
+<th><strong>Used in AKI Study?</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>Primary “Per-Protocol with Censoring at
+Switch”</strong></td>
+<td>Adults with chronic HCV initiating first SOF vs non-SOF DAA, U.S.
+claims 2016–2023</td>
+<td>Start SOF-containing DAA vs active non-SOF comparator
+(new-user)</td>
+<td>First AKI event within treatment + 30-day risk window</td>
+<td>Switch → censor; other stops → censor; disenrol/death → censor</td>
+<td>0–180 d</td>
+<td>RD &amp; RR; cause-specific HR</td>
+<td>Consistency; baseline exchangeability; non-informative
+censoring</td>
+<td>1:1 PS-matching ➜ Cox; TMLE for RD/RR</td>
+<td>Regulatory signal-evaluation; simple to explain</td>
+<td><strong>Mechanistic (biologic toxicity while on drug)</strong></td>
+<td><strong>✓</strong></td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>Treatment-Policy (Intention-to-Treat)</td>
+<td>Same as #1</td>
+<td>Initiation strategy only; ignore later switching</td>
+<td>AKI regardless of regimen changes</td>
+<td>Treatment changes ignored; death/disenrol → censor</td>
+<td>0–180 d</td>
+<td>RD &amp; RR</td>
+<td>Standard identifiability; independent admin censoring</td>
+<td>KM / TMLE-IPW</td>
+<td>Reflects real-world use</td>
+<td><strong>Pragmatic primary</strong></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>Hypothetical “No-Switch” World</td>
+<td>Same as #1</td>
+<td>Counterfactual risk if everyone remained on initial regimen</td>
+<td>AKI up to 180 d</td>
+<td>Model switching hazard; set hazard = 0 in g-formula</td>
+<td>0–180 d</td>
+<td>Counterfactual RD</td>
+<td>Positivity for remaining on drug; correct model for hazards</td>
+<td>Continuous-time TMLE with zeroed switch hazard</td>
+<td>Removes bias from informative switching</td>
+<td>Mechanistic</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>Per-Protocol Weighted (IPCW for Switch)</td>
+<td>Same as #1</td>
+<td>Remain on initial regimen; switch → IPCW</td>
+<td>AKI as above</td>
+<td>Switch → weight; death/disenrol → censor</td>
+<td>0–180 d</td>
+<td>Weighted cumulative incidence; RD</td>
+<td>Positivity &amp; correct switch model; independent censoring</td>
+<td>Stabilised IPCW ➜ KM / TMLE</td>
+<td>Efficient alternative to simple censoring</td>
+<td>Mechanistic</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>Composite Endpoint (AKI ∨ Switch ∨ Discontinue)</td>
+<td>Same as #1</td>
+<td>Same as #1</td>
+<td>First of AKI, treatment switch, or discontinuation</td>
+<td>Switch/stop <strong>count as events</strong></td>
+<td>0–180 d</td>
+<td>CIF diff; cause-specific HR</td>
+<td>Competing-risk assumptions; independent censoring</td>
+<td>Fine–Gray / CIF-TMLE</td>
+<td>Captures any renal-related safety signal</td>
+<td>Signal-detection composite</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>AKI with Death as Competing Risk</td>
+<td>Same as #1</td>
+<td>Same as #1</td>
+<td>AKI; death treated as competing risk</td>
+<td>Death → competing; switch → censor/weight</td>
+<td>0–180 d</td>
+<td>Sub-distribution HR; CIF diff</td>
+<td>Independent censoring/death</td>
+<td>Fine–Gray / Aalen–Johansen TMLE</td>
+<td>Policy-relevant when mortality &gt;0</td>
+<td>Pragmatic supplementary</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>Long-Term (365-day) Treatment-Policy</td>
+<td>Same as #1 but 1-year follow-up</td>
+<td>Same as #2</td>
+<td>AKI within 365 d</td>
+<td>Ignore treatment changes</td>
+<td>0–365 d</td>
+<td>1-yr RD &amp; RR</td>
+<td>As in #2</td>
+<td>TMLE RD/RR</td>
+<td>Long-run public-health view</td>
+<td>Pragmatic long-horizon</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>On-Treatment (While-On-Regimen)</td>
+<td>Same as #1</td>
+<td>Effect during exposed time only; stop follow at drug stop</td>
+<td>AKI during exposed time</td>
+<td>Off-drug time → censor; switch → censor</td>
+<td>0–∞ (exposed time)</td>
+<td>Incidence-rate diff; IRR</td>
+<td>Independent censoring</td>
+<td>Poisson / TMLE offset</td>
+<td>Pure biologic exposure effect</td>
+<td>Mechanistic</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td><strong>Restricted Mean Survival Time (RMST)</strong></td>
+<td>Same as #1</td>
+<td>As Treatment-Policy</td>
+<td>AKI</td>
+<td>Ignore treatment changes</td>
+<td>0–90 d</td>
+<td>Δ RMST(0–90 d)</td>
+<td>Standard identifiability</td>
+<td>TMLE-RMST / g-comp</td>
+<td>Robust to non-PH; intuitive “delay in AKI”</td>
+<td>Pragmatic &amp; communicable</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>Principal-Stratum (Would-Adhere ≥ 8 wk)</td>
+<td>Same as #1</td>
+<td>Contrast within latent subgroup that would adhere 8 weeks to either
+regimen</td>
+<td>AKI within 180 d</td>
+<td>Restrict to principal adherer stratum</td>
+<td>0–180 d</td>
+<td>RD in principal stratum</td>
+<td>Monotonicity; strong principal-stratum ID assumptions</td>
+<td>Bounding / sensitivity; TMLE-principal</td>
+<td>Identify highest-risk subgroup</td>
+<td>Exploratory biologic</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<div id="notes-on-column-harmonisation" class="section level3"
+number="8.1.1">
+<h3><span class="header-section-number">8.1.1</span> Notes on Column
+Harmonisation</h3>
+<ul>
+<li><strong>Population (P), Treatment (A), Outcome (Y)</strong> —
+language kept exactly as in the original</li>
+</ul>
+<p>Step 1 tables. * <strong>Handling of Intercurrent Events</strong> now
+captures every strategy that previously sat in separate tables (censor,
+weight, composite, compete). * <strong>Identification Assumptions &amp;
+Estimation Strategy</strong> columns were merged verbatim; where two
+tables listed different estimators for the same estimand, both are shown
+separated by “/”. * The right-hand tick (<strong>✓</strong>) flags the
+estimand that underpinned all subsequent design and analysis decisions
+in the AKI signal evaluation. —
+<code>{r, message=FALSE} # placeholder for any future code (eval = FALSE)</code></p>
+<div class="line-block"># | Estimand Label | Population (P) | Treatment
+/ Comparator (A) | Outcome (Y) | <strong>IE strategy<br>(ICH
+term)</strong> | Handling of Intercurrent Events (details) |
+<strong>Time-horizon</strong> | Summary Measure | Identification
+Assumptions | Primary Estimator(s)<br>(<em>main</em> / supplementary) |
+<strong>Pre-specified Sensitivity Analyses</strong> | Rationale /
+Use-case | Regulatory perspective | <strong>Used in AKI?</strong> |
+|—|—————|—————|—————————|————-|——————————–|——————————————-|——————|—————–|—————————-|———————————————–|—————————————-|———————-|———————–|——————|<br />
+1 | <strong>Primary While-on-Treatment, censor at switch</strong> |
+Adults with chronic HCV initiating first SOF vs non-SOF DAA (US claims
+2016-23) | Start SOF-containing vs non-SOF (new-user) | First AKI within
+treatment + 30-d grace | <strong>While-on-treatment</strong> | Switch →
+censor; other stops → censor; death → competing; LTFU → censor | 0-180 d
+| RD &amp; RR; cause-specific HR | Consistency; baseline
+exchangeability; non-informative censoring | <strong>TMLE
+(main)</strong>; PS-matched Cox (supp) | IPCW vs g-formula;
+tipping-point for informative censoring | Aligns with FDA signal
+evaluation; biologic toxicity | Mechanistic | ✓ |<br />
+2 | Treatment-Policy (Intention-to-Treat) | Same as #1 | Initiation
+strategy only; later switching ignored | AKI regardless of regimen
+changes | <strong>Treatment-policy</strong> | Treatment changes ignored;
+death → competing; LTFU → censor | 0-180 d | RD &amp; RR |
+Exchangeability; independent admin censoring | <strong>TMLE-IPW
+(main)</strong>; KM (supp) | Negative-control outcome;
+unmeasured-confounding bias curve | Captures real-world use | Pragmatic
+primary | |<br />
+3 | Hypothetical <em>No-Switch</em> World | Same as #1 | Counterfactual
+if everyone stayed on initial regimen | AKI |
+<strong>Hypothetical</strong> | Model time-varying switch hazard; set
+hazard=0 | 0-180 d | Counterfactual RD | Positivity for staying on drug;
+correct hazard models | Continuous-time TMLE | Delta-adjusted g-formula;
+Rosenbaum bounds | Removes bias from informative switching | Mechanistic
+| |<br />
+4 | Per-Protocol Weighted (IPCW for switch) | Same as #1 | Remain on
+initial regimen; switch → IPCW | AKI |
+<strong>While-on-treatment</strong> | Switch → inverse-probability
+weight; death → competing | 0-180 d | Weighted cumulative incidence; RD
+| Positivity &amp; correct switch model | <strong>Stabilised IPCW KM /
+TMLE</strong> | Truncation of weights; extreme PS diagnostics |
+Efficient alt. to censoring | Mechanistic | |<br />
+5 | Composite (AKI ∨ Switch ∨ Discontinue) | Same as #1 | Same as #1 |
+First of AKI / switch / discontinue | <strong>Composite</strong> |
+Regimen change counts as safety event | 0-180 d | CIF diff;
+cause-specific HR | Competing-risk assumptions | Fine-Gray; CIF-TMLE |
+Remove each component; multiverse analysis | Detect any renal-related
+signal | Signal-detection | |<br />
+6 | AKI with Death as Competing Risk | Same as #1 | Same as #1 | AKI;
+death treated as competing | <strong>While-on-treatment</strong> (death
+= competing) | Death → competing; switch → censor/weight | 0-180 d |
+Sub-distribution HR; CIF diff | Independent censoring/death | Fine-Gray
+/ Aalen–Johansen TMLE | IP-competing-risk weighting | Needed if
+mortality non-trivial | Pragmatic supplementary | |<br />
+7 | Long-Term (365-d) Treatment-Policy | Same as #1 but 1-yr follow-up |
+Same as #2 | AKI within 365 d | <strong>Treatment-policy</strong> |
+Ignore treatment changes | 0-365 d | RD &amp; RR | As in #2 | TMLE RD/RR
+| Same sens-analyses as row 2 | Long-run public-health | Pragmatic long
+horizon | |<br />
+8 | On-Treatment (Incidence-Rate) | Same as #1 | Effect during exposed
+time only | AKI during exposed time |
+<strong>While-on-treatment</strong> | Off-drug time → censor; switch →
+censor | Exposed person-time | IR diff; IRR | Independent censoring |
+Poisson / TMLE offset | Lagged-exposure windows | Pure biologic effect |
+Mechanistic | |<br />
+9 | Restricted Mean Survival Time (RMST) | Same as #1 | Treatment-policy
+as row 2 | AKI | <strong>Treatment-policy</strong> | As row 2 | 0-90 d |
+Δ RMST(0-90 d) | Standard identifiability | <strong>TMLE-RMST</strong> |
+Non-PH robustness; clinician-friendly | Communicable &amp; robust |
+Pragmatic | | |10 | Principal-Stratum (Would-Adhere ≥ 8 wk) | Same as #1
+| Contrast within latent “would-adhere” subgroup | AKI |
+<strong>Principal-stratum</strong> | Restrict to adherers (latent);
+death → competing | 0-180 d | RD in principal stratum | Monotonicity;
+exclusion; sensitivity | Bounding; TMLE-principal | Identify
+highest-risk subgroup | Exploratory biologic | |</div>
+</div>
+<div id="practical-and-regulatory-considerations" class="section level3"
+number="8.1.2">
+<h3><span class="header-section-number">8.1.2</span> Practical and
+Regulatory Considerations</h3>
+<ul>
+<li><strong>Causal assumptions in context</strong> <em>Consistency</em>
+means the claims-based AKI code truly represents the counterfactual AKI
+status a patient would have had under each drug; <em>Positivity</em>
+holds because every baseline covariate pattern in 2016-2023 had both SOF
+and non-SOF initiators (verified in propensity-score overlap plots);
+<em>Conditional exchangeability</em> requires that baseline eGFR,
+cirrhosis stage, HIV status, and health-care use—already captured in
+claims/EHR—are sufficient to block all back-door paths from treatment to
+AKI.</li>
+<li><strong>Why 90 days?</strong> (i) Nephrologists indicated tubular
+injury generally emerges within 1–3 months; (ii) FDA’s FAERS signal for
+SOF was concentrated ≤90 d; (iii) Mortality is &lt;1 % in 90 d,
+minimising competing-risk bias for the primary estimand. *
+<strong>Regulatory fit-for-purpose</strong> - <strong>Treatment-Policy
+estimand</strong> is the recommended <em>primary</em> for label-update
+decisions because it mirrors real-world use, irrespective of switching.
+- <strong>Composite AKI ∨ Switch</strong> satisfies FDA guidance to
+treat therapy discontinuation as a <strong>safety event</strong>. -
+<strong>RMST</strong> gives a directly interpretable “average event-free
+time” and avoids the non-collapsibility issues that plague Cox HRs.</li>
+<li><strong>Feasibility &amp; computation</strong> RMST and TMLE compute
+in &lt;2 min on 2 CPU machines; principal-stratum analyses need
+g-formula simulation (≈10 min). All estimands can be estimated with
+existing <code>tmle3</code>/<code>ltmle</code> workflows. *
+<strong>Competing risk of death</strong> Death &lt; AKI is rare (0.3 %
+in 90 d). We nevertheless include a Fine-Gray sub-distribution HR row to
+capture policy interest in cumulative incidence when death competes with
+AKI.</li>
+</ul>
 <table>
 <thead>
 <tr class="header">
@@ -819,11 +2465,13 @@ unrealistic</td>
 identification assumptions, estimation procedures (TMLE, Super Learner),
 sensitivity analyses, and interpretation strategies in alignment with
 this foundational framework. —</p>
-<div id="references" class="section level3" number="6.0.1">
-<h3><span class="header-section-number">6.0.1</span> References</h3>
+</div>
+<div id="references" class="section level3" number="8.1.3">
+<h3><span class="header-section-number">8.1.3</span> References</h3>
 <p>Dang et al. (2023). JCTS. Rufibach (2019). Pharmaceutical Statistics.
 Stensrud et al. (2019). Eur Heart J. Martinussen (2022). Ann Rev Stat
 Appl.</p>
+</div>
 </div>
 </div>
 

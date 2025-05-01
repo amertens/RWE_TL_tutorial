@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Step 3 – Estimation of the Causal Effect</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="results_comparisons.html">Analysis comparisons</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Step 3 – Estimation of the Causal
+Effect</h1>
+
+</div>
+
+
+<div id="estimation-of-the-causal-effect" class="section level1">
+<h1>3 Estimation of the Causal Effect</h1>
+<p>In Steps 1–2, we clearly defined our causal question, estimand, and
+assumptions necessary for causal identification.</p>
+<p>Now in Step 3, we select and detail the statistical methods used to
+estimate our causal effect. This step compares traditional methods
+(propensity score matching followed by Cox regression) with our selected
+modern approach: Targeted Maximum Likelihood Estimation (TMLE) combined
+with Super Learner. ## 3.1 Previously Used Method: Propensity Score
+Matching and Cox Regression In the original AKI safety analysis,
+propensity score matching followed by Cox proportional hazards
+regression was used. While this approach is common in real-world
+evidence (RWE) studies, it has important limitations in providing causal
+interpretations. ### Propensity Score Matching (PSM) <strong>What is
+it?</strong> Propensity score matching attempts to control confounding
+by matching treated and untreated subjects who have similar estimated
+probabilities (propensity scores) of receiving the treatment, based on
+baseline characteristics. <strong>Limitations of PSM:</strong> -
+<strong>Residual confounding:</strong> Matching relies heavily on
+correctly modeling treatment assignment. Incorrect or incomplete models
+can lead to unmatched confounding. - <strong>Loss of sample:</strong>
+Matching can exclude subjects who don’t find close matches, reducing
+generalizability and statistical power. - <strong>Balance is not
+guaranteed on unmeasured confounders.</strong> ### Cox Proportional
+Hazards Model <strong>What does it estimate?</strong> A Cox model
+estimates the hazard ratio (HR), which compares instantaneous event
+rates between treated and untreated groups, assuming proportional
+hazards over time. <strong>Key Limitations of Cox Model for Causal
+Inference:</strong> - <strong>Non-collapsibility:</strong> Hazard ratios
+estimated from Cox models can vary unpredictably when adding or removing
+covariates, complicating causal interpretation. - <strong>Proportional
+hazards assumption:</strong> If the hazard ratio changes over time
+(violating proportional hazards), the HR does not have a clear causal
+interpretation. - <strong>Lack of direct interpretability:</strong> HRs
+don’t easily translate into clinically actionable quantities such as
+absolute risk differences or risk ratios, which are often more relevant
+for clinical decisions and policymaking. Thus, the Cox HR is generally
+not ideal as a primary causal estimand in safety studies aiming for
+clear causal interpretation. ## 3.2 Why Move Beyond Cox Regression?
+Given these limitations, we seek an alternative causal inference method
+that explicitly estimates a clearly defined estimand (e.g., risk
+difference) and provides robust inference. ### Desired characteristics
+of a causal estimator: - <strong>Double robustness:</strong> Accurate
+estimation if either the outcome or treatment model is correct. -
+<strong>Efficiency:</strong> Minimal variance among consistent
+estimators. - <strong>Transparency and direct interpretability:</strong>
+Provides straightforward estimates of clinically meaningful causal
+effects (e.g., absolute risk differences). These features are
+specifically addressed by Targeted Maximum Likelihood Estimation (TMLE).
+## 3.3 Introduction to Targeted Maximum Likelihood Estimation (TMLE)
+TMLE is a modern causal inference method combining strengths of both
+outcome regression and propensity score-based methods. TMLE has key
+advantages: - <strong>Double robustness:</strong> Valid inference if at
+least one of the models (outcome regression or treatment assignment) is
+correct. - <strong>Efficient statistical inference:</strong> TMLE
+achieves the smallest possible standard error among consistent
+estimators. - <strong>Clinically meaningful estimates:</strong> Directly
+provides absolute risk differences or risk ratios. - <strong>Flexible
+modeling:</strong> Easily incorporates machine learning approaches
+through Super Learner. ## 3.4 TMLE Estimation Approach TMLE estimation
+proceeds through two clear steps: ### Step 1: Initial Estimation -
+Predict the conditional outcome mean: <span class="math display">\[
+\bar{Q}(A,W) = E[Y|A,W] \]</span> - Estimate the treatment assignment
+probabilities (propensity scores): <span class="math display">\[ g(A|W)
+= P(A|W) \]</span> We perform these steps using flexible machine
+learning methods (Super Learner). ### Step 2: Targeting Step (Bias
+Reduction) - Update initial predictions with a clever covariate: <span
+class="math display">\[ H(A,W) = \frac{I(A=a)}{g(A|W)} \]</span> - This
+step specifically targets the chosen causal estimand (e.g., risk
+difference) ensuring minimal bias. ## 3.5 Super Learner Implementation
+We implement TMLE using Super Learner, an ensemble learning technique
+combining multiple algorithms to optimize prediction accuracy: $$<span
+class="math inline">\({r super-learner, eval=FALSE} library(sl3) sl_lib
+&lt;- list( Lrnr_glm_fast\)</span>new(), Lrnr_ranger<span
+class="math inline">\(new(num.trees = 500),
+Lrnr_xgboost\)</span>new(nrounds = 200), Lrnr_gam<span
+class="math inline">\(new(), Lrnr_hal9001\)</span>new(max_degree = 2),
+Lrnr_mean$new() ) 3.6 TMLE Implementation in R Using the tmle3 package
+in R:</p>
+<p>library(tmle3) # Node definitions node_list &lt;- list( W =
+covariate_names, A = “A”, Y = “Y”, C = “censor”, id = “pat_id”, t =
+“time” ) # Define TMLE specification tmle_spec &lt;- tmle_Survival$new(
+tau = 90, contrast = treatmentwise ) # Fit TMLE tmle_fit &lt;- tmle3(
+tmle_spec, data = dataset_long_format, node_list = node_list,
+learner_list = list(Y = sl_lib, A = sl_lib, C = sl_lib) ) # TMLE Results
+Summary summary(tmle_fit) 3.7 Advantages of TMLE Over Cox Regression</p>
+<p>Feature Cox Regression + PSM TMLE with Super Learner Causal
+interpretation Often unclear due to assumptions Clear causal
+interpretation Double robustness No (depends heavily on matching
+accuracy) Yes Handles non-proportionality No (violates proportional
+hazards) Yes (nonparametric and flexible) Direct clinical
+interpretability Limited (hazard ratios) Clear (risk differences, risk
+ratios) Efficiency No (less efficient) Yes (optimal efficiency)
+Robustness to modeling errors Limited (model misspecification bias) Yes
+(ensemble learning reduces bias)</p>
+<p>∗∗Whywedo∗∗not∗∗relyontheCoxHR
+∗&gt;1.Thehazardratiois∗∗non−collapsible∗∗;evenwithperfectconfoundingcontrol,addinganirrelevantcovariatecanchangetheHR.&gt;2.Whenproportional−hazardsfails(log‐logcurvescrossedinSOFvsnon−SOF),theHRisaweightedaverageoftime−varyingcausaleffectsandlacksclinicalmeaning.&gt;3.TheCoxHRestimatesan∗instantaneous∗effect,whileregulatorsandcliniciansneed∗∗absoluterisks∗∗overclinicallyrelevanthorizons.&gt;4.TMLEwithRMSTorrisk−differencetargetsan∗∗interpretable,collapsibleestimand∗∗andremainsvalidundernon−PHbyconstruction.</p>
+<p>3.8 Practical Considerations and Limitations Positivity: TMLE still
+requires sufficient overlap of propensity scores.</p>
+<p>Computational complexity: Super Learner increases computational time,
+though manageable with modern computing resources.</p>
+<p>Interpretability for non-statisticians: More education needed for
+clinical teams less familiar with TMLE and causal inference methods.</p>
+<p>Weight stabilization and truncation: The roadmap explicitly
+recommends truncating inverse probability weights at approximately
+√n·ln(n)/5 for stability.</p>
+<blockquote>
+<p>∗∗Outcome−blindsandboxsimulations.
+∗∗&gt;Priortoun−maskingAKIoutcomeswewillgenerate1000Monte−Carlodatasetsinwhichtheobservedcovariatesandtreatmentassignmentsareretainedbutoutcomesarepermutedordrawnfromauser−specifiedgenerativemodelconsistentwiththeDAGinFigure@ref(fig:dag).Thesesimulationswill:&gt;∗examinepropensity−scoreoverlapandpositivity;&gt;∗estimatestatisticalpowerforrisk−differencedetectionunderplausibleeffectsizes;&gt;∗quantifyfinite−samplebiasandvarianceoftheTMLEestimatorundercorrectandmisspecifiednuisancemodels.&gt;Resultsguideweighttruncation,SuperLearnerlibrarysize,andsample−sizeadequacy∗∗before∗∗anyrealoutcomesareviewed,preservinganalyticobjectivity.</p>
+</blockquote>
+<p>3.9 Summary of Step 3 TMLE provides a robust, efficient, and causally
+interpretable alternative to traditional propensity-matched Cox
+regression. Given limitations inherent in standard approaches
+(non-collapsibility, proportional hazards assumptions), TMLE paired with
+Super Learner is strongly preferred for answering causal safety
+questions clearly.</p>
+<p>Roadmap Component Section Covered Traditional Methods &amp; Issues
+3.1–3.2 TMLE Approach 3.3–3.4 Super Learner 3.5 TMLE R implementation
+3.6 Comparison TMLE vs Cox 3.7 Practical considerations 3.8</p>
+<p>Next Step: Step 4 – Sensitivity Analyses, addressing robustness to
+key assumption violations.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

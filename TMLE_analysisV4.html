@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2025-04-29" />
+<meta name="date" content="2025-05-01" />
 
 <title>Cumulative Incidence Ratios &amp; Differences: A Targeted‐Learning Demonstration</title>
 
@@ -244,6 +244,21 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
   <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
 </li>
 <li>
@@ -257,6 +272,12 @@ $(document).ready(function () {
 </li>
 <li>
   <a href="TMLE_analysis.html">Targeted learning analysis</a>
+</li>
+<li>
+  <a href="TMLE_analysisV2.html">Targeted learning analysis2</a>
+</li>
+<li>
+  <a href="TMLE_analysisV4.html">Targeted learning analysis4</a>
 </li>
 <li>
   <a href="results_comparisons.html">Analysis comparisons</a>
@@ -275,7 +296,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Cumulative Incidence Ratios &amp;
 Differences: A Targeted‐Learning Demonstration</h1>
-<h4 class="date">2025-04-29</h4>
+<h4 class="date">2025-05-01</h4>
 
 </div>
 
@@ -335,10 +356,6 @@ class="math inline">\(RR_t\)</span>.</p>
 <em>DGP.R</em>) that simulates an HCV cohort with optional
 non-proportional hazards and dependent censoring.</p>
 <pre class="r"><code>source(&quot;DGP.R&quot;)   # assumes the updated function is in your working dir</code></pre>
-<pre><code>## 1-year risk (untreated): 0.0077 
-## 1-year risk (treated):   0.0159 
-## Risk difference:         0.0081 
-## Risk ratio:         2.0505</code></pre>
 </div>
 <div id="estimands" class="section level1">
 <h1>3 Estimands</h1>
@@ -381,8 +398,10 @@ comparison</li>
 library(survival)
 library(survey)
 
+N = 2000
+horizons = c(30)
 analyze_once &lt;- function(N = 20000, horizons = c(30, 90, 180)){
-  dat   &lt;- generate_hcv_data(N = N)
+  dat   &lt;- generate_hcv_data(N = N, np_hazard    = TRUE)
   Wvars &lt;- c(&quot;age&quot;,&quot;sex_male&quot;,&quot;ckd&quot;,&quot;cirrhosis&quot;,&quot;diabetes&quot;,&quot;hypertension&quot;,
              &quot;bmi&quot;,&quot;race&quot;,&quot;region&quot;)
 
@@ -407,8 +426,19 @@ analyze_once &lt;- function(N = 20000, horizons = c(30, 90, 180)){
     w   &lt;- ifelse(dat$treatment==1, 1/ps, 1/(1-ps))
     des &lt;- svydesign(ids = ~1, weights = ~w, data = dat)
     hr_iptw &lt;- exp(coef(svycoxph(Surv(follow_time,event) ~ treatment, design = des)))
+    
+    ps_form &lt;- as.formula(paste(&quot;treatment ~&quot;, paste(Wvars, collapse = &quot;+&quot;)))
 
-    tibble(t0 = t0, R1, R0, RD, RR, hr_crude, hr_iptw)
+    m.out &lt;- MatchIt::matchit(ps_form,
+                              data   = dat[, c(&quot;treatment&quot;,&quot;follow_time&quot;,&quot;event&quot;, Wvars)],
+                              method = &quot;nearest&quot;, ratio = 1, caliper = .20)
+
+    d.m   &lt;- MatchIt::match.data(m.out, data = &quot;all&quot;)
+
+    hr_psm &lt;- exp(coef(coxph(Surv(follow_time, event) ~ treatment,
+                             data = d.m, cluster = subclass)))
+
+    tibble(t0 = t0, R1, R0, RD, RR, hr_crude, hr_iptw, hr_psm)
   }) |&gt; dplyr::bind_rows()
 }</code></pre>
 </div>
@@ -416,10 +446,10 @@ analyze_once &lt;- function(N = 20000, horizons = c(30, 90, 180)){
 <div id="simulation-study" class="section level1">
 <h1>5 Simulation study</h1>
 <pre class="r"><code>set.seed(2025)
-res=analyze_once(N = 20000, horizons = c(90))
+#res=analyze_once(N = 20000, horizons = c(90))
 
-B &lt;- 20   # iterations; adjust as needed
-res &lt;- purrr::map_dfr(1:B, ~analyze_once(N = 4000))
+B &lt;- 2   # iterations; adjust as needed
+res &lt;- purrr::map_dfr(1:B, ~analyze_once(N = 4000, horizons = c(180)))
 
 sim_sum &lt;- res |&gt; 
   group_by(t0) |&gt; 
@@ -460,52 +490,59 @@ knitr::kable(sim_sum, digits = 3)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="right">30</td>
-<td align="right">0.007</td>
-<td align="right">0.002</td>
-<td align="right">0.005</td>
-<td align="right">0.002</td>
-<td align="right">0.002</td>
-<td align="right">0.003</td>
-<td align="right">1.691</td>
-<td align="right">1.023</td>
-<td align="right">1.378</td>
-<td align="right">0.342</td>
-<td align="right">1.22</td>
-<td align="right">0.31</td>
-</tr>
-<tr class="even">
-<td align="right">90</td>
-<td align="right">0.028</td>
-<td align="right">0.005</td>
-<td align="right">0.020</td>
-<td align="right">0.006</td>
-<td align="right">0.008</td>
-<td align="right">0.007</td>
-<td align="right">1.535</td>
-<td align="right">0.551</td>
-<td align="right">1.378</td>
-<td align="right">0.342</td>
-<td align="right">1.22</td>
-<td align="right">0.31</td>
-</tr>
-<tr class="odd">
 <td align="right">180</td>
-<td align="right">0.080</td>
-<td align="right">0.010</td>
-<td align="right">0.068</td>
-<td align="right">0.016</td>
-<td align="right">0.013</td>
-<td align="right">0.017</td>
-<td align="right">1.243</td>
-<td align="right">0.298</td>
-<td align="right">1.378</td>
-<td align="right">0.342</td>
-<td align="right">1.22</td>
-<td align="right">0.31</td>
+<td align="right">0.073</td>
+<td align="right">0.021</td>
+<td align="right">0.079</td>
+<td align="right">0.001</td>
+<td align="right">-0.006</td>
+<td align="right">0.02</td>
+<td align="right">0.923</td>
+<td align="right">0.251</td>
+<td align="right">1.051</td>
+<td align="right">0.231</td>
+<td align="right">0.966</td>
+<td align="right">0.226</td>
 </tr>
 </tbody>
 </table>
+<pre class="r"><code># ---------- performance summary ----------------------------------------
+perf_stats &lt;- function(res, truth,
+                       est_cols   = c(&quot;RD&quot;, &quot;RR&quot;, &quot;hr_crude&quot;, &quot;hr_psm&quot;),
+                       lwr_suffix = &quot;_lwr&quot;, upr_suffix = &quot;_upr&quot;){
+  truth_vec &lt;- truth[est_cols]
+  
+  
+  ## helper that returns a one-row tibble for a single estimand
+  one_stat &lt;- function(col) {
+    x &lt;- res[[col]]
+    tibble(
+      estimand = col,
+      mean     = mean(x),
+      sd       = sd(x),                    # oracle SE
+      bias     = mean(x) - truth[[col]],
+      cover    = {
+        lwr &lt;- res[[paste0(col, lwr_suffix)]]
+        upr &lt;- res[[paste0(col, upr_suffix)]]
+        if (!is.null(lwr) &amp;&amp; !is.null(upr))
+          mean(lwr &lt;= truth[[col]] &amp; upr &gt;= truth[[col]]) * 100
+        else NA_real_
+      }
+    )
+  }
+  
+  purrr::map_dfr(est_cols, one_stat)
+  
+}</code></pre>
+<pre class="r"><code>truth &lt;- readRDS(file = &quot;results/truth.rds&quot;)
+
+sim_sum</code></pre>
+<pre><code>## # A tibble: 1 × 13
+##      t0 R1_mean  R1_sd R0_mean   R0_sd  RD_mean  RD_sd RR_mean RR_sd
+##   &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+## 1   180  0.0727 0.0207  0.0787 0.00108 -0.00595 0.0197   0.923 0.251
+## # ℹ 4 more variables: hr_crude_mean &lt;dbl&gt;, hr_crude_sd &lt;dbl&gt;,
+## #   hr_iptw_mean &lt;dbl&gt;, hr_iptw_sd &lt;dbl&gt;</code></pre>
 </div>
 <div id="discussion" class="section level1">
 <h1>6 Discussion</h1>

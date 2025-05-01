@@ -89,6 +89,11 @@ Clinical & Regulatory implications: Direct recommendations based on findings.
 
 Limitations and Future Directions: Transparent acknowledgment and clear next steps.
 
+Fit-for-purpose Checklist: Encourages explicitly checking data quality and completeness (e.g., pharmacy claims, baseline eGFR from electronic health records (EHR), and validated ICD codes for outcomes).
+
+Transparent Reporting Templates: RoadmapV2 emphasizes structured reporting aligned with regulatory guidelines (ICH E9 R1), including detailed documentation of all modeling decisions, sensitivity analyses, and diagnostics clearly and transparently.
+
+
 5.7 Final Conclusions
 Provide a concise and clear statement summarizing key findings and their clinical, policy, and methodological implications.
 
