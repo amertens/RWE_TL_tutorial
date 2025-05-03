@@ -1,0 +1,189 @@
+---
+title:  "TMLE Diagnostics when Covariate Balance is Poor"
+author: "Your Name"
+date:   "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  message    = FALSE,
+  warning    = FALSE,
+  cache      = FALSE,
+  fig.width  = 6,
+  fig.height = 4)
+  
+pkgs <- c("tidyverse", "data.table", "tlverse", "SuperLearner", "glmnet", "xgboost", "randomForest", "cobalt", "tmle", "EValue", "cowplot")
+lapply(pkgs, function(p)
+  if (!requireNamespace(p, quietly = TRUE)) install.packages(p))
+lapply(pkgs, library, character.only = TRUE)
+
+```
+
+
+#1 Background: Why TMLE ≠ Propensity-Score Matching
+
+Classical propensity-score matching (PSM) forces the marginal distribution of
+baseline covariates W to be the same in treatment (A = 1) and control (A = 0) groups.
+Standardised mean differences (SMDs) are therefore natural diagnostics: they must be “small”.
+
+Targeted Maximum Likelihood Estimation (TMLE) follows a different logic:
+
+We specify a target causal quantity (here: 180-day risk difference for AKI).
+
+We estimate two nuisance functions: the outcome regression Q(W) and the treatment mechanism g(W)=P(A=1|W).
+
+A targeting step solves the efficient influence-function equation, producing an estimator that is doubly robust and locally efficient.
+
+Because the final estimator is consistent if either Q or g is well estimated, perfect covariate balance is not required.
+Nevertheless, diagnostics are essential to check the plausibility of the assumptions that guarantee consistency (no unmeasured confounding, positivity, correct specification of at least one nuisance model).
+
+
+
+
+#2 Generate Data – Deliberately Imbalanced
+
+We source the data-generating function from DGP.R, then make treatment assignment almost deterministic from one risk factor (cirrhosis).
+That yields extreme imbalance and near‐violation of positivity.
+
+```{r}
+source("DGP.R")                              # generates generate_hcv_data()
+
+N <- 3000                                    # moderate sample size
+df <- generate_hcv_data(N, seed = 202)
+
+## --- Make cirrhosis a near-perfect predictor of treatment -------------
+## Suppose cirrhosis = 1 means strong clinical indication for SOF.
+df$treatment <- rbinom(nrow(df), 1, ifelse(df$cirrhosis == 1, 0.95, 0.05))
+
+table(df$treatment, df$cirrhosis)
+```
+
+Treatment probability now ranges from 95 % (renal high-risk) to 5 % (renal low-risk), so balance is terrible and propensity-score overlap will be weak.
+
+#3 Define data and SuperLearner library for TMLE
+
+```{r}
+
+#Create 180-day binary outcome
+t_cut <- 180
+df <- df %>%
+  mutate(Y_180 = ifelse(event == 1 & follow_time <= t_cut, 1, 0))
+mean(df$Y_180)          # crude AKI incidence
+
+
+sl_lib <- c("SL.glm",
+            "SL.glmnet",      # elastic-net, alpha will be tuned
+            "SL.xgboost",
+            "SL.randomForest")
+
+#temp fast library
+sl_lib <- c("SL.glm")
+
+
+```
+
+#6 Fit TMLE (180-day risk difference)
+```{r}
+Wnames <- setdiff(names(df), c("treatment", "event", "follow_time", "Y_180"))
+Wmat   <- df[ , Wnames]
+
+tmle_fit <- tmle(Y      = df$Y_180,
+                 A      = df$treatment,
+                 W      = Wmat,
+                 family = "binomial",
+                 Q.SL.library = sl_lib,
+                 g.SL.library = sl_lib)
+
+tmle_fit$estimates$ATE          # point est., SE, CI, p-value
+
+```
+
+
+
+# 7 Diagnostics
+
+### 7.1 Propensity-score overlap
+
+```{r}
+
+ps <- tmle_fit$g$g1W   # predicted P(A = 1 | W)
+ps_df <- data.frame(ps, trt = factor(df$treatment))
+
+ggplot(ps_df, aes(ps, fill = trt)) +
+  geom_histogram(bins = 40, position = "identity",
+                 alpha = .4, colour = "black") +
+  labs(title = "Propensity-score overlap", x = "e(X)")
+```
+
+### 6.2 Weighted SMDs
+
+```{r}
+
+w_ipw <- ifelse(df$treatment == 1, 1/ps, 1/(1-ps))
+
+bal <- bal.tab(df[Wnames], treat = df$treatment, weights = w_ipw,
+               method = "weighting", estimand = "ATE")
+bal
+love.plot(bal, threshold = .1) +
+  labs(title = "IP-weighted SMDs (<.1 desirable)")
+```
+
+### 6.3 Cross-validated risk of SL learners
+
+```{r}
+
+tmle_fit$Qinit$cvRisk  # log-loss for outcome model
+tmle_fit$g$cvRisk      # cv risk for treatment model
+
+```
+
+### 6.4 Influence-curve spread
+
+```{r}
+
+# with(tmle_fit, {
+#   H1W <- A     / g$g1W            # clever covariate for treated
+#   H0W <- (1-A) / (1 - g$g1W)      # clever covariate for control
+#   IC_manual <- H1W*(Y - Qstar$Q1W) -
+#                H0W*(Y - Qstar$Q0W) +
+#                (Qstar$Q1W - Qstar$Q0W) - estimates$ATE$psi
+# })
+
+
+ic <- tmle_fit$IC$ATE
+ggplot(data.frame(ic), aes(ic)) +
+  geom_histogram(bins = 60, alpha = .6, fill = "steelblue") +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(title = "EIF distribution", x = "IC value")
+```
+
+
+### 6.5 E-value
+
+```{r}
+
+rd  <- tmle_fit$estimates$ATE["psi"]
+se  <- tmle_fit$estimates$ATE["var.psi"] |> sqrt()
+rr  <- 1 + rd / mean(df$Y_180)  # crude conversion
+
+EValue::evalue(est = rr,
+               lo  = rr - 1.96*se,
+               hi  = rr + 1.96*se,
+               true = 1,
+               type = "RR")
+```
+
+### 6.6 Omnibus residual test
+
+```{r}
+
+resid <- df$Y_180 - tmle_fit$Qstar
+omni  <- lm(resid ~ ., data = df[Wnames])
+anova(omni)   # global F-test
+```
+
+
+Conclusion: despite TMLE’s double robustness, violations of positivity and possible outcome-model misspecification mean the causal effect estimate is still fragile.
+

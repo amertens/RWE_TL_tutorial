@@ -23,9 +23,7 @@ library(ggplot2)
 
 ```{r data}
 
-df_final <- read_csv(here("data/sim_hcv_aki_aug.csv"), show_col_types = FALSE)
-# Ensure treatment is 0/1 and outcome encoded for concrete (0=censor,1=event)
-stopifnot(all(df_final$treatment %in% c(0,1)))
+df_final <- read_csv(here("data/sim_hcv_aki_complex.csv"), show_col_types = FALSE)
 ```
 
 We analyse **`r nrow(df_final)`** patients with augmented covariate structure reflecting the real HCV–AKI analysis (see §1–2 of the SAS report).  
@@ -36,12 +34,7 @@ Continuous follow‑up is up to *180 days*.
 ## 2.1 Define analysis arguments
 
 ```{r args}
-# Target 180‑day absolute AKI risk; no competing risks, so EventType = 1 (AKI), 0 = censor
-# # concrete expects integer event status
-# DataTbl <- df_final %>%
-#   mutate(status = event,           # event already 0/1
-#          trt    = treatment) %>%
-#   select(time, status, trt, everything())
+
 
 ## ------------------------------------------------------------------
 ## 0.  Prep data in concrete’s preferred format
@@ -63,7 +56,6 @@ table(DataTbl$trt)                 # should be ~36 % SOF
 ## ------------------------------------------------------------------
 ## 1.  Single-shot CT-TMLE using concrete
 ## ------------------------------------------------------------------
-library(concrete)
 
 ConcreteArgs <- formatArguments(
   DataTable    = DataTbl,
@@ -71,7 +63,7 @@ ConcreteArgs <- formatArguments(
   EventType    = "status",
   Treatment    = "trt",
   Intervention = 0:1,                      # compare non-SOF vs SOF
-  TargetTime   = 90,         # monthly landmarks
+  TargetTime   = 150,         # monthly landmarks
   TargetEvent  = 1,                        # AKI
   CVArg        = list(V = 2),              # 2-fold CV (speed)
   Model        = list(
@@ -85,20 +77,7 @@ ConcreteArgs <- formatArguments(
   Verbose       = TRUE
 )
 
-# tmle_fit <- ctet(ConcreteArgs)
-# 
-# ## ------------------------------------------------------------------
-# ## 2.  Diagnostics ---------------------------------------------------
-# print(tmle_fit)
-# 
-# # clever covariate & EIC checks
-# hist(tmle_fit$Dstar, breaks = 50,
-#      main = "Efficient influence curve", xlab = "IC values")
-# 
-# qqnorm(tmle_fit$Dstar); qqline(tmle_fit$Dstar)
-# 
-# # bounded-weight report
-# tmle_fit$BoundSummary
+
 
 ```
 

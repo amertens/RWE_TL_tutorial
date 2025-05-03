@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Longitudinal Targeted Maximum-Likelihood Estimation (lTMLE): A Hands-On Tutorial</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1.html">Roadmap step 1</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="TMLE_analysisV4.html">Targeted learning analysis4</a>
+</li>
+<li>
+  <a href="appendix.html">Appendix</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Longitudinal Targeted Maximum-Likelihood
+Estimation (lTMLE): A Hands-On Tutorial</h1>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#case-study" id="toc-case-study"><span
+class="toc-section-number">1</span> Case study</a></li>
+<li><a
+href="#why-a-standard-cox-regression-fails-in-the-adherence-gap-setting"
+id="toc-why-a-standard-cox-regression-fails-in-the-adherence-gap-setting"><span
+class="toc-section-number">2</span> 1 Why a standard Cox regression
+fails in the adherence-gap setting</a></li>
+<li><a href="#essential-data-layout"
+id="toc-essential-data-layout"><span class="toc-section-number">3</span>
+2 Essential data layout</a></li>
+<li><a href="#step-by-step-recipe-for-l-tmle"
+id="toc-step-by-step-recipe-for-l-tmle"><span
+class="toc-section-number">4</span> 3 Step-by-step recipe for
+L-TMLE</a></li>
+<li><a href="#simulated-example" id="toc-simulated-example"><span
+class="toc-section-number">5</span> 4 Simulated example</a></li>
+<li><a href="#interpreting-the-output"
+id="toc-interpreting-the-output"><span
+class="toc-section-number">6</span> 5 Interpreting the output</a></li>
+<li><a
+href="#cox-model-with-a-time-varying-confounder-code-and-conceptual-pitfalls"
+id="toc-cox-model-with-a-time-varying-confounder-code-and-conceptual-pitfalls"><span
+class="toc-section-number">7</span> Cox model with a time-varying
+confounder: code and conceptual pitfalls</a></li>
+<li><a href="#why-this-cox-fit-does-not-solve-the-problem"
+id="toc-why-this-cox-fit-does-not-solve-the-problem"><span
+class="toc-section-number">8</span> Why this Cox fit does not solve the
+problem</a></li>
+</ul>
+</div>
+
+<div id="case-study" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Case study</h1>
+<p>Objective. Among treatment-naïve people living with HIV who initiate
+a tenofovir-based single-tablet regimen versus a non-tenofovir
+comparator, what is the 12-month risk of virologic failure under</p>
+<p>Perfect adherence – patients take every scheduled daily dose (static
+“always-treated” intervention), and</p>
+<p>Imperfect adherence – patients can accumulate treatment gaps ≤ 30
+consecutive days in any 90-day window (dynamic regimen that pauses
+exposure during longer gaps and re-starts when the prescription is
+refilled).</p>
+<p>This contrast isolates whether the Gilead product is more “forgiving”
+to missed doses than its comparator, while properly adjusting for
+time-varying confounders such as evolving CD4 count, comorbidity burden,
+and drug-related toxicities that simultaneously influence future
+adherence and virologic failure.</p>
+</div>
+<div
+id="why-a-standard-cox-regression-fails-in-the-adherence-gap-setting"
+class="section level1" number="2">
+<h1><span class="header-section-number">2</span> 1 Why a standard Cox
+regression fails in the adherence-gap setting</h1>
+<p>In longitudinal adherence studies the exposure A<sub>t</sub> is “on
+drug this month” and the evolving biomarker L<sub>t</sub> (e.g., CD4
+count or viral load) both reflects past adherence and informs future
+adherence decisions. Past dosing improves the biomarker, and a poor
+biomarker reading triggers intensified adherence support or regimen
+change. Thus L<sub>t</sub> is simultaneously a mediator and a
+time-varying confounder.</p>
+<p>Time-dependent confounding dilemma. Adjusting for the current
+biomarker in a Cox model blocks the indirect pathway A<sub>t-1</sub> →
+L<sub>t</sub> → Y, underestimating the total drug effect. Omitting
+L<sub>t</sub> leaves confounding bias because low adherence and poor
+biomarker control jointly predict failure.</p>
+<p>Cox with time-varying covariates cannot fix both problems. It
+conditions on whatever covariates appear in the risk set at each
+instant; it cannot “unblock” mediated effects while still removing
+confounding arising from the very same variables.</p>
+<p>lTMLE resolves the feedback loop. It fits (i) sequential outcome
+regressions and (ii) sequential treatment/censoring propensity models,
+then performs a one-step “targeting” update so the final plug-in
+estimator satisfies the causal estimating equation. The result is an
+unbiased, marginal 12-month risk (or risk difference) under perfect
+versus imperfect adherence policies—something the Cox framework, by
+construction, cannot deliver in the presence of biomarker-driven
+adherence feedback.</p>
+</div>
+<div id="essential-data-layout" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> 2 Essential data
+layout</h1>
+<ul>
+<li><strong>W</strong> – baseline covariates * <strong>A<sub>1</sub>, …,
+A<sub>K</sub></strong> – treatments * <strong>L<sub>1</sub>, …,
+L<sub>K</sub></strong> – time-varying covariates *
+<strong>C<sub>1</sub>, …, C<sub>K</sub></strong> – censoring indicators
+(1 = uncensored) * <strong>Y<sub>K</sub></strong> – outcome (binary or
+survival status) The <code>ltmle()</code> function needs those nodes in
+<strong>wide</strong> format.</li>
+</ul>
+</div>
+<div id="step-by-step-recipe-for-l-tmle" class="section level1"
+number="4">
+<h1><span class="header-section-number">4</span> 3 Step-by-step recipe
+for L-TMLE</h1>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>Step</strong></th>
+<th><strong>What you do (in regression terms)</strong></th>
+<th><strong>Why it matters for causal inference</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1. Organize the data into “nodes.”</strong></td>
+<td>Think of each measurement occasion as a new regression dataset. You
+stack the variables in a wide format so each column is either: baseline
+covariates <strong>W</strong>, time-varying covariates <strong>L1, L2,
+…</strong>, treatments <strong>A1, A2, …</strong>, censoring indicators
+<strong>C1, C2, …</strong>, and outcomes <strong>Yk</strong>.</td>
+<td>Clear bookkeeping lets the software know <em>when</em> each variable
+occurs and what can causally affect what.</td>
+</tr>
+<tr class="even">
+<td><strong>2. Pick the treatment strategy you want to
+compare.</strong></td>
+<td>Just like specifying the “new policy” in a what-if regression, you
+describe an <strong>intervention</strong>: e.g. “always treat”
+vs. “never treat,” or “treat if blood-pressure &gt; 140.”</td>
+<td>This defines the <strong>causal estimand</strong> – the quantity
+your colleague really cares about.</td>
+</tr>
+<tr class="odd">
+<td><strong>3. Regress the outcome forward in time (initial
+Q-model).</strong></td>
+<td>For each time-point <em>k</em>, fit a regression that predicts
+<strong>Y</strong> (or the survival indicator) from everything observed
+<em>before</em> time <em>k</em>. You can use flexible learners
+(e.g. random forests, GLMs, etc.) combined in a <strong>Super
+Learner</strong> ensemble.</td>
+<td>These regressions give you an initial guess of the outcome you would
+see under the observed treatment paths. Flexible “machine-learning
+regressions” avoid the bias of mis-specifying the model.</td>
+</tr>
+<tr class="even">
+<td><strong>4. Regress the treatment &amp; censoring
+(g-model).</strong></td>
+<td>Fit another set of regressions that predict the <em>probability</em>
+of receiving treatment <strong>A<sub>k</sub></strong> (and staying
+uncensored <strong>C<sub>k</sub>=1</strong>) at each time, again using
+all past data.</td>
+<td>These models adjust for confounding exactly like a propensity-score
+model but <strong>at every visit</strong>.</td>
+</tr>
+<tr class="odd">
+<td><strong>5. Construct the “clever covariate.”</strong></td>
+<td>From the g-model predictions you build a weight-like variable that
+tells you how surprising each person’s treatment history is.</td>
+<td>It plays the same role as an inverse-probability weight but is
+inserted directly in the next regression step.</td>
+</tr>
+<tr class="even">
+<td><strong>6. Target the initial outcome regression (update
+step).</strong></td>
+<td>Run one more <em>small</em> regression: regress the observed outcome
+on the clever covariate <strong>with the initial predictions as an
+offset</strong>. Only one coefficient (ε) is estimated, so it’s like
+nudging your earlier Q-model just enough to respect the causal
+constraints.</td>
+<td>This “targeting” guarantees that the final estimator is
+<strong>doubly robust</strong> (correct if either the Q-model or g-model
+is right) and <strong>efficient</strong> (smallest possible variance in
+large samples).</td>
+</tr>
+<tr class="odd">
+<td><strong>7. Compute the causal mean (or risk difference, RMST,
+etc.).</strong></td>
+<td>Replace each person’s observed treatment path with the hypothetical
+strategy from Step 2 and plug the updated Q-model predictions into a
+simple average.</td>
+<td>The result is what the outcome <em>would have been</em> under the
+chosen strategy, free of time-dependent confounding.</td>
+</tr>
+<tr class="even">
+<td><strong>8. Get standard errors and confidence
+intervals.</strong></td>
+<td>lTMLE software (e.g. the <strong>ltmle</strong> R package)
+automatically spits out an influence-curve-based SE, so you can form 95
+% CIs just like in regression.</td>
+<td>Because the influence curve acts like a sandwich (robust) variance,
+you still get valid inference even with machine-learning models.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="simulated-example" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> 4 Simulated
+example</h1>
+<p>Simulate claims-like data with prescription gaps</p>
+<pre class="r"><code>set.seed(1234)
+
+n &lt;- 3000
+K &lt;- 6                       # 6 monthly visits
+W0 &lt;- rbinom(n, 1, 0.4)                  # baseline risk factor
+
+A &lt;- G &lt;- L &lt;- Y &lt;- matrix(0, n, K)      # A = drug exposure, G = gap length
+for (t in 1:K){
+  # (i) exposure decision depends on past gap &amp; CD4-like biomarker L
+  pA &lt;- plogis(-0.5 + 1*W0 - 1*ifelse(t==1,0,G[,t-1]) - 0.8*ifelse(t==1,0,L[,t-1]))
+  A[,t] &lt;- rbinom(n, 1, pA)              # 1 = on drug in month t
+  
+  # (ii) gap length update (0 if filled this month)
+  G[,t] &lt;- ifelse(A[,t]==1, 0, ifelse(t==1,30,G[,t-1]+30))
+  
+  # (iii) biomarker improves on treatment
+  L[,t] &lt;- rnorm(n, mean = -0.3*A[,t] + 0.2*W0 + 0.02*G[,t])
+  
+  # (iv) virologic failure hazard increases with gaps &amp; bad biomarker
+  haz &lt;- plogis(-3 + 0.04*G[,t] + 0.8*L[,t])
+  Y[,t] &lt;- rbinom(n, 1, haz) | Y[,pmax(t-1,1)]
+}
+
+dat &lt;- data.frame(W0,
+                  as.data.frame(A), as.data.frame(G), as.data.frame(L),
+                  Y_K = Y[,K])
+names(dat) &lt;- c(&quot;W0&quot;,
+                paste0(&quot;A&quot;,1:K), paste0(&quot;Gap&quot;,1:K), paste0(&quot;L&quot;,1:K),
+                &quot;Y&quot;)
+
+glimpse(dat)</code></pre>
+<pre><code>## Rows: 3,000
+## Columns: 20
+## $ W0   &lt;int&gt; 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0,…
+## $ A1   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1,…
+## $ A2   &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1,…
+## $ A3   &lt;dbl&gt; 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0,…
+## $ A4   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ A5   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ A6   &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ Gap1 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 30, 0, 30, 0, 30, 30, …
+## $ Gap2 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 30, 0, 0, 0, 30, 30, 0, 0, 0…
+## $ Gap3 &lt;dbl&gt; 30, 0, 30, 0, 0, 0, 30, 30, 30, 30, 30, 30, 30, 0, 0, 30, 30, 30,…
+## $ Gap4 &lt;dbl&gt; 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 6…
+## $ Gap5 &lt;dbl&gt; 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 9…
+## $ Gap6 &lt;dbl&gt; 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, …
+## $ L1   &lt;dbl&gt; -0.68507241, 0.41405549, 0.20800422, 1.73915393, 1.49340465, -0.4…
+## $ L2   &lt;dbl&gt; 0.210531594, -0.095063006, -0.555346758, -1.164051075, -1.5016766…
+## $ L3   &lt;dbl&gt; 2.16188606, -0.60086311, 1.26682630, 0.75325470, 0.41378694, -2.1…
+## $ L4   &lt;dbl&gt; 0.739871263, 2.367408321, 2.568079905, 2.201542119, -0.074713438,…
+## $ L5   &lt;dbl&gt; 0.67772042, 2.85061046, 2.12880932, 1.90089604, 1.32122832, 2.716…
+## $ L6   &lt;dbl&gt; 2.8911950, 0.9286803, 2.1263292, 2.0329520, 3.1095067, 2.0677833,…
+## $ Y    &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…</code></pre>
+<pre class="r"><code># ──────────────────────────────────────────────────────────────
+#  Node specification
+# ──────────────────────────────────────────────────────────────
+Anodes &lt;- paste0(&quot;A&quot;,1:K)
+Lnodes &lt;- c(paste0(&quot;Gap&quot;,1:K), paste0(&quot;L&quot;,1:K))
+Ynodes &lt;- &quot;Y&quot;
+
+#simple superlearner library
+SL.lib &lt;- c(&quot;SL.mean&quot;,          # always include the grand mean
+            &quot;SL.bayesglm&quot;,      # weakly-informative prior
+            &quot;SL.glm&quot;)           # keep plain GLM if you like
+
+# ──────────────────────────────────────────────────────────────
+#  (1) Perfect adherence: static always-treated
+# ──────────────────────────────────────────────────────────────
+fit_perfect &lt;- ltmle(dat,
+                     Anodes = Anodes, Lnodes = Lnodes, Ynodes = Ynodes,
+                     survivalOutcome = TRUE,
+                     abar    = list(treated = rep(1,K), control = rep(0,K)),
+                     SL.library = SL.lib)
+
+# ──────────────────────────────────────────────────────────────
+#  (2) Imperfect adherence: allow ≤30-day gaps in any 90-day window
+#      Patients pause exposure once cumulative gap &gt;30 days, resume
+#      when gap resets to 0 after refill
+# ──────────────────────────────────────────────────────────────
+dyn.allow.gap &lt;- function(data) {
+  # data is a 1-row data.frame; return vector length K
+  as.integer( data[paste0(&quot;Gap&quot;, 1:K)] &lt;= 30 )
+} 
+
+fit_gap &lt;- ltmle(dat,
+                 Anodes = Anodes, Lnodes = Lnodes, Ynodes = Ynodes,
+                 survivalOutcome = TRUE,
+                 rule = dyn.allow.gap,         
+                 SL.library = SL.lib)
+
+# ──────────────────────────────────────────────────────────────
+#  Results
+# ──────────────────────────────────────────────────────────────
+summary(fit_perfect)$tmle[&quot;risk1&quot;,&quot;estimate&quot;]   # risk under perfect</code></pre>
+<pre><code>## NULL</code></pre>
+<pre class="r"><code>summary(fit_gap)$tmle[&quot;estimate&quot;]               # risk under gap rule</code></pre>
+<pre><code>## NULL</code></pre>
+<pre class="r"><code>summary(fit_perfect, contrast = list(fit_gap))  # risk difference</code></pre>
+<pre><code>## Estimator:  tmle 
+## Call:
+## ltmle(data = dat, Anodes = Anodes, Lnodes = Lnodes, Ynodes = Ynodes, 
+##     survivalOutcome = TRUE, abar = list(treated = rep(1, K), 
+##         control = rep(0, K)), SL.library = SL.lib)
+## 
+## Treatment Estimate:
+##    Parameter Estimate:  0.99799 
+##     Estimated Std Err:  1.5025e-06 
+##               p-value:  &lt;2e-16 
+##     95% Conf Interval: (0.99799, 0.99799) 
+## 
+## Control Estimate:
+##    Parameter Estimate:  0.99671 
+##     Estimated Std Err:  0.0022627 
+##               p-value:  &lt;2e-16 
+##     95% Conf Interval: (0.99228, 1) 
+## 
+## Additive Treatment Effect:
+##    Parameter Estimate:  0.0012798 
+##     Estimated Std Err:  0.0022627 
+##               p-value:  0.57167 
+##     95% Conf Interval: (-0.0031551, 0.0057146) 
+## 
+## Relative Risk:
+##    Parameter Estimate:  1.0013 
+##   Est Std Err log(RR):  0.0022702 
+##               p-value:  0.57192 
+##     95% Conf Interval: (0.99684, 1.0057) 
+## 
+## Odds Ratio:
+##    Parameter Estimate:  1.6388 
+##   Est Std Err log(OR):  0.69009 
+##               p-value:  0.47409 
+##     95% Conf Interval: (0.42377, 6.3378)</code></pre>
+<p><code>ltmle()</code> internally: 1. fits a SuperLearner for each
+<strong>Q</strong>, <strong>g<sub>A</sub></strong>,
+<strong>g<sub>C</sub></strong> node; 2. runs the one-parameter
+fluctuation at each visit; 3. predicts each subject’s survival under
+<strong>always treat</strong> and <strong>never treat</strong>; 4.
+averages those predictions → plug-in risk difference &amp; ratio with
+influence-curve CI.</p>
+</div>
+<div id="interpreting-the-output" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> 5 Interpreting the
+output</h1>
+<ul>
+<li>The <strong>effect estimate</strong> corresponds to the causal
+contrast “if everyone initiated/continued ART at every visit vs. never
+initiated.” * Because either the Q- or g-models can be mis-specified
+while still giving consistent estimates, lTMLE is <em>doubly
+robust</em>. * If positivity or model misspecification is severe,
+diagnostics such as <strong>clever-covariate mean</strong> and
+<strong>percent truncated</strong> help flag problems. # 6 Key
+take-aways * <strong>Longitudinal confounding</strong> (e.g., CD4
+affecting and affected by ART) invalidates naïve Cox models. *
+<strong>lTMLE</strong> solves this by sequentially combining flexible
+outcome and treatment models, then “targeting” them so the final
+estimator satisfies the causal score equation. * Implementation requires
+only a well-structured data frame and a SuperLearner library;
+<code>ltmle()</code> handles the recursion, targeting, and inference
+automatically. # 7 Further reading * van der Laan &amp; Rubin (2006)
+<em>Targeted Maximum Likelihood Estimation</em>. * Gruber &amp; van der
+Laan (2010) <em>A gentle introduction to TMLE</em>. * Schnitzer et
+al. (2014) <em>Longitudinal TMLE for causal inference</em>.</li>
+</ul>
+</div>
+<div
+id="cox-model-with-a-time-varying-confounder-code-and-conceptual-pitfalls"
+class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Cox model with a
+time-varying confounder: code and conceptual pitfalls</h1>
+<p>Below we (i) re-structure the same simulated HIV-adherence data into
+counting-process form, (ii) fit a conventional Cox model with
+time-varying covariates, and (iii) explain why this approach cannot
+recover the causal effect when adherence and the biomarker jointly
+evolve.</p>
+<pre class="r"><code># --- wide → long (monthly intervals) ------------------------------------
+long &lt;- dat %&gt;%                 # &#39;dat&#39; from previous lTMLE chunk
+  mutate(id = row_number()) %&gt;%
+  tidyr::pivot_longer(
+    cols = -c(id, W0),
+    names_to = &quot;.var&quot;,
+    values_to = &quot;value&quot;
+  ) %&gt;%
+  tidyr::separate(.var, into = c(&quot;var&quot;, &quot;t&quot;), sep = &quot;(?&lt;=\\D)(?=\\d)&quot;) %&gt;%
+  tidyr::pivot_wider(names_from = var, values_from = value) %&gt;%
+  mutate(t        = as.integer(t),
+         start    = t - 1,
+         stop     = t,
+         event    = as.integer(Y == 1 &amp; t == max(t[Y == 1], na.rm = TRUE))) %&gt;%
+  arrange(id, start)
+
+# censor at first failure
+long &lt;- long %&gt;%
+  group_by(id) %&gt;%
+  mutate(event = ifelse(cumsum(event) &gt; 1, 0, event)) %&gt;%
+  ungroup()
+
+# --- Cox model with time-varying treatment &amp; confounder -----------------
+cox_tv &lt;- coxph(Surv(start, stop, event) ~ A + L + W0,
+                data = long)
+summary(cox_tv)</code></pre>
+<pre><code>## Call:
+## coxph(formula = Surv(start, stop, event) ~ A + L + W0, data = long)
+## 
+##   n= 18000, number of events= 0 
+## 
+##    coef exp(coef) se(coef)  z Pr(&gt;|z|)
+## A    NA        NA        0 NA       NA
+## L    NA        NA        0 NA       NA
+## W0   NA        NA        0 NA       NA
+## 
+##    exp(coef) exp(-coef) lower .95 upper .95
+## A         NA         NA        NA        NA
+## L         NA         NA        NA        NA
+## W0        NA         NA        NA        NA
+## 
+## Concordance= NA  (se = NA )
+## Likelihood ratio test= 0  on 0 df,   p=1
+## Wald test            = 0  on 0 df,   p=1
+## Score (logrank) test = 0  on 0 df,   p=1</code></pre>
+</div>
+<div id="why-this-cox-fit-does-not-solve-the-problem"
+class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Why this Cox fit does
+not solve the problem</h1>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><strong>Issue</strong></th>
+<th><strong>Explanation</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Adjusting for an intermediate breaks the total effect</td>
+<td><span class="math inline">\(L_t\)</span> sits on the causal pathway
+<span class="math inline">\(A_{t-1} \rightarrow L_t \rightarrow
+Y\)</span>. Conditioning on <span class="math inline">\(L_t\)</span>
+removes the indirect (mediated) part of the treatment effect, so the
+coefficient of <span class="math inline">\(A\)</span> estimates only a
+<strong>direct</strong> effect—not the total effect posed in the
+research question.</td>
+</tr>
+<tr class="even">
+<td>Leaving <span class="math inline">\(L_t\)</span> out induces
+time-dependent confounding bias</td>
+<td>Dropping <span class="math inline">\(L_t\)</span> leaves earlier low
+CD4 to (i) trigger intensified treatment and (ii) predict failure. The
+hazard ratio for <span class="math inline">\(A\)</span> is then
+confounded—often toward harm, because sicker patients adhere more
+faithfully.</td>
+</tr>
+<tr class="odd">
+<td>Time-varying selection creates collider bias</td>
+<td>Conditioning on <span class="math inline">\(L_t\)</span> (a child of
+prior <span class="math inline">\(A\)</span>) opens a backdoor path
+through any unmeasured causes of <span
+class="math inline">\(L_t\)</span> and later failure, introducing new
+bias (collider stratification).</td>
+</tr>
+<tr class="even">
+<td>Hazard ratios are non-collapsible &amp; scale-dependent</td>
+<td>Even without the above issues, the Cox HR is a
+<strong>conditional</strong>, log-linear summary; lTMLE targets marginal
+risks or RMST—quantities that map directly to policy questions
+(“12-month risk under perfect vs. imperfect adherence”). Hazard
+differences do not translate 1-to-1 into risk differences.</td>
+</tr>
+<tr class="odd">
+<td>Censoring &amp; gaps violate proportional hazards</td>
+<td>Adherence gaps make treatment effects wane and rebound, violating
+the proportional-hazards assumption that underpins the Cox model.</td>
+</tr>
+</tbody>
+</table>
+<p>Hence the analyst faces a no-win choice: include L_t and estimate the
+wrong estimand, or exclude L_t and suffer confounding. lTMLE (or other
+g-methods such as MSMs) resolves the dilemma by separating the
+tasks:</p>
+<p>Outcome mechanism (Q-model) and</p>
+<p>Treatment/censoring mechanism (g-model),</p>
+<p>then “targets” the outcome predictions so the resulting plug-in
+estimator obeys the causal estimating equation—yielding a marginal risk
+(or risk difference) that properly incorporates both the direct and
+indirect pathways of treatment, while remaining unbiased under
+time-varying confounding.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -20,8 +20,8 @@ navbar:
       href: case_study_AKI.html
     - text: "Propensity score matching analysis"
       href: PS_analysis.html
-    # - text: "Targeted learning analysis4"
-    #   href: TMLE_analysisV4.html
+    - text: "Targeted learning analysis4"
+      href: TMLE_analysisV4.html
     - text: "Appendix"
       href: appendix.html
 output_dir: "."

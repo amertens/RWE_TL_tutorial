@@ -11,7 +11,7 @@
 
 <meta name="author" content="AKI Safety Working Group" />
 
-<meta name="date" content="2025-05-01" />
+<meta name="date" content="2025-05-02" />
 
 <title>Step 1 – Causal Question, Causal Model, and Causal Estimand</title>
 
@@ -348,6 +348,9 @@ div.tocify {
   <a href="PS_analysis.html">Propensity score matching analysis</a>
 </li>
 <li>
+  <a href="TMLE_analysisV4.html">Targeted learning analysis4</a>
+</li>
+<li>
   <a href="appendix.html">Appendix</a>
 </li>
       </ul>
@@ -365,13 +368,43 @@ div.tocify {
 <h1 class="title toc-ignore">Step 1 – Causal Question, Causal Model, and
 Causal Estimand</h1>
 <h4 class="author">AKI Safety Working Group</h4>
-<h4 class="date">2025-05-01</h4>
+<h4 class="date">2025-05-02</h4>
 
 </div>
 
 
+<div id="table-of-contents" class="section level3" number="0.0.1">
+<h3><span class="header-section-number">0.0.1</span> Table of
+contents</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Causal Roadmap Component</th>
+<th>Section Covered</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Question definition</strong></td>
+<td>Section 1.1</td>
+</tr>
+<tr class="even">
+<td><strong>Causal Model (DAG)</strong></td>
+<td>Section 1.2</td>
+</tr>
+<tr class="odd">
+<td><strong>Estimand definition</strong></td>
+<td>Section 1.3, Table 1</td>
+</tr>
+<tr class="even">
+<td><strong>Choice of primary estimand</strong></td>
+<td>Section 1.4</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div id="scientific-question" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> 1 Scientific
+<h1><span class="header-section-number">1</span> 2 Scientific
 Question</h1>
 <blockquote>
 <p><em>Among U.S. adults with chronic hepatitis C (HCV) who initiate
@@ -430,54 +463,10 @@ coverage<br />
 <em>(A0, C(t))</em> and <em>Y(t)</em> given <em>W</em>.</li>
 </ol>
 </div>
-<div id="existing-analysis" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> 3 Existing
-analysis</h1>
-<p>Background and motivation. A pharmacovigilance “dry-run” signal
-evaluation suggested a possible link between acute kidney injury (AKI)
-and sofosbuvir-containing (SOF) direct-acting antiviral (DAA) regimens
-used to treat chronic hepatitis C virus (HCV) infection. To inform
-ongoing safety monitoring, Gilead undertook a rapid, supportive
-real-world evidence (RWE) study comparing AKI risk in patients
-initiating SOF-containing DAAs with those starting non-SOF DAAs. The
-analysis leveraged a large US administrative-claims and
-electronic‐medical-record data source (HealthVerity) covering more than
-550 million patients (2015-2023) to provide timely, supplementary
-evidence on whether the observed signal represented an increased,
-clinically meaningful risk.</p>
-<p>Methods. A retrospective new-user cohort was drawn from an HCV
-“standing cohort” of adults with ≥1 year of continuous medical- and
-drug-coverage enrollment. Eligible initiators of SOF or non-SOF DAAs
-between 1 October 2016 and 21 September 2023 entered follow-up on the
-first dispense date (index). Exposure was handled “as treated”: patients
-were censored 31 days after treatment discontinuation or at crossover to
-the other DAA class. AKI was identified by ICD-10 codes (e.g., N17.x,
-N19, R34). Baseline demographics and 50+ comorbidities/medication
-variables were assessed in the prior year and used to build a
-logistic-regression propensity score (PS). After 1:1 nearest-neighbor PS
-matching, AKI incidence was compared with Cox proportional-hazards
-models: unadjusted, covariate-adjusted, PS-stratified and PS-matched
-specifications served as sensitivity and diagnostic checks.</p>
-<p>Results. Among 105 636 eligible patients (67 720 non-SOF; 37 916
-SOF), crude AKI incidence was 8.9 vs 16.0 per 1000 persons, but crude
-comparability was poor. PS matching produced 37 220 well-balanced pairs
-(absolute covariate differences ≤1%). In the matched analysis, AKI
-occurred in 608 SOF vs 605 non-SOF users over 26 387 person-years,
-yielding a hazard ratio (HR) of 1.14 (95% CI 1.00–1.30; p = 0.05) and an
-absolute risk difference of +7.1 AKI cases per 1000 patients . Fully
-covariate-adjusted and PS-stratified Cox models in the unmatched cohort
-gave similar, non-significant estimates (e.g., HR 1.11, 95% CI
-0.99–1.26) . Model diagnostics indicated adequate overlap and balance
-post-matching, but residual confounding could not be excluded. Overall,
-the analysis did not confirm an elevated AKI risk for SOF-containing
-DAAs; rather, after careful adjustment, risk estimates were null to
-modest and statistically inconclusive, suggesting the initial signal may
-reflect confounding or chance rather than a true safety concern.</p>
-</div>
 <div
 id="estimand-introduction-ich-e9r1-estimand-framework-in-rwe-analysis"
-class="section level1" number="4">
-<h1><span class="header-section-number">4</span> 1. Estimand
+class="section level1" number="3">
+<h1><span class="header-section-number">3</span> 1. Estimand
 Introduction – ICH E9(R1) Estimand Framework in RWE Analysis</h1>
 <p>What is an estimand? An estimand is a precise description of the
 treatment effect or quantity we aim to estimate, aligning the study
@@ -817,71 +806,104 @@ ratio or risk difference in AKI at a certain time point during therapy
 differences or ratios over hazard ratios for a more causal
 interpretation. This estimand aligns with asking: “Comparing SOF to
 no-SOF, what is the difference in probability of AKI during the
-treatment period?” The table below summarizes the proposed estimand: |
-Attribute | Recommended specification | |—|—| |
-<strong>Population</strong> | Adults with chronic HCV who meet labelled
-indications for either SOF-containing or non-SOF DAA as first
-contemporary treatment. | | <strong>Treatment strategies</strong> |
-<em>Initiate and continue</em> a SOF regimen <strong>vs</strong>
+treatment period?” The table below summarizes the proposed estimand:</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Attribute</th>
+<th>Recommended specification</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Population</strong></td>
+<td>Adults with chronic HCV who meet labelled indications for either
+SOF-containing or non-SOF DAA as first contemporary treatment.</td>
+</tr>
+<tr class="even">
+<td><strong>Treatment strategies</strong></td>
+<td><em>Initiate and continue</em> a SOF regimen <strong>vs</strong>
 <em>initiate and continue</em> a non-SOF regimen for the standard
-treatment course (e.g., 8–12 weeks). | | <strong>Intercurrent-event
-strategies</strong> | • <strong>Treatment discontinuation /
-switch</strong> → <em>treatment-period</em> strategy: censor
-<strong>at</strong> last dose (or within a pre-specified ≤ 30-day grace
-window justified by PK/PD and AKI latency).<br>• <strong>Death</strong>
-→ treated as a <em>competing risk</em> in the primary analysis
-(Fine-Gray); also analysed as administrative censoring in sensitivity
-analysis.<br>• <strong>Lost to follow-up</strong> → handled as missing
-data; address with inverse-probability-of-censoring weights. | |
-<strong>Endpoint</strong> | Time to first AKI meeting a KDIGO-compatible
-ICD-10 algorithm, occurring on or within the grace window after
-exposure; document algorithm PPV. | | <strong>Summary measure</strong> |
-<strong>Primary:</strong> Cause-specific hazard ratio for AKI during
+treatment course (e.g., 8–12 weeks).</td>
+</tr>
+<tr class="odd">
+<td><strong>Intercurrent-event strategies</strong></td>
+<td>• <strong>Treatment discontinuation / switch</strong> →
+<em>treatment-period</em> strategy: censor <strong>at</strong> last dose
+(or within a pre-specified ≤ 30-day grace window justified by PK/PD and
+AKI latency).<br>• <strong>Death</strong> → treated as a <em>competing
+risk</em> in the primary analysis (Fine-Gray); also analysed as
+administrative censoring in sensitivity analysis.<br>• <strong>Lost to
+follow-up</strong> → handled as missing data; address with
+inverse-probability-of-censoring weights.</td>
+</tr>
+<tr class="even">
+<td><strong>Endpoint</strong></td>
+<td>Time to first AKI meeting a KDIGO-compatible ICD-10 algorithm,
+occurring on or within the grace window after exposure; document
+algorithm PPV.</td>
+</tr>
+<tr class="odd">
+<td><strong>Summary measure</strong></td>
+<td><strong>Primary:</strong> Cause-specific hazard ratio for AKI during
 treatment.<br><strong>Key secondary:</strong> 12-week risk difference
-(e.g., RMST or Aalen estimator). | | <strong>Sensitivity / supplementary
-estimands</strong> | Pre-specified: (i) ITT-style treatment-policy
-estimand, (ii) hypothetical “no discontinuation” estimand, (iii)
-per-protocol / principal-stratum proxy among completers. | |
-<strong>Rationale</strong> | Aligns with clinical objective of
-quantifying direct nephrotoxic effect during exposure; obeys ICH E9(R1)
-principles; analytic plan mitigates informative censoring and
-competing-risk bias; eases regulatory review. | *Detailed Justification
-for chosen estimand in the appendix 6. Alternative Estimand Strategies
-and Trade-offs for SOF vs Non-SOF (Discussion) Having recommended the
-while-on-treatment estimand, it’s important to acknowledge other
-reasonable estimand choices and discuss their pros and cons in this
-context: ● Treatment-Policy as an alternative: A treatment-policy
-estimand (ITT-like) could be justified if our objective was more about
-the overall impact of initiating SOF on patient outcomes, rather than
-the direct causal effect of the drug. For example, a public health
-authority might be interested in “if 1,000 patients are started on SOF
-vs 1,000 on older regimens, how many AKI cases will ultimately occur in
-each group?” This includes the fact that some patients may stop the drug
-– which in practice could limit the harm (because those who experience
-issues stop early). A treatment-policy analysis would capture that
-dynamic. The advantage is it reflects “real-world use” including
-adherence patterns. It also avoids the need to model or adjust for
-post-baseline variables – you simply follow everyone. In a randomized
-trial, ITT is king for efficacy to avoid bias; for safety in
-observational data, however, the situation is trickier. The drawback of
-treatment-policy here is potential dilution of the drug’s effect. If SOF
-truly causes AKI, many patients might discontinue at first sign of
-kidney issues – those patients might avoid full-blown AKI (which is good
-for them, but the analysis would then count them as not having AKI while
-on SOF, even though SOF precipitated the problem that made them stop).
-Thus, the ITT estimand might conclude “no big difference in AKI rates,”
-whereas in truth SOF had nephrotoxic potential but it was mitigated by
-clinicians stopping the drug. From a regulator’s perspective, that ITT
-result is less useful because it doesn’t reveal the drug’s inherent
-risk. That said, a treatment-policy estimand could be an equally valid
-secondary analysis – it answers a complementary question: “what is the
-risk difference in a world where patients and doctors behave normally
-(stopping when needed)?” This might be relevant for risk-benefit
-assessment on a population level. For instance, if ITT shows only a tiny
-increase in AKI (because many at-risk patients stopped early),
-regulators might consider that in context of drug benefits. But they
-would still want to know the on-treatment risk to properly caution and
-manage patients. In summary, treatment-policy is not our choice for
+(e.g., RMST or Aalen estimator).</td>
+</tr>
+<tr class="even">
+<td><strong>Sensitivity / supplementary estimands</strong></td>
+<td>Pre-specified: (i) ITT-style treatment-policy estimand, (ii)
+hypothetical “no discontinuation” estimand, (iii) per-protocol /
+principal-stratum proxy among completers.</td>
+</tr>
+<tr class="odd">
+<td><strong>Rationale</strong></td>
+<td>Aligns with clinical objective of quantifying direct nephrotoxic
+effect during exposure; obeys ICH E9(R1) principles; analytic plan
+mitigates informative censoring and competing-risk bias; eases
+regulatory review.</td>
+</tr>
+</tbody>
+</table>
+<p>*Detailed Justification for chosen estimand in the appendix 6.
+Alternative Estimand Strategies and Trade-offs for SOF vs Non-SOF
+(Discussion) Having recommended the while-on-treatment estimand, it’s
+important to acknowledge other reasonable estimand choices and discuss
+their pros and cons in this context: ● Treatment-Policy as an
+alternative: A treatment-policy estimand (ITT-like) could be justified
+if our objective was more about the overall impact of initiating SOF on
+patient outcomes, rather than the direct causal effect of the drug. For
+example, a public health authority might be interested in “if 1,000
+patients are started on SOF vs 1,000 on older regimens, how many AKI
+cases will ultimately occur in each group?” This includes the fact that
+some patients may stop the drug – which in practice could limit the harm
+(because those who experience issues stop early). A treatment-policy
+analysis would capture that dynamic. The advantage is it reflects
+“real-world use” including adherence patterns. It also avoids the need
+to model or adjust for post-baseline variables – you simply follow
+everyone. In a randomized trial, ITT is king for efficacy to avoid bias;
+for safety in observational data, however, the situation is trickier.
+The drawback of treatment-policy here is potential dilution of the
+drug’s effect. If SOF truly causes AKI, many patients might discontinue
+at first sign of kidney issues – those patients might avoid full-blown
+AKI (which is good for them, but the analysis would then count them as
+not having AKI while on SOF, even though SOF precipitated the problem
+that made them stop). Thus, the ITT estimand might conclude “no big
+difference in AKI rates,” whereas in truth SOF had nephrotoxic potential
+but it was mitigated by clinicians stopping the drug. From a regulator’s
+perspective, that ITT result is less useful because it doesn’t reveal
+the drug’s inherent risk. That said, a treatment-policy estimand could
+be an equally valid secondary analysis – it answers a complementary
+question: “what is the risk difference in a world where patients and
+doctors behave normally (stopping when needed)?” This might be relevant
+for risk-benefit assessment on a population level. For instance, if ITT
+shows only a tiny increase in AKI (because many at-risk patients stopped
+early), regulators might consider that in context of drug benefits. But
+they would still want to know the on-treatment risk to properly caution
+and manage patients. In summary, treatment-policy is not our choice for
 primary estimand due to interpretability concerns for safety, but it is
 not “wrong” – it’s just answering a different question. It has lower
 internal bias (no selection due to censoring) but mixes in the effects
@@ -1132,8 +1154,8 @@ observational research ultimately improves the quality of evidence we
 generate, ensuring it answers the questions that matter in a rigorous
 way.</p>
 </div>
-<div id="target-estimands" class="section level1" number="5">
-<h1><span class="header-section-number">5</span> 4 Target Estimands</h1>
+<div id="target-estimands" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> 4 Target Estimands</h1>
 <p>The AKI study used an <strong>as-treated, censor-at-switch</strong>
 estimand (★).<br />
 Alternative estimands answer related questions or relax assumptions.</p>
@@ -1205,8 +1227,8 @@ implausible</td>
 </tr>
 </tbody>
 </table>
-<div id="choosing-among-estimands" class="section level2" number="5.1">
-<h2><span class="header-section-number">5.1</span> Choosing among
+<div id="choosing-among-estimands" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Choosing among
 estimands</h2>
 <ul>
 <li><strong>Regulatory safety signal</strong> – ★ As-treated is
@@ -1223,8 +1245,8 @@ per-protocol estimands focus on inherent nephro-toxicity.</li>
 must align with the chosen estimand.</p>
 </div>
 </div>
-<div id="place-holder-for-code" class="section level1" number="6">
-<h1><span class="header-section-number">6</span> 4 Place-holder for
+<div id="place-holder-for-code" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> 4 Place-holder for
 Code</h1>
 <ul>
 <li><strong>W</strong> – baseline confounders (age, sex, CKD, diabetes,
@@ -1247,8 +1269,8 @@ coverage<br />
 <em>(A0, C(t))</em> and <em>Y(t)</em> given <em>W</em>.</li>
 </ol>
 </div>
-<div id="target-estimands-1" class="section level1" number="7">
-<h1><span class="header-section-number">7</span> 3 Target Estimands</h1>
+<div id="target-estimands-1" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> 3 Target Estimands</h1>
 <p>The AKI study used an <strong>as-treated, censor-at-switch</strong>
 estimand (★).<br />
 Alternative estimands answer related questions or relax assumptions.</p>
@@ -1321,8 +1343,8 @@ implausible</td>
 </tbody>
 </table>
 <div id="choosing-among-estimands-1" class="section level2"
-number="7.1">
-<h2><span class="header-section-number">7.1</span> Choosing among
+number="6.1">
+<h2><span class="header-section-number">6.1</span> Choosing among
 estimands</h2>
 <ul>
 <li><strong>Regulatory safety signal</strong> – ★ As-treated is
@@ -1338,28 +1360,22 @@ per-protocol estimands focus on inherent nephro-toxicity.</li>
 <p>Subsequent Roadmap steps (identification, estimation, sensitivity)
 must align with the chosen estimand.</p>
 </div>
-<div id="causal-model-ggdag-plot" class="section level2" number="7.2">
-<h2><span class="header-section-number">7.2</span> 2 Causal Model –
+<div id="causal-model-ggdag-plot" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> 2 Causal Model –
 ggdag plot</h2>
-<pre class="r"><code>library(tidyverse) </code></pre>
-<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.4     ✔ readr     2.1.5
-## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
-## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
-## ✔ purrr     1.0.2     
-## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()
-## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
-<pre class="r"><code>library(dagitty) </code></pre>
+<pre class="r"><code>library(tidyverse) 
+library(dagitty) </code></pre>
 <pre><code>## Warning: package &#39;dagitty&#39; was built under R version 4.4.3</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dagitty&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:survey&#39;:
+## 
+##     neighbours</code></pre>
 <pre class="r"><code>library(ggdag)</code></pre>
 <pre><code>## Warning: package &#39;ggdag&#39; was built under R version 4.4.3</code></pre>
 <pre><code>## 
-## Attaching package: &#39;ggdag&#39;
-## 
-## The following object is masked from &#39;package:stats&#39;:
+## Attaching package: &#39;ggdag&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:stats&#39;:
 ## 
 ##     filter</code></pre>
 <pre class="r"><code># DAG specification -------------------------------------------------------
@@ -1387,8 +1403,8 @@ ggdag(aki_dag, text = FALSE, use_labels = &#39;name&#39;, seed = 123) +
 </div>
 </div>
 <div id="step-1-defining-the-causal-question-model-and-estimands"
-class="section level1" number="8">
-<h1><span class="header-section-number">8</span> Step 1 — Defining the
+class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Step 1 — Defining the
 Causal Question, Model, and Estimands</h1>
 <p>In the causal inference roadmap, clearly defining the scientific
 question, causal model, and target estimands is critical for valid
@@ -1511,8 +1527,8 @@ with clinical or regulatory relevance.</p>
 estimand, especially beneficial under non-proportional hazards
 conditions due to interpretability as an average delay in event
 occurrence.</p>
-<div id="table-1" class="section level3" number="8.0.1">
-<h3><span class="header-section-number">8.0.1</span> Table 1</h3>
+<div id="table-1" class="section level3" number="7.0.1">
+<h3><span class="header-section-number">7.0.1</span> Table 1</h3>
 <table style="width:100%;">
 <colgroup>
 <col width="1%" />
@@ -1936,8 +1952,8 @@ index="10">oaicite:10</span></td>
 </tr>
 </tbody>
 </table>
-<div id="legend-of-new-column" class="section level4" number="8.0.1.1">
-<h4><span class="header-section-number">8.0.1.1</span> Legend of new
+<div id="legend-of-new-column" class="section level4" number="7.0.1.1">
+<h4><span class="header-section-number">7.0.1.1</span> Legend of new
 column</h4>
 <p>Roadmap Step 0–6 refer to the ordered tasks in the Causal Roadmap
 (formulate question, specify causal/statistical models, identify,
@@ -1960,8 +1976,8 @@ inhibitor (PPI) use to assess residual confounding and strengthen the
 plausibility of causal inferences.</p>
 </div>
 </div>
-<div id="unified-estimand-table" class="section level2" number="8.1">
-<h2><span class="header-section-number">8.1</span> 1 Unified Estimand
+<div id="unified-estimand-table" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> 1 Unified Estimand
 Table</h2>
 <table>
 <colgroup>
@@ -2311,8 +2327,8 @@ regimen</td>
 </tbody>
 </table>
 <div id="notes-on-column-harmonisation" class="section level3"
-number="8.1.1">
-<h3><span class="header-section-number">8.1.1</span> Notes on Column
+number="7.1.1">
+<h3><span class="header-section-number">7.1.1</span> Notes on Column
 Harmonisation</h3>
 <ul>
 <li><strong>Population (P), Treatment (A), Outcome (Y)</strong> —
@@ -2402,8 +2418,8 @@ exclusion; sensitivity | Bounding; TMLE-principal | Identify
 highest-risk subgroup | Exploratory biologic | |</div>
 </div>
 <div id="practical-and-regulatory-considerations" class="section level3"
-number="8.1.2">
-<h3><span class="header-section-number">8.1.2</span> Practical and
+number="7.1.2">
+<h3><span class="header-section-number">7.1.2</span> Practical and
 Regulatory Considerations</h3>
 <ul>
 <li><strong>Causal assumptions in context</strong> <em>Consistency</em>
@@ -2435,39 +2451,13 @@ in 90 d). We nevertheless include a Fine-Gray sub-distribution HR row to
 capture policy interest in cumulative incidence when death competes with
 AKI.</li>
 </ul>
-<table>
-<thead>
-<tr class="header">
-<th>Roadmap Component</th>
-<th>Section Covered</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Question definition</strong></td>
-<td>Section 1.1</td>
-</tr>
-<tr class="even">
-<td><strong>Causal Model (DAG)</strong></td>
-<td>Section 1.2</td>
-</tr>
-<tr class="odd">
-<td><strong>Estimand definition</strong></td>
-<td>Section 1.3, Table</td>
-</tr>
-<tr class="even">
-<td><strong>Choice of primary estimand</strong></td>
-<td>Section 1.4</td>
-</tr>
-</tbody>
-</table>
 <p><strong>Next Steps:</strong> Subsequent chapters will detail
 identification assumptions, estimation procedures (TMLE, Super Learner),
 sensitivity analyses, and interpretation strategies in alignment with
 this foundational framework. —</p>
 </div>
-<div id="references" class="section level3" number="8.1.3">
-<h3><span class="header-section-number">8.1.3</span> References</h3>
+<div id="references" class="section level3" number="7.1.3">
+<h3><span class="header-section-number">7.1.3</span> References</h3>
 <p>Dang et al. (2023). JCTS. Rufibach (2019). Pharmaceutical Statistics.
 Stensrud et al. (2019). Eur Heart J. Martinussen (2022). Ann Rev Stat
 Appl.</p>

@@ -1,5 +1,5 @@
 ---
-title: "Propensity‑Score & Cox Analysisn"
+title: "Propensity‑Scor matched Cox regressian Analysis"
 author: "Gilead RWE demo"
 date: "`r Sys.Date()`"
 output:
@@ -21,9 +21,9 @@ library(skimr)
 
 # 1 Load data & quick look
 
-```{r data-load}
-
-df <- read_csv("data/sim_hcv_aki.csv", show_col_types = FALSE)
+```{r data-load, echo=F}
+library(here)
+df <- read_csv(here("data/sim_hcv_aki_complex.csv"), show_col_types = FALSE)
 
 # glimpse & skim for sanity
 skim(df)

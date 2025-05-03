@@ -1,0 +1,217 @@
+--- 
+title: "Longitudinal Targeted Maximum-Likelihood Estimation (lTMLE): A Hands-On Tutorial" 
+output: 
+  html_document: 
+    toc: true 
+    toc_depth: 2 
+    number_sections: true 
+--- 
+
+```{r setup, include = FALSE} 
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, cache = FALSE) 
+library(ltmle) # longitdudinal TMLE
+library(SuperLearner) # ensemble learning 
+library(tidyverse)
+library(survival)
+``` 
+
+
+# Case study
+
+Objective. Among treatment-naïve people living with HIV who initiate a tenofovir-based single-tablet regimen versus a non-tenofovir comparator, what is the 12-month risk of virologic failure under
+
+Perfect adherence – patients take every scheduled daily dose (static “always-treated” intervention), and
+
+Imperfect adherence – patients can accumulate treatment gaps ≤ 30 consecutive days in any 90-day window (dynamic regimen that pauses exposure during longer gaps and re-starts when the prescription is refilled).
+
+This contrast isolates whether the Gilead product is more “forgiving” to missed doses than its comparator, while properly adjusting for time-varying confounders such as evolving CD4 count, comorbidity burden, and drug-related toxicities that simultaneously influence future adherence and virologic failure. 
+
+
+# 1 Why a standard Cox regression fails in the adherence-gap setting
+
+In longitudinal adherence studies the exposure A<sub>t</sub> is “on drug this month” and the evolving biomarker L<sub>t</sub> (e.g., CD4 count or viral load) both reflects past adherence and informs future adherence decisions. Past dosing improves the biomarker, and a poor biomarker reading triggers intensified adherence support or regimen change. Thus L<sub>t</sub> is simultaneously a mediator and a time-varying confounder.
+
+Time-dependent confounding dilemma.
+Adjusting for the current biomarker in a Cox model blocks the indirect pathway A<sub>t-1</sub> → L<sub>t</sub> → Y, underestimating the total drug effect.
+Omitting L<sub>t</sub> leaves confounding bias because low adherence and poor biomarker control jointly predict failure.
+
+Cox with time-varying covariates cannot fix both problems.
+It conditions on whatever covariates appear in the risk set at each instant; it cannot “unblock” mediated effects while still removing confounding arising from the very same variables.
+
+lTMLE resolves the feedback loop.
+It fits (i) sequential outcome regressions and (ii) sequential treatment/censoring propensity models, then performs a one-step “targeting” update so the final plug-in estimator satisfies the causal estimating equation. The result is an unbiased, marginal 12-month risk (or risk difference) under perfect versus imperfect adherence policies—something the Cox framework, by construction, cannot deliver in the presence of biomarker-driven adherence feedback.
+
+# 2 Essential data layout 
+
+* **W** – baseline covariates * **A<sub>1</sub>, …, A<sub>K</sub>** – treatments * **L<sub>1</sub>, …, L<sub>K</sub>** – time-varying covariates * **C<sub>1</sub>, …, C<sub>K</sub>** – censoring indicators (1 = uncensored) * **Y<sub>K</sub>** – outcome (binary or survival status) The `ltmle()` function needs those nodes in **wide** format. 
+
+# 3 Step-by-step recipe for L-TMLE 
+
+
+| **Step** | **What you do (in regression terms)** | **Why it matters for causal inference** |
+|---|---|---|
+| **1. Organize the data into “nodes.”** | Think of each measurement occasion as a new regression dataset. You stack the variables in a wide format so each column is either: baseline covariates **W**, time-varying covariates **L1, L2, …**, treatments **A1, A2, …**, censoring indicators **C1, C2, …**, and outcomes **Yk**. | Clear bookkeeping lets the software know *when* each variable occurs and what can causally affect what. |
+| **2. Pick the treatment strategy you want to compare.** | Just like specifying the “new policy” in a what-if regression, you describe an **intervention**: e.g. “always treat” vs. “never treat,” or “treat if blood-pressure > 140.” | This defines the **causal estimand** – the quantity your colleague really cares about. |
+| **3. Regress the outcome forward in time (initial Q-model).** | For each time-point *k*, fit a regression that predicts **Y** (or the survival indicator) from everything observed *before* time *k*. You can use flexible learners (e.g. random forests, GLMs, etc.) combined in a **Super Learner** ensemble. | These regressions give you an initial guess of the outcome you would see under the observed treatment paths. Flexible “machine-learning regressions” avoid the bias of mis-specifying the model. |
+| **4. Regress the treatment & censoring (g-model).** | Fit another set of regressions that predict the *probability* of receiving treatment **A<sub>k</sub>** (and staying uncensored **C<sub>k</sub>=1**) at each time, again using all past data. | These models adjust for confounding exactly like a propensity-score model but **at every visit**. |
+| **5. Construct the “clever covariate.”** | From the g-model predictions you build a weight-like variable that tells you how surprising each person’s treatment history is. | It plays the same role as an inverse-probability weight but is inserted directly in the next regression step. |
+| **6. Target the initial outcome regression (update step).** | Run one more *small* regression: regress the observed outcome on the clever covariate **with the initial predictions as an offset**. Only one coefficient (ε) is estimated, so it’s like nudging your earlier Q-model just enough to respect the causal constraints. | This “targeting” guarantees that the final estimator is **doubly robust** (correct if either the Q-model or g-model is right) and **efficient** (smallest possible variance in large samples). |
+| **7. Compute the causal mean (or risk difference, RMST, etc.).** | Replace each person’s observed treatment path with the hypothetical strategy from Step 2 and plug the updated Q-model predictions into a simple average. | The result is what the outcome *would have been* under the chosen strategy, free of time-dependent confounding. |
+| **8. Get standard errors and confidence intervals.** | lTMLE software (e.g. the **ltmle** R package) automatically spits out an influence-curve-based SE, so you can form 95 % CIs just like in regression. | Because the influence curve acts like a sandwich (robust) variance, you still get valid inference even with machine-learning models. |
+
+
+# 4 Simulated example
+
+Simulate claims-like data with prescription gaps
+
+
+```{r simulate-data} 
+
+
+set.seed(1234)
+
+n <- 3000
+K <- 6                       # 6 monthly visits
+W0 <- rbinom(n, 1, 0.4)                  # baseline risk factor
+
+A <- G <- L <- Y <- matrix(0, n, K)      # A = drug exposure, G = gap length
+for (t in 1:K){
+  # (i) exposure decision depends on past gap & CD4-like biomarker L
+  pA <- plogis(-0.5 + 1*W0 - 1*ifelse(t==1,0,G[,t-1]) - 0.8*ifelse(t==1,0,L[,t-1]))
+  A[,t] <- rbinom(n, 1, pA)              # 1 = on drug in month t
+  
+  # (ii) gap length update (0 if filled this month)
+  G[,t] <- ifelse(A[,t]==1, 0, ifelse(t==1,30,G[,t-1]+30))
+  
+  # (iii) biomarker improves on treatment
+  L[,t] <- rnorm(n, mean = -0.3*A[,t] + 0.2*W0 + 0.02*G[,t])
+  
+  # (iv) virologic failure hazard increases with gaps & bad biomarker
+  haz <- plogis(-3 + 0.04*G[,t] + 0.8*L[,t])
+  Y[,t] <- rbinom(n, 1, haz) | Y[,pmax(t-1,1)]
+}
+
+dat <- data.frame(W0,
+                  as.data.frame(A), as.data.frame(G), as.data.frame(L),
+                  Y_K = Y[,K])
+names(dat) <- c("W0",
+                paste0("A",1:K), paste0("Gap",1:K), paste0("L",1:K),
+                "Y")
+
+glimpse(dat)
+
+# ──────────────────────────────────────────────────────────────
+#  Node specification
+# ──────────────────────────────────────────────────────────────
+Anodes <- paste0("A",1:K)
+Lnodes <- c(paste0("Gap",1:K), paste0("L",1:K))
+Ynodes <- "Y"
+
+#simple superlearner library
+SL.lib <- c("SL.mean",          # always include the grand mean
+            "SL.bayesglm",      # weakly-informative prior
+            "SL.glm")           # keep plain GLM if you like
+
+# ──────────────────────────────────────────────────────────────
+#  (1) Perfect adherence: static always-treated
+# ──────────────────────────────────────────────────────────────
+fit_perfect <- ltmle(dat,
+                     Anodes = Anodes, Lnodes = Lnodes, Ynodes = Ynodes,
+                     survivalOutcome = TRUE,
+                     abar    = list(treated = rep(1,K), control = rep(0,K)),
+                     SL.library = SL.lib)
+
+# ──────────────────────────────────────────────────────────────
+#  (2) Imperfect adherence: allow ≤30-day gaps in any 90-day window
+#      Patients pause exposure once cumulative gap >30 days, resume
+#      when gap resets to 0 after refill
+# ──────────────────────────────────────────────────────────────
+dyn.allow.gap <- function(data) {
+  # data is a 1-row data.frame; return vector length K
+  as.integer( data[paste0("Gap", 1:K)] <= 30 )
+} 
+
+fit_gap <- ltmle(dat,
+                 Anodes = Anodes, Lnodes = Lnodes, Ynodes = Ynodes,
+                 survivalOutcome = TRUE,
+                 rule = dyn.allow.gap,         
+                 SL.library = SL.lib)
+
+# ──────────────────────────────────────────────────────────────
+#  Results
+# ──────────────────────────────────────────────────────────────
+summary(fit_perfect)$tmle["risk1","estimate"]   # risk under perfect
+summary(fit_gap)$tmle["estimate"]               # risk under gap rule
+summary(fit_perfect, contrast = list(fit_gap))  # risk difference
+
+
+
+``` 
+
+`ltmle()` internally: 
+1. fits a SuperLearner for each **Q**, **g<sub>A</sub>**, **g<sub>C</sub>** node; 
+2. runs the one-parameter fluctuation at each visit; 
+3. predicts each subject’s survival under **always treat** and **never treat**; 
+4. averages those predictions → plug-in risk difference & ratio with influence-curve CI. 
+
+# 5 Interpreting the output 
+
+* The **effect estimate** corresponds to the causal contrast “if everyone initiated/continued ART at every visit vs. never initiated.” * Because either the Q- or g-models can be mis-specified while still giving consistent estimates, lTMLE is *doubly robust*. * If positivity or model misspecification is severe, diagnostics such as **clever-covariate mean** and **percent truncated** help flag problems. # 6 Key take-aways * **Longitudinal confounding** (e.g., CD4 affecting and affected by ART) invalidates naïve Cox models. * **lTMLE** solves this by sequentially combining flexible outcome and treatment models, then “targeting” them so the final estimator satisfies the causal score equation. * Implementation requires only a well-structured data frame and a SuperLearner library; `ltmle()` handles the recursion, targeting, and inference automatically. # 7 Further reading * van der Laan & Rubin (2006) *Targeted Maximum Likelihood Estimation*. * Gruber & van der Laan (2010) *A gentle introduction to TMLE*. * Schnitzer et al. (2014) *Longitudinal TMLE for causal inference*.
+
+
+# Cox model with a time-varying confounder: code and conceptual pitfalls
+
+Below we (i) re-structure the same simulated HIV-adherence data into counting-process form, (ii) fit a conventional Cox model with time-varying covariates, and (iii) explain why this approach cannot recover the causal effect when adherence and the biomarker jointly evolve.
+
+```{r cox-model}
+
+
+# --- wide → long (monthly intervals) ------------------------------------
+long <- dat %>%                 # 'dat' from previous lTMLE chunk
+  mutate(id = row_number()) %>%
+  tidyr::pivot_longer(
+    cols = -c(id, W0),
+    names_to = ".var",
+    values_to = "value"
+  ) %>%
+  tidyr::separate(.var, into = c("var", "t"), sep = "(?<=\\D)(?=\\d)") %>%
+  tidyr::pivot_wider(names_from = var, values_from = value) %>%
+  mutate(t        = as.integer(t),
+         start    = t - 1,
+         stop     = t,
+         event    = as.integer(Y == 1 & t == max(t[Y == 1], na.rm = TRUE))) %>%
+  arrange(id, start)
+
+# censor at first failure
+long <- long %>%
+  group_by(id) %>%
+  mutate(event = ifelse(cumsum(event) > 1, 0, event)) %>%
+  ungroup()
+
+# --- Cox model with time-varying treatment & confounder -----------------
+cox_tv <- coxph(Surv(start, stop, event) ~ A + L + W0,
+                data = long)
+summary(cox_tv)
+
+
+```
+
+# Why this Cox fit does not solve the problem
+
+| **Issue** | **Explanation** |
+|---|---|
+| Adjusting for an intermediate breaks the total effect | \(L_t\) sits on the causal pathway \(A_{t-1} \rightarrow L_t \rightarrow Y\). Conditioning on \(L_t\) removes the indirect (mediated) part of the treatment effect, so the coefficient of \(A\) estimates only a **direct** effect—not the total effect posed in the research question. |
+| Leaving \(L_t\) out induces time-dependent confounding bias | Dropping \(L_t\) leaves earlier low CD4 to (i) trigger intensified treatment and (ii) predict failure. The hazard ratio for \(A\) is then confounded—often toward harm, because sicker patients adhere more faithfully. |
+| Time-varying selection creates collider bias | Conditioning on \(L_t\) (a child of prior \(A\)) opens a backdoor path through any unmeasured causes of \(L_t\) and later failure, introducing new bias (collider stratification). |
+| Hazard ratios are non-collapsible & scale-dependent | Even without the above issues, the Cox HR is a **conditional**, log-linear summary; lTMLE targets marginal risks or RMST—quantities that map directly to policy questions (“12-month risk under perfect vs. imperfect adherence”). Hazard differences do not translate 1-to-1 into risk differences. |
+| Censoring & gaps violate proportional hazards | Adherence gaps make treatment effects wane and rebound, violating the proportional-hazards assumption that underpins the Cox model. |
+
+
+Hence the analyst faces a no-win choice: include L_t and estimate the wrong estimand, or exclude L_t and suffer confounding.
+lTMLE (or other g-methods such as MSMs) resolves the dilemma by separating the tasks:
+
+Outcome mechanism (Q-model) and
+
+Treatment/censoring mechanism (g-model),
+
+then “targets” the outcome predictions so the resulting plug-in estimator obeys the causal estimating equation—yielding a marginal risk (or risk difference) that properly incorporates both the direct and indirect pathways of treatment, while remaining unbiased under time-varying confounding.
