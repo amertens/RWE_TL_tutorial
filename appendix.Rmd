@@ -5,6 +5,10 @@ date: "2025-05-01"
 output: html_document
 ---
 
+#Critique of a Comparative Safety Analysis and a Proposal for an Extended TMLE-based Analysis Handling Crossover
+
+(Link David's overleaf here)
+
 
 Direct link to Gdoc with citations to incorporate here:
 https://docs.google.com/document/d/1k0XZHmdLc5gXaE1wO5f7San5shnQOSiS5Gt1Q8jVjm4/edit?usp=sharing

@@ -5,6 +5,18 @@ date: "2025-05-01"
 output: html_document
 ---
 
+
+
+5 Roadmap Step 5 – Interpretation & Reporting
+step5.html — “Interpretation of Findings and Reporting”
+
+5.1 Compare estimates across methods
+ • Forest plot: Cox vs TMLE vs RMST
+
+5.2 Regulatory implications
+5.3 Limitations & future work
+5.4 Checklist for reproducibility (data, code, compute)
+
 # 5 Interpretation of Findings and Reporting 
 
 After completing estimation (Step 3) and sensitivity analyses (Step 4), the final step involves clearly interpreting results and transparently reporting findings. Here we integrate primary TMLE results, assess sensitivity analyses, and discuss implications for clinical practice, policy, and future research. ## 5.1 Integrating Primary Results ### Primary Causal Effect Estimate (TMLE) Our primary analysis used Targeted Maximum Likelihood Estimation (TMLE) with Super Learner, estimating the causal effect of initiating a sofosbuvir-containing (SOF) regimen versus a non-SOF regimen on the 90-day risk of acute kidney injury (AKI): - **Risk difference (RD):** Absolute change in AKI risk attributable to SOF initiation. - **Risk ratio (RR):** Relative change in AKI risk comparing SOF initiation to non-SOF. $$${r primary-results-placeholder, eval=FALSE} # Replace with your actual TMLE results: # RD: 0.02 (95% CI: 0.01, 0.03); RR: 1.5 (95% CI: 1.2, 1.9)

@@ -10,7 +10,47 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-# 1 Summary of existing analysis
+
+
+# 0 Background & Prior Evidence
+
+## 0.1 Why AKI in SOF vs non-SOF?
+
+Sofosbuvir (SOF) is renally eliminated as the inactive metabolite GS-331007; transient rises in serum creatinine and rare case-reports of biopsy-proven tubular injury have raised concern that the high intratubular exposure during HCV therapy could precipitate acute kidney injury (AKI). A pharmacovigilance “dry-run” flagged a disproportionality signal for AKI in spontaneous reports linked to SOF-based regimens but not to other direct-acting antivirals (DAAs) . Because many persons treated for HCV already carry CKD risk factors (diabetes, cirrhosis, HIV co-infection), parsing a true drug effect from background risk requires carefully designed comparative real-world studies.
+
+
+
+## 0.2 Regulatory & pharmacovigilance context
+
+Since the 21st Century Cures Act, FDA and other regulators explicitly encourage fit-for-purpose real-world evidence (RWE) to support post-marketing safety evaluations. The Causal Roadmap and targeted learning (TL) framework were developed to ensure that such RWE meets ICH E9(R1) expectations for clearly defined estimands, transparent identification assumptions and robust estimation . Parallel efforts inside Sentinel have illustrated how Roadmap-driven analytics can be operationalised for safety signals, including renal outcomes, in claims-EHR linked data . The current AKI signal assessment therefore sits at the intersection of (i) a plausible clinical toxicity, (ii) a regulatory mandate for proactive pharmacovigilance, and (iii) emerging analytic standards that emphasise explicit causal reasoning.
+
+
+
+## 0.3 Prior signal-detection findings 
+
+  *  Spontaneous reports & literature. The index signal originated from a published case report describing biopsy-confirmed AKI shortly after SOF initiation and was reinforced by a small cluster of FAERS submissions Report HCV and AKI supp….
+
+  *  Rapid supportive RWE analysis. Gilead’s comparative-safety study in >100 000 U.S. claims‐EHR patients (HealthVerity) used propensity-score (PS) matching plus an as-treated Cox model. The adjusted hazard ratio was 1.06 (95 % CI 0.96–1.16), suggesting no excess risk, but residual confounding, mis-measured baseline eGFR and informative censoring at regimen switch were acknowledged.
+
+  *  Causal Roadmap Tutorial.  These draft materials reproduce those analyses, document PS overlap and show how alternative estimands (e.g., treatment-policy vs while-on-treatment) or TL/TMLE estimators could materially change inference 
+
+## 0.4 Key knowledge gaps → roadmap
+
+| Gap | Implication for inference | Roadmap response |
+|-----|---------------------------|------------------|
+| **Potential time-varying confounding** (e.g., eGFR decline → regimen switch) | Censor-at-switch Cox may be biased | Specify alternative estimands (switch-censor vs model-crossover) and apply TMLE with IPC weights |
+| **Outcome misclassification** (ICD-10 AKI codes have ≤ 60 % PPV) | Dilution bias toward the null | Run negative-control outcome checks |
+| **Limited adjustment for high-dimensional confounders** in PS model | Residual confounding | Use Super Learner within TMLE; benchmark against high-dimensional PS approaches |
+| **Regulatory relevance of different causal questions** (on-treatment safety vs population impact) | Choice of estimand drives decision-making | Map each stakeholder question to a precise estimand per ICH E9(R1); implement Roadmap Steps 1-5 with diagnostics and sensitivity analyses |
+
+
+Addressing these gaps through the Causal Roadmap will yield estimands that align with the clinical question (“Does SOF, when taken, increase short-term AKI risk?”) and with regulatory decision needs, while providing transparent diagnostics and sensitivity analyses to quantify residual uncertainty.
+
+
+
+
+
+# 0.5 Summary of existing comparative-safety analysis
 
 
 **Background and motivation.** A pharmacovigilance “dry-run” signal evaluation suggested a possible link between acute kidney injury (AKI) and sofosbuvir-containing (SOF) direct-acting antiviral (DAA) regimens used to treat chronic hepatitis C virus (HCV) infection. To inform ongoing safety monitoring, Gilead undertook a rapid, supportive real-world evidence (RWE) study comparing AKI risk in patients initiating SOF-containing DAAs with those starting non-SOF DAAs. The analysis leveraged a large US administrative-claims and electronic‐medical-record data source (HealthVerity) covering more than 550 million patients (2015-2023) to provide timely, supplementary evidence on whether the observed signal represented an increased, clinically meaningful risk.
@@ -18,6 +58,3 @@ knitr::opts_chunk$set(echo = TRUE)
 **Methods.** A retrospective new-user cohort was drawn from an HCV “standing cohort” of adults with ≥1 year of continuous medical- and drug-coverage enrollment. Eligible initiators of SOF or non-SOF DAAs between 1 October 2016 and 21 September 2023 entered follow-up on the first dispense date (index). Exposure was handled “as treated”: patients were censored 31 days after treatment discontinuation or at crossover to the other DAA class. AKI was identified by ICD-10 codes (e.g., N17.x, N19, R34). Baseline demographics and 50+ comorbidities/medication variables were assessed in the prior year and used to build a logistic-regression propensity score (PS). After 1:1 nearest-neighbor PS matching, AKI incidence was compared with Cox proportional-hazards models: unadjusted, covariate-adjusted, PS-stratified and PS-matched specifications served as sensitivity and diagnostic checks.
 
 **Results.** Among 105 636 eligible patients (67 720 non-SOF; 37 916 SOF), crude AKI incidence was 8.9 vs 16.0 per 1000 persons, but crude comparability was poor. PS matching produced 37 220 well-balanced pairs (absolute covariate differences ≤1%). In the matched analysis, AKI occurred in 608 SOF vs 605 non-SOF users over 26 387 person-years, yielding a hazard ratio (HR) of 1.14 (95% CI 1.00–1.30; p = 0.05) and an absolute risk difference of +7.1 AKI cases per 1000 patients . Fully covariate-adjusted and PS-stratified Cox models in the unmatched cohort gave similar, non-significant estimates (e.g., HR 1.11, 95% CI 0.99–1.26) . Model diagnostics indicated adequate overlap and balance post-matching, but residual confounding could not be excluded. Overall, the analysis did not confirm an elevated AKI risk for SOF-containing DAAs; rather, after careful adjustment, risk estimates were null to modest and statistically inconclusive, suggesting the initial signal may reflect confounding or chance rather than a true safety concern.
-
-
-# 2 Application of the Causal Roadmap

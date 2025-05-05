@@ -21,6 +21,25 @@ date: "`r format(Sys.Date())`"
 
 
 
+1 Roadmap Step 1 – Specify the Causal Question & Estimand
+step1.html — “Step 1 – Define the Question”
+step1v2.html — updated narrative
+
+1.1 Target population
+1.2 Interventions (SOF vs non-SOF regimens)
+1.3 Outcomes (AKI definitions)
+1.4 Time horizon
+1.5 Primary estimand(s)
+  *  ITT risk-difference
+  *  As-treated marginal HR
+  *  Per-protocol 90-day RMST
+
+1.6 Alternative estimand strategies
+  *  Treatment-policy vs hypothetical (censor at switch)
+  *  Principal-stratum (“would never switch”)
+
+
+
 # 2 Scientific Question
 
 > *Among U.S. adults with chronic hepatitis C (HCV) who initiate antiviral therapy, does starting a **sofosbuvir-containing** direct-acting antiviral (DAA) regimen, compared with starting a **non-sofosbuvir** DAA regimen, change the 90-day cumulative risk of first acute kidney injury (AKI)?*

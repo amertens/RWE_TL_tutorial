@@ -245,10 +245,19 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
   <a href="step1v2.html">Roadmap step 1-alt</a>
 </li>
 <li>
-  <a href="step1.html">Roadmap step 1</a>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
 </li>
 <li>
   <a href="step2.html">Roadmap step 2</a>
@@ -263,16 +272,7 @@ $(document).ready(function () {
   <a href="step5.html">Roadmap step 5</a>
 </li>
 <li>
-  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
-</li>
-<li>
-  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
-</li>
-<li>
   <a href="PS_analysis.html">Propensity score matching analysis</a>
-</li>
-<li>
-  <a href="TMLE_analysisV4.html">Targeted learning analysis4</a>
 </li>
 <li>
   <a href="appendix.html">Appendix</a>
@@ -296,8 +296,111 @@ $(document).ready(function () {
 </div>
 
 
-<div id="summary-of-existing-analysis" class="section level1">
-<h1>1 Summary of existing analysis</h1>
+<div id="background-prior-evidence" class="section level1">
+<h1>0 Background &amp; Prior Evidence</h1>
+<div id="why-aki-in-sof-vs-non-sof" class="section level2">
+<h2>0.1 Why AKI in SOF vs non-SOF?</h2>
+<p>Sofosbuvir (SOF) is renally eliminated as the inactive metabolite
+GS-331007; transient rises in serum creatinine and rare case-reports of
+biopsy-proven tubular injury have raised concern that the high
+intratubular exposure during HCV therapy could precipitate acute kidney
+injury (AKI). A pharmacovigilance “dry-run” flagged a disproportionality
+signal for AKI in spontaneous reports linked to SOF-based regimens but
+not to other direct-acting antivirals (DAAs) . Because many persons
+treated for HCV already carry CKD risk factors (diabetes, cirrhosis, HIV
+co-infection), parsing a true drug effect from background risk requires
+carefully designed comparative real-world studies.</p>
+</div>
+<div id="regulatory-pharmacovigilance-context" class="section level2">
+<h2>0.2 Regulatory &amp; pharmacovigilance context</h2>
+<p>Since the 21st Century Cures Act, FDA and other regulators explicitly
+encourage fit-for-purpose real-world evidence (RWE) to support
+post-marketing safety evaluations. The Causal Roadmap and targeted
+learning (TL) framework were developed to ensure that such RWE meets ICH
+E9(R1) expectations for clearly defined estimands, transparent
+identification assumptions and robust estimation . Parallel efforts
+inside Sentinel have illustrated how Roadmap-driven analytics can be
+operationalised for safety signals, including renal outcomes, in
+claims-EHR linked data . The current AKI signal assessment therefore
+sits at the intersection of (i) a plausible clinical toxicity, (ii) a
+regulatory mandate for proactive pharmacovigilance, and (iii) emerging
+analytic standards that emphasise explicit causal reasoning.</p>
+</div>
+<div id="prior-signal-detection-findings" class="section level2">
+<h2>0.3 Prior signal-detection findings</h2>
+<ul>
+<li><p>Spontaneous reports &amp; literature. The index signal originated
+from a published case report describing biopsy-confirmed AKI shortly
+after SOF initiation and was reinforced by a small cluster of FAERS
+submissions Report HCV and AKI supp….</p></li>
+<li><p>Rapid supportive RWE analysis. Gilead’s comparative-safety study
+in &gt;100 000 U.S. claims‐EHR patients (HealthVerity) used
+propensity-score (PS) matching plus an as-treated Cox model. The
+adjusted hazard ratio was 1.06 (95 % CI 0.96–1.16), suggesting no excess
+risk, but residual confounding, mis-measured baseline eGFR and
+informative censoring at regimen switch were acknowledged.</p></li>
+<li><p>Causal Roadmap Tutorial. These draft materials reproduce those
+analyses, document PS overlap and show how alternative estimands (e.g.,
+treatment-policy vs while-on-treatment) or TL/TMLE estimators could
+materially change inference</p></li>
+</ul>
+</div>
+<div id="key-knowledge-gaps-roadmap" class="section level2">
+<h2>0.4 Key knowledge gaps → roadmap</h2>
+<table>
+<colgroup>
+<col width="10%" />
+<col width="54%" />
+<col width="36%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Gap</th>
+<th>Implication for inference</th>
+<th>Roadmap response</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Potential time-varying confounding</strong> (e.g., eGFR
+decline → regimen switch)</td>
+<td>Censor-at-switch Cox may be biased</td>
+<td>Specify alternative estimands (switch-censor vs model-crossover) and
+apply TMLE with IPC weights</td>
+</tr>
+<tr class="even">
+<td><strong>Outcome misclassification</strong> (ICD-10 AKI codes have ≤
+60 % PPV)</td>
+<td>Dilution bias toward the null</td>
+<td>Run negative-control outcome checks</td>
+</tr>
+<tr class="odd">
+<td><strong>Limited adjustment for high-dimensional confounders</strong>
+in PS model</td>
+<td>Residual confounding</td>
+<td>Use Super Learner within TMLE; benchmark against high-dimensional PS
+approaches</td>
+</tr>
+<tr class="even">
+<td><strong>Regulatory relevance of different causal questions</strong>
+(on-treatment safety vs population impact)</td>
+<td>Choice of estimand drives decision-making</td>
+<td>Map each stakeholder question to a precise estimand per ICH E9(R1);
+implement Roadmap Steps 1-5 with diagnostics and sensitivity
+analyses</td>
+</tr>
+</tbody>
+</table>
+<p>Addressing these gaps through the Causal Roadmap will yield estimands
+that align with the clinical question (“Does SOF, when taken, increase
+short-term AKI risk?”) and with regulatory decision needs, while
+providing transparent diagnostics and sensitivity analyses to quantify
+residual uncertainty.</p>
+</div>
+</div>
+<div id="summary-of-existing-comparative-safety-analysis"
+class="section level1">
+<h1>0.5 Summary of existing comparative-safety analysis</h1>
 <p><strong>Background and motivation.</strong> A pharmacovigilance
 “dry-run” signal evaluation suggested a possible link between acute
 kidney injury (AKI) and sofosbuvir-containing (SOF) direct-acting
@@ -340,9 +443,6 @@ SOF-containing DAAs; rather, after careful adjustment, risk estimates
 were null to modest and statistically inconclusive, suggesting the
 initial signal may reflect confounding or chance rather than a true
 safety concern.</p>
-</div>
-<div id="application-of-the-causal-roadmap" class="section level1">
-<h1>2 Application of the Causal Roadmap</h1>
 </div>
 
 

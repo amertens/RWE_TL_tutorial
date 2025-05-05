@@ -11,7 +11,7 @@
 
 
 
-<title>Step 2: Statistical Model and Causal Identification</title>
+<title>Step 2: Observed Data</title>
 
 <script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -243,6 +243,9 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
   <a href="step1v2.html">Roadmap step 1-alt</a>
 </li>
 <li>
@@ -270,9 +273,6 @@ $(document).ready(function () {
   <a href="PS_analysis.html">Propensity score matching analysis</a>
 </li>
 <li>
-  <a href="TMLE_analysisV4.html">Targeted learning analysis4</a>
-</li>
-<li>
   <a href="appendix.html">Appendix</a>
 </li>
       </ul>
@@ -287,188 +287,152 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Step 2: Statistical Model and Causal
-Identification</h1>
+<h1 class="title toc-ignore">Step 2: Observed Data</h1>
 
 </div>
 
 
-<div id="step-2-statistical-model-and-causal-identification"
-class="section level1">
-<h1>Step 2 — Statistical Model and Causal Identification</h1>
-<p>The second step in the causal roadmap explicitly defines the
-statistical model and discusses assumptions necessary for causal
-identification. Clear articulation of these assumptions is crucial for
-valid causal inference.</p>
-<div id="introduction-to-identification" class="section level2">
-<h2>2.1 Introduction to Identification</h2>
-<p>Causal inference from observational data relies on translating causal
-questions into identifiable statistical parameters. The process of
-<strong>causal identification</strong> formally connects causal
-parameters to observed data distributions. It relies on three
-fundamental assumptions: 1. <strong>Consistency</strong> 2.
-<strong>Conditional Exchangeability (Ignorability)</strong> 3.
-<strong>Positivity</strong> We describe each assumption in detail below,
-linking explicitly to the causal question defined in Step 1. ## 2.2
-Statistical Model Setup We first clearly specify the observed data
-structure and statistical model. In our AKI-HCV example, we define each
-observed data element: - <strong>Baseline covariates (</strong><span
-class="math inline">\(W\)</span>): Age, sex, chronic kidney disease
-(CKD), diabetes, baseline eGFR, liver disease status, and healthcare
-utilization. - <strong>Treatment (</strong><span
-class="math inline">\(A\)</span>): Initial regimen choice (SOF
-vs. non-SOF DAA). - <strong>Outcome (</strong><span
-class="math inline">\(Y\)</span>): Binary indicator for AKI occurrence
-within 90 days. - <strong>Censoring (</strong><span
-class="math inline">\(C\)</span>): Indicators for loss to follow-up due
-to death, regimen switching, or insurance disenrollment. Formally, each
-participant’s observed data are: <span class="math display">\[ O = (W,
-A, C, Y) \]</span> Our statistical model, denoted as <span
-class="math inline">\(\mathcal{M}\)</span>, is the nonparametric
-statistical model comprising all distributions consistent with the data
-structure above: <span class="math display">\[ \mathcal{M} = \{P(O)\}
-\]</span> No parametric assumptions are made yet; flexibility is
-maintained. ## 2.3 Defining the Causal Parameter (Estimand) We now
-restate the primary causal parameter (estimand) selected in Step 1: -
-<strong>Estimand:</strong> Risk difference (RD) and risk ratio (RR)
-comparing SOF-containing regimen versus non-SOF regimen at 90 days,
-under the <strong>as-treated, censor-at-switch</strong> strategy. In
-causal notation, this is expressed in terms of potential outcomes <span
-class="math inline">\(Y^{a}\)</span>: - <strong>Risk difference
-(RD)</strong>: <span class="math display">\[ \text{RD} = E[Y^{a=1}] -
-E[Y^{a=0}] \]</span> - <strong>Risk ratio (RR)</strong>: <span
-class="math display">\[ \text{RR} = \frac{E[Y^{a=1}]}{E[Y^{a=0}]}
-\]</span> This contrasts the AKI risk under universal assignment to
-SOF-containing DAAs versus universal assignment to non-SOF DAAs. ## 2.4
-Key Identification Assumptions We now explicitly define and discuss the
-identification assumptions required. ### 2.4.1 Consistency
-<strong>Consistency</strong> ensures the observed outcome corresponds
-exactly to the potential outcome under the regimen actually received: -
-Formally: <span class="math display">\[ Y = A \cdot Y^{a=1} + (1 - A)
-\cdot Y^{a=0} \]</span> - <strong>Interpretation</strong>: The observed
-AKI status must exactly reflect the causal effect of the actual regimen
-initiated. ### 2.4.2 Conditional Exchangeability (Ignorability)
-<strong>Conditional Exchangeability</strong> states no unmeasured
-confounding after conditioning on <span
-class="math inline">\(W\)</span>: - Formally: <span
-class="math display">\[ Y^{a} \perp A \mid W \]</span> -
-<strong>Interpretation</strong>: There are no hidden baseline factors
-influencing both initial regimen choice and AKI risk. Practically, this
-means we’ve measured sufficient baseline covariates to eliminate
-confounding bias. ### 2.4.3 Positivity (Overlap)
-<strong>Positivity</strong> requires nonzero probability of receiving
-each treatment for all relevant subgroups defined by <span
-class="math inline">\(W\)</span>: - Formally: <span
-class="math display">\[ 0 &lt; P(A=a|W) &lt; 1 \quad\text{for all
-relevant } W \]</span> - <strong>Interpretation</strong>: For every type
-of patient considered in the study, treatment choice (SOF vs. non-SOF)
-must be realistically possible. Violation of positivity creates problems
-for causal estimation; thus, careful assessment and diagnostics (e.g.,
-checking propensity scores distributions) will be performed in Step 4.
-## 2.5 Identification Result (G-computation Formula) Under these three
-assumptions, we formally identify the causal parameter as a purely
-statistical quantity (g-formula): - The causal estimand can be expressed
-as: <span class="math display">\[ E[Y^a] = E_W\left[E(Y|A=a, W)\right]
-\]</span> - Therefore, the risk difference (RD) is explicitly: <span
-class="math display">\[ RD = E_W\left[E(Y|A=1,W)\right] -
-E_W\left[E(Y|A=0,W)\right] \]</span> - Similarly, the risk ratio (RR)
-is: <span class="math display">\[ RR =
-\frac{E_W\left[E(Y|A=1,W)\right]}{E_W\left[E(Y|A=0,W)\right]} \]</span>
-In practice, estimation (Steps 3–4) will rely on methods such as
-targeted maximum likelihood estimation (TMLE) and Super Learner to
-flexibly estimate these conditional expectations. ## 2.6 Practical
-Considerations and Challenges ### 2.6.1 Informative Censoring Our
-estimand (as-treated censoring) assumes censoring events (e.g., regimen
-switching, death, disenrollment) are non-informative, conditional on
-measured covariates. Violations—called informative censoring—can bias
-results. - <strong>Assessment:</strong> Sensitivity analyses will
-evaluate robustness against censoring violations, including
-inverse-probability-of-censoring weighting (IPCW). ### 2.6.2 Measurement
-Error AKI defined by ICD codes or claims data may suffer measurement
-error: - <strong>Assessment:</strong> Sensitivity analyses using
-alternative outcome definitions (e.g., hospitalization-required AKI,
-dialysis initiation) help ensure results’ robustness. ## 2.7 Summary of
-Identification Clearly stating the identification assumptions upfront
-provides transparency and allows critical evaluation. Subsequent steps
-(estimation, sensitivity analyses) directly rely on these assumptions’
-validity.</p>
-<div id="fitness-for-purpose-data-audit-requestspifd"
-class="section level4">
-<h4>Fitness-for-purpose Data Audit (REQUEST/SPIFD)</h4>
-<p>Before un-masking outcomes we will complete a REQUEST-style
-audit:</p>
+<p>Objective: document exactly what we will observe (simulated or real)
+and how those measurements map to the causal model specified in Step
+1b.</p>
+<div id="data-sources-provenance" class="section level3">
+<h3>2.1 Data sources &amp; provenance</h3>
+<ul>
+<li><strong>Simulation dataset</strong> generated by
+<code>generate_hcv_data()</code> in <em>DGP.R</em> (path: /code/DGP.R)
+:contentReference<span index="2">oaicite:2</span>:contentReference<span
+index="3">oaicite:3</span><br />
+</li>
+<li><strong>Real-world claims-EHR cohort</strong>: HealthVerity standing
+HCV cohort (2016-2023) as described in the rapid-response report
+§Methods. :contentReference<span
+index="4">oaicite:4</span>:contentReference<span
+index="5">oaicite:5</span><br />
+</li>
+<li>Table comparing variable availability, granularity, follow-up
+calendar for each source.</li>
+</ul>
+</div>
+<div id="definition-of-time-zero" class="section level3">
+<h3>2.2 Definition of time zero</h3>
+<ul>
+<li>Index = first qualifying DAA dispense (SOF or non-SOF).<br />
+</li>
+<li>Simulation: <code>cohort$index_date</code> implicitly set to day 0;
+claims-EHR: dispense date with ≥365d clean baseline.</li>
+</ul>
+</div>
+<div id="measurement-of-exposure" class="section level3">
+<h3>2.3 Measurement of exposure</h3>
+<ul>
+<li>Binary <strong>A</strong> = SOF-containing regimen versus
+comparator.<br />
+</li>
+<li>Sim: column <code>treatment</code>; probability model uses
+non-linear LP (see code block 4).<br />
+</li>
+<li>Real data: NDC / GPI codes (Appendix 1 of report).</li>
+</ul>
+</div>
+<div id="outcome-ascertainment" class="section level3">
+<h3>2.4 Outcome ascertainment</h3>
 <table>
 <colgroup>
-<col width="28%" />
-<col width="28%" />
-<col width="43%" />
+<col width="25%" />
+<col width="37%" />
+<col width="37%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th>Dimension</th>
-<th>Questions</th>
-<th>Evidence source</th>
+<th>Aspect</th>
+<th>Simulation</th>
+<th>Real-world</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Relevance</td>
-<td>Does the data capture all eligibility, treatment, and AKI-definition
-fields?</td>
-<td>OMOP → CDM mapping report</td>
+<td>AKI definition</td>
+<td>Event time drawn from exponential or piece-wise hazard (code block
+6)</td>
+<td>≥1 ICD-10 code in list N17.*, N19, … (report Table 1)</td>
 </tr>
 <tr class="even">
-<td>Completeness</td>
-<td>% missing for each baseline covariate; ≥95 % threshold</td>
-<td>EHR/claims completeness log</td>
-</tr>
-<tr class="odd">
-<td>Accuracy</td>
-<td>Positive-predictive value for AKI ICD-codes vs chart review
-(literature 80–90 %)</td>
-<td>Validation citation</td>
-</tr>
-<tr class="even">
-<td>Provenance</td>
-<td>Date–stamped ETL pipeline, version control, SHA-256 hash</td>
-<td>Data-traceability log (appendix)</td>
+<td>Onset date resolution</td>
+<td>exact (days)</td>
+<td>date of first claim; potential misclassification</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Outcome-Blind Sandbox Approach</strong>: Conducting all
-modeling choices (covariate selection, learner tuning, etc.) prior to
-outcome unblinding or using permuted/simulated datasets ensures unbiased
-model selection, avoiding overfitting or biased results.</p>
-<table>
-<thead>
-<tr class="header">
-<th>Roadmap Step</th>
-<th>Covered</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Statistical Model</td>
-<td>Section 2.2</td>
-</tr>
-<tr class="even">
-<td>Causal Parameter</td>
-<td>Section 2.3</td>
-</tr>
-<tr class="odd">
-<td>Identification assumptions</td>
-<td>Section 2.4</td>
-</tr>
-<tr class="even">
-<td>Identification formula</td>
-<td>Section 2.5</td>
-</tr>
-</tbody>
-</table>
-<p>— <strong>Next Step:</strong> Step 3 (Estimation) introduces specific
-statistical methods to estimate the identified causal parameter.</p>
 </div>
+<div id="covariates-eligibility-variables" class="section level3">
+<h3>2.5 Covariates / eligibility variables</h3>
+<ul>
+<li>Baseline demographics, comorbidities, meds.<br />
+</li>
+<li>Simulation: generated in blocks 1–2 (<code>age</code>,
+<code>ckd</code>, <code>cirrhosis</code>, 30+ indicators).<br />
+</li>
+<li>Real-world: see Propensity Score variable list (§Methods, report).
+Map each to ICD/Procedure/Drug codes; include a codebook appendix.</li>
+</ul>
 </div>
+<div id="follow-up-censoring-indicators" class="section level3">
+<h3>2.6 Follow-up &amp; censoring indicators</h3>
+<ul>
+<li>Administrative end (<code>max_follow</code>, 180 d).<br />
+</li>
+<li>Switch censoring (<code>censor_switch</code>) vs treatment-policy
+approach.<br />
+</li>
+<li>Death only in RWD (if available).</li>
+</ul>
+</div>
+<div id="data-quality-completeness-checks" class="section level3">
+<h3>2.7 Data quality &amp; completeness checks</h3>
+<ul>
+<li>Missingness patterns: simulation optional NA introduction
+(<code>add_missing</code>).<br />
+</li>
+<li>For claims-EHR: enrollment continuity, lab availability (creatinine)
+for planned lab-based AKI sensitivity analysis.<br />
+</li>
+<li>Summary table: % missing per variable, comparison before/after
+imputation.</li>
+</ul>
+</div>
+<div id="harmonised-analysis-dataset-specification"
+class="section level3">
+<h3>2.8 Harmonised analysis dataset specification</h3>
+<ul>
+<li>Common variable names (<code>A</code>, <code>Y</code>,
+<code>Δ</code>, <code>W</code>) across both sources.<br />
+</li>
+<li>Derived variables: baseline eGFR category (if labs), Calendar-year
+strata.<br />
+</li>
+<li>Save as feather/CSV; include MD5 checksum for reproducibility.</li>
+</ul>
+</div>
+<div id="sample-size-event-counts" class="section level3">
+<h3>2.9 Sample size &amp; event counts</h3>
+<ul>
+<li>Simulation default: N = 125 000 → ~2 900 AKI events (h0 ×
+follow-time).<br />
+</li>
+<li>Real-world counts: flow diagram from report Table 1
+(CONSORT-style).</li>
+</ul>
+</div>
+<div id="fit-for-use-assessment" class="section level3">
+<h3>2.10 Fit-for-use assessment</h3>
+<ul>
+<li>Evaluate whether measured <strong>W</strong> block plausible to
+satisfy exchangeability; highlight key unmeasured factors (e.g.,
+baseline eGFR in claims).<br />
+</li>
+<li>Conclude on adequacy or propose data linkage/enrichment if gaps
+threaten identifiability (feeds into Step 3).</li>
+</ul>
 </div>
 
 

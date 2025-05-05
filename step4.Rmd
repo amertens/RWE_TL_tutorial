@@ -8,6 +8,14 @@ editor_options:
     wrap: 72
 ---
 
+
+4.1 Unmeasured confounding (E-value, bias factors)
+4.2 Informative censoring (IPC weighting vs g-formula)
+4.3 Alternative AKI definitions (ICD algorithm variants)
+4.4 Varying overlap weights / trimming
+
+
+
 # 4 Sensitivity Analyses
 
 In Steps 1–3, we defined the causal estimand, established

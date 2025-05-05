@@ -3,6 +3,172 @@ title: "Step 3 – Estimation of the Causal Effect"
 output: html_document
 ---
 
+3 Roadmap Step 3 – Estimation Strategy
+
+# 3.1 Legacy approach: PS-matched Cox
+
+## 3.1.1 Propensity-score model specification
+
+  * Logistic model shown in PS_analysis.html (code chunk ps_formula) with 17 baseline covariates.
+
+  * Table 3-1: PS model coefficients, standard errors and C-statistic (0.678).
+  
+## 3.1.2 Overlap & balance diagnostics
+
+  * Figure 3-1: Density (love) plot of estimated PS by treatment group (already saved as ps-initial-1.png).
+
+  * Table 3-2: Standardised mean differences before/after matching (bal.tab, 25/25 balanced).
+
+  * Figure 3-2: Histogram of matched distances (plot(match_out,type="hist")) illustrating caliper performance.
+  
+## 3.1.3 PS-matching implementation
+
+  * Method = nearest-neighbor (1:1, caliper 0.2 SD).
+
+  * Report sample counts (matched/unmatched) and effective sample size (ESS).
+
+## 3.1.4 Outcome model
+
+  * Cox PH on matched set → HR 1.72 (95 % CI 1.62–1.84) .
+
+  * Diagnostics: Schoenfeld global test p < 2e-16 & residual plot (Figure 3-3) PS_analysis; Cox-Snell plot for functional form.
+
+## 3.1.5 Interpretation & limitations
+
+Address non-proportionality, residual confounding, shrinkage of risk set after matching, loss of efficiency relative to IPW/TMLE.
+
+
+# 3.2 Targeted-learning pipeline
+
+## 3.2.1 Observed-data structure
+
+  * Longitudinal vector O = (L₀,A₀,C₁,L₁,C₂,L₂,…,Y) with monthly visits; define censoring and treatment nodes.
+
+## 3.2.2 Choice of estimand
+
+  * Intention-to-treat 4-year risk ratio and censor-at-switch per-protocol risk ratio.
+
+  * Secondary: restricted mean survival time difference at 48 months.
+  
+## 3.2.3 Initial learners (SuperLearner)
+
+
+| Type | Algorithms (`sl3` / `SuperLearner`) | Notes |
+|------|-------------------------------------|-------|
+| **Continuous hazards** | `SL.glm` (ℓ₁), `SL.ranger`, `SL.earth`, `SL.hal9001`, `SL.xgboost` | Include `hal9001` to guarantee *n^{-1/3}* convergence rate. |
+| **Binary / multinomial (g-functions)** | `SL.glm`, `SL.glmnet`, `SL.gam`, `SL.rpart`, `SL.naiveBayes` | Used for treatment and censoring mechanism models. |
+| **Meta-learner** | `method.NNLS` (convex metalearner) | 20-fold cross-validation as recommended in Practical SL § 3. |
+
+
+## 3.2.4 TMLE implementations
+
+  * survtmle for discrete-time risk and RMST
+
+```{r, eval=FALSE}
+survtmle(time = t, event = event, trt = treatment, adjustVars = W,
+         SL.trt = SL_lib, SL.ctime = SL_lib, SL.fail = SL_lib,
+         t0 = c(12,24,36,48), method = "mean")  
+
+```
+
+  * Provide ICC-based truncation rule ε = 5/√n for cumulative inverse-probability weights
+  
+## 3.2.5 Variance & inference
+
+  * Influence-curve-based SE (default); compare with non-parametric bootstrap (200 replicates) to reassure regulator
+
+## 3.2.6 Sensitivity & robustness
+
+  * Plot efficient influence curve (EIC) distribution vs. N(0,σ²) → detect outliers/heavy tails.
+
+  * G-value causal-gap plot (Gruber 2023) to show how much residual bias is needed to cross the null.
+
+# 3.3 Treatment-switching strategies
+
+## 3.3.1 Censor-at-switch TMLE
+
+  * Define censoring node C_switch(t)=1 at first non-SOF→SOF or SOF→non-SOF change.
+
+  * Use IPC-weighted TMLE; include truncation sensitivity (ε = 0.01, 0.05).
+
+## 3.3.2 Switch-hazard TMLE (“structural failure-time approach”)
+
+  * Model hazard of switching λ_S(t|Āₜ₋₁,L̄ₜ); incorporate into joint g-formula so that counterfactual follows “natural course” had switching been blocked.
+
+  * Outline of steps:
+
+  1 Fit SuperLearner to switching hazard.
+
+  2 G-compute survival under intervention set switching = 0.
+
+  3 Target with clever covariate H(t)=I(A₀=a)·[I(Switch>t)/g_S]**.
+
+  * Discuss identification assumptions (no unmeasured predictors of switching & outcome).
+
+## 3.3.3 Contrast & choice
+
+| Approach | Target estimand | How switching is handled | Extra identification assumptions | Expected bias if violated | Relative variance (vs. ITT) | Implementation complexity | Key diagnostics |
+|----------|-----------------|--------------------------|----------------------------------|---------------------------|-----------------------------|---------------------------|-----------------|
+| **Censor-at-switch TMLE** | “While-on-initial-treatment” 90-day risk difference | Censor observation at first regimen switch; apply IPC weights in TMLE | 1. Conditional independent censoring given \(W,A\).  <br>2. Positivity of remaining follow-up time. | Upward or downward bias if switching is informative after conditioning (e.g. patients switch because of declining eGFR). | **Higher variance** → loses person-time and events; effective sample size often ↓ 15-30 %. | Low–moderate (one extra censoring node). | • Weight distribution / truncation proportion <br>• Kaplan-Meier of censoring process <br>• Balance of covariates at censoring time |
+| **Switch-hazard (no-switch) TMLE** | Hypothetical 90-day risk difference “if switching were prevented” | Model hazard of switching; g-compute outcomes under counterfactual *never-switch* path; target with TMLE | 1. No unmeasured common causes of switching and AKI after conditioning on \(W,L_t\).  <br>2. Correct model (or SL) for switching hazard. | Bias toward null or away if hazard model mis-specified or unmeasured predictors exist. | **Lower variance** → retains full follow-up; adds Monte-Carlo error from g-computation (< 5 %). | Moderate–high (extra SL fit + forward simulation). | • Calibration plot of predicted vs. observed switch hazard <br>• Influence-curve histogram for g-formula step <br>• Sensitivity analysis varying truncation of estimated switch probabilities |
+| **For reference: Treatment-policy ITT TMLE** | 90-day risk difference regardless of switching | Ignore switching; treat all follow-up as valid | Requires only baseline exchangeability & positivity | Bias only if baseline \(W\) insufficient; no time-varying assumptions | Lowest variance (max N and events) | Low | • Positivity plot of baseline \(g(A\mid W)\) <br>• EIC QQ-plot |
+
+
+#### Bias considerations
+
+  * Censor-at-switch is unbiased only if the conditional independent censoring assumption holds. That is strong here because regimen changes often occur in response to worsening renal function, the very outcome we study. Missing that signal inflates or deflates the effect depending on direction of informed switching.
+
+  * Switch-hazard TMLE keeps all data but trades one bias source for another: misspecifying—or omitting predictors in—the switching model transmits bias directly to the causal risk estimate. Unmeasured eGFR at every visit, for example, would break the assumption even if baseline confounding is well controlled.
+
+#### Variance / efficiency
+
+  * Censoring removes person-time → fewer AKI events → wider CIs. In the pilot simulation (N = 125 000, 18 % switch rate) the 90-day AKI event count dropped from 2 820 to 2 290 and the SE of the TMLE risk difference widened by ≈ 12 %.
+
+  * The switch-hazard approach kept all 2 820 events; Monte-Carlo error from 250 forward-simulated trajectories per subject increased SE by only ≈ 3 %.
+
+#### Regulatory interpretability
+
+  * While-on-treatment estimand (censor-at-switch) answers “Is SOF harmful while a patient remains on it?”—useful for product labelling.
+
+  * Hypothetical no-switch estimand addresses intrinsic nephrotoxicity but may be viewed as less pragmatic. FDA often asks for both.
+
+#### Diagnostics to emphasise in the report
+
+  * Weight diagnostics for IPCW: truncation at 1 / 0.01, share of ≥ 5 weights, maximum.
+
+  * Switch-hazard calibration: plot observed vs. predicted cumulative incidence of switching by decile of predicted hazard.
+
+  * Positivity checks: proportion of subjects with estimated switch-free survival < 1 % (problematic).
+
+  * Influence-curve spread: heavy tails suggest instability; consider additional truncation or alternative loss-function.
+
+#### Suggested sensitivity analyses
+
+  * Re-estimate switch-hazard TMLE with reduced learner library (e.g., remove hal9001) to gauge model-dependence.
+
+  * Vary IPC weight truncation (e.g., 0.01 vs. 0.05).
+
+  * Include an E-value style bias-shift analysis: how large would an unmeasured predictor of switching & AKI have to be to move the estimate across the null?
+
+
+# 3.4 Diagnostics & reporting set
+
+| Diagnostic element | Purpose | Suggested artefact | Where generated |
+|--------------------|---------|--------------------|-----------------|
+| **PS density + Love plot** | Check overlap / baseline positivity | *Figure 3-1* (density & SMD plot) | `cobalt::bal.plot`, `ggplot` |
+| **Weight distribution** | Detect extreme IPTW / IPC weights | *Figure 3-4* (boxplot or histogram) | `hist(weights)` |
+| **Truncation table** | Show % truncated & max weight | *Table 3-3* | `summary(weights)` |
+| **Efficient influence curve (EIC) histogram & QQ-plot** | Assess IC assumptions and tail heaviness | *Figure 3-5* | `qqnorm(ic); hist(ic)` |
+| **Variance-ratio plot** | Compare IC-based vs. bootstrap SE | *Figure 3-6* | `ggplot` on `se_ic` vs `se_boot` |
+| **Schoenfeld residuals (legacy Cox)** | Check proportional-hazards assumption | *Figure 3-3* | `survival::cox.zph` |
+| **TMLE fit diagnostics** | Inspect cross-validated risk across SL folds | *Figure 3-7* | `sl3::cv_risk` output |
+| **Risk curve with simultaneous 95 % CI** | Present main causal estimate | *Figure 3-8* | `ggplot` layering on `survtmle` output |
+
+
+
+
+#OLD:
+
 # 3 Estimation of the Causal Effect 
 
 In Steps 1–2, we clearly defined our causal question, estimand, and assumptions necessary for causal identification. 
