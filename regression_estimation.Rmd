@@ -1,0 +1,141 @@
+---
+title: "HCV → AKI: 90‑Day Primary & Sensitivity Analyses"
+output:
+html_document:
+toc: true
+---
+
+> **Purpose.** Estimate the 90‑day cumulative risk of first acute kidney injury (AKI) comparing (A = 1) sofosbuvir‑containing vs (A = 0) non‑sofosbuvir DAA regimens **under a hypothetical *no‑switch* intervention** (primary estimand, IPCW‑adjusted) and contrast it with two routinely reported sensitivities:
+>
+> \* **Treatment‑policy ITT** – ignores switching/discontinuation.
+> \* **Naïve as‑treated** – censors 30 d after the first regimen switch (no weighting).
+
+The simulated claims‑style dataset (\_sim\_hcv\_aki\_complex.csv) was generated with `DGP.R`.
+
+---
+
+\## 1  Setup
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(here)
+library(survival)   # Kaplan–Meier & Cox
+library(ipw)        # IPC weight creation
+library(splines)    # flexible censoring model
+```
+
+\## 2  Load & tidy the data
+
+```{r data-load}
+df <- read_csv(here("data/sim_hcv_aki_complex.csv"), show_col_types = FALSE) %>%
+  mutate(
+    # key analysis variables
+    time       = follow_time,          # already min(event, censor)
+    event      = event,                # 1 = AKI, 0 = censored
+    trt        = treatment,            # 1 = SOF, 0 = non‑SOF
+    switched   = switch               # 1 if regimen switch occurred
+  )
+
+# restrict to ≤ 90 days for all estimands
+cutoff <- 90
+```
+
+\## 3  Primary estimand – IPCW *no‑switch* (while‑on‑treatment)
+
+\### 3.1 Define analytic censoring indicator
+We artificially censor each subject at *min*(first switch day + 30, administrative 90 d). All post‑censor events are treated as missing via weighting.
+
+```{r censor-def}
+# administrative 90‑day horizon
+admin_censor <- if_else(df$time > cutoff, 1, 0)
+# switch‑based censoring (+30 d risk window simulated via DGP)
+switch_censor <- if_else(df$switched == 1 & df$time > 0, 1, 0)
+
+# overall censoring indicator for IPCW model
+C <- pmax(admin_censor, switch_censor)   # 1 = censored before AKI
+Tstar <- pmin(df$time, cutoff)           # observed/administrative time
+
+df_ipcw <- df %>% mutate(C = C, Tstar = Tstar, event_ipcw = if_else(event==1 & time<=cutoff & C==0, 1, 0))
+```
+
+\### 3.2 Estimate censoring weights
+A simple pooled‑logistic (discrete‑time) model conditional on baseline covariates suffices for illustration; more flexible spline‑based models are easily substituted.
+
+```{r ipcw-est}
+# baseline covariates used in DGP
+covars <- c("age","ckd","cirrhosis","diabetes","bmi","sex_male")
+
+# expand person‑day data up to censor/event/cutoff
+expand_rows <- function(dat){
+  purrr::map_dfr(seq_len(nrow(dat)), function(i){
+    tibble(id = dat$id[i], trt = dat$trt[i],
+           day = seq_len(dat$Tstar[i]),
+           censored = if_else(day == dat$Tstar[i] & dat$C[i]==1,1,0),
+           event    = if_else(day == dat$Tstar[i] & dat$event_ipcw[i]==1,1,0),
+           !!!dat[i, covars])
+  })
+}
+
+long <- expand_rows(df_ipcw)
+
+# pooled‑logistic model for censoring.
+fitC <- glm(censored ~ trt + ns(day,4) + ., family = binomial(), data = long)
+long <- long %>%
+  mutate(pC = predict(fitC, type = "response")) %>%
+  group_by(id) %>%
+  mutate(Surv_uncens = cumprod(1 - pC)) %>% ungroup()
+
+weights <- long %>% group_by(id) %>% summarise(w = last(Surv_uncens))
+df_ipcw <- df_ipcw %>% left_join(weights, by = "id")
+# truncate extreme weights (optional balance/stability)
+df_ipcw <- df_ipcw %>% mutate(w = pmin(w, quantile(w, .995, na.rm=T)))
+```
+
+\### 3.3 Weighted Kaplan–Meier & risk estimates
+
+```{r km-ipcw}
+km_ipcw <- survfit(Surv(Tstar, event_ipcw) ~ trt, data = df_ipcw, weights = w)
+
+# extract 90‑day survival & compute risks
+surv_90 <- summary(km_ipcw, times = cutoff)$surv
+risk_90 <- 1 - surv_90
+risk_tbl <- tibble(trt = c("non‑SOF","SOF"), risk = risk_90)
+
+risk_tbl
+risk_diff <- diff(rev(risk_90))   # SOF – non‑SOF
+```
+
+\## 4  Sensitivity 1 – Treatment‑policy ITT (ignore switch)
+
+```{r km-itt}
+km_itt <- survfit(Surv(pmin(time, cutoff), event) ~ trt, data = df)
+surv_90_itt <- summary(km_itt, times = cutoff)$surv
+risk_90_itt <- 1 - surv_90_itt
+diff_itt <- diff(rev(risk_90_itt))
+```
+
+\## 5  Sensitivity 2 – Naive as‑treated (censor at switch, no weighting)
+
+```{r km-naive}
+# censor 30 d after switch as already in DGP (follow_time)
+km_naive <- survfit(Surv(pmin(time, cutoff), event) ~ trt, data = df_ipcw[df_ipcw$C==0 | df_ipcw$event_ipcw==1,])
+
+risk_90_naive <- 1 - summary(km_naive, times = cutoff, extend = TRUE)$surv
+diff_naive <- diff(rev(risk_90_naive))
+```
+
+\## 6  Results summary
+
+```{r results}
+res <- tibble(
+  Estimand = c("Primary: IPCW no‑switch","Sensitivity: ITT","Sensitivity: naïve as‑treated"),
+  Risk_nonSOF = c(risk_90[1], risk_90_itt[1], risk_90_naive[1]),
+  Risk_SOF    = c(risk_90[2], risk_90_itt[2], risk_90_naive[2]),
+  Risk_Diff   = c(risk_diff, diff_itt, diff_naive)
+)
+knitr::kable(res, digits = 3, caption = "90‑day cumulative risk of first AKI")
+```
+
+**Interpretation.** The IPCW‑adjusted *no‑switch* analysis isolates the biologic effect of continuous SOF exposure, whereas ITT represents the real‑world initiation policy, and the naïve censor‑at‑switch gives an upper‑bound that may be biased if switching is informative.
+

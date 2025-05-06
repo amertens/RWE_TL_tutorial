@@ -1,220 +1,308 @@
 ---
-title: "Step 3 – Estimation of the Causal Effect"
-output: html_document
+title: "Step 3 (Identification) – Linking the HCV→AKI Causal Question to the Observed Data"
+author: "Your Name Here"
+output:
+html_document:
+toc: true
+toc_depth: 2
 ---
 
-3 Roadmap Step 3 – Estimation Strategy
+## Introduction to *Identification*   
 
-# 3.1 Legacy approach: PS-matched Cox
+Rigorous causal inference from observational data requires translating the
+scientific questions posed in **Step 1** into statistical parameters that are
+identifiable from the observed data. 
 
-## 3.1.1 Propensity-score model specification
+Before we can run any models we must answer two questions:
 
-  * Logistic model shown in PS_analysis.html (code chunk ps_formula) with 17 baseline covariates.
+1. **What exact counterfactual quantity are we after?** (The *causal estimand* defined in step 1)
+2. **Can that quantity be expressed with the data we observe?** (= *identifiability*)
 
-  * Table 3-1: PS model coefficients, standard errors and C-statistic (0.678).
-  
-## 3.1.2 Overlap & balance diagnostics
+This **identification step** formally
+links the counterfactual (causal) world to the factual world we can measure.
+Doing so relies on three well-known assumptions—**Consistency, Conditional
+Exchangeability, and Positivity**—described below in the context of our revised
+primary and sensitivity estimands.
 
-  * Figure 3-1: Density (love) plot of estimated PS by treatment group (already saved as ps-initial-1.png).
 
-  * Table 3-2: Standardised mean differences before/after matching (bal.tab, 25/25 balanced).
 
-  * Figure 3-2: Histogram of matched distances (plot(match_out,type="hist")) illustrating caliper performance.
-  
-## 3.1.3 PS-matching implementation
 
-  * Method = nearest-neighbor (1:1, caliper 0.2 SD).
 
-  * Report sample counts (matched/unmatched) and effective sample size (ESS).
+ # 3   Causal estimands expressed in mathematical notation
+ ## 3.1 Primary – *Hypothetical no‑switch* risk at 90 days
+*“What would the 90‑day cumulative risk of first AKI be if every patient stayed
+on their initial regimen for the full 90 days?”*
 
-## 3.1.4 Outcome model
+$$
+\text{RD}_{\text{NS}} = E\![Y^{a=1,\;\text{no‑switch}}] \;-
+                       E\![Y^{a=0,\;\text{no‑switch}}],
+\quad
+\text{RR}_{\text{NS}} = \frac{E\![Y^{1,\;\text{no‑switch}}]}
+                             {E\![Y^{0,\;\text{no‑switch}}]}.
+$$
 
-  * Cox PH on matched set → HR 1.72 (95 % CI 1.62–1.84) .
+## 3.2 Sensitivity – Treatment‑policy (ITT) risk at 90 days
+*“What is the 90‑day AKI risk difference if clinicians simply *start* SOF vs
+non‑SOF, allowing any subsequent changes?”*
 
-  * Diagnostics: Schoenfeld global test p < 2e-16 & residual plot (Figure 3-3) PS_analysis; Cox-Snell plot for functional form.
+$$
+\text{RD}_{\text{ITT}} = E\![Y^{1}] - E\![Y^{0}],
+\quad
+\text{RR}_{\text{ITT}} = \frac{E\![Y^{1}]}{E\![Y^{0}]}.
+$$
 
-## 3.1.5 Interpretation & limitations
 
-Address non-proportionality, residual confounding, shrinkage of risk set after matching, loss of efficiency relative to IPW/TMLE.
+# 4   Identification assumptions
+To express those counterfactual risks with our data we need four assumptions.
 
+## 4.1 Consistency + SUTVA
+The outcome we observe equals the potential outcome under the regimen actually
+received, and one patient’s treatment choice does not influence another
+patient’s AKI risk.
 
-# 3.2 Targeted-learning pipeline
+## 4.2 Conditional exchangeability (no unmeasured confounding)
 
-## 3.2.1 Observed-data structure
+$$
+Y^{a,\;\text{no‑switch}} \;\perp\!\!\!\perp\; A \mid W,
+\quad
+Y^{a} \;\perp\!\!\!\perp\; A \mid W.
+$$
 
-  * Longitudinal vector O = (L₀,A₀,C₁,L₁,C₂,L₂,…,Y) with monthly visits; define censoring and treatment nodes.
+All factors that affect both initial regimen choice and AKI risk are captured
+in \$W\$.
 
-## 3.2.2 Choice of estimand
+## 4.3 Positivity
+*Treatment positivity* — every covariate pattern with positive probability has
+some chance of receiving either regimen:
 
-  * Intention-to-treat 4-year risk ratio and censor-at-switch per-protocol risk ratio.
+$$
+0 < P(A=a\mid W) < 1.
+$$
 
-  * Secondary: restricted mean survival time difference at 48 months.
-  
-## 3.2.3 Initial learners (SuperLearner)
+*Time‑varying positivity* (primary estimand) — no regimen‑and‑history pattern
+forces an immediate switch/discontinuation over 0–90 d.
 
+## 4.4 Independent censoring (primary estimand)
+After adjusting for observed history $\bar{L}(t)$ the chance of remaining
+uncensored is unrelated to the counterfactual outcome:
 
-| Type | Algorithms (`sl3` / `SuperLearner`) | Notes |
-|------|-------------------------------------|-------|
-| **Continuous hazards** | `SL.glm` (ℓ₁), `SL.ranger`, `SL.earth`, `SL.hal9001`, `SL.xgboost` | Include `hal9001` to guarantee *n^{-1/3}* convergence rate. |
-| **Binary / multinomial (g-functions)** | `SL.glm`, `SL.glmnet`, `SL.gam`, `SL.rpart`, `SL.naiveBayes` | Used for treatment and censoring mechanism models. |
-| **Meta-learner** | `method.NNLS` (convex metalearner) | 20-fold cross-validation as recommended in Practical SL § 3. |
+$$
+Y^{a,\;\text{no‑switch}} \;\perp\!\!\!\perp\; C(t) \mid A=a,\; \bar{L}(t),\, W.
+$$
 
+We relax this by modelling the switching/death hazard and using
+inverse‑probability‑of‑censoring weights (IPCW) inside the TMLE.
 
-## 3.2.4 TMLE implementations
 
-  * survtmle for discrete-time risk and RMST
+# 5   Observed‑data functionals (the *g‑formula*)
+## 5.1 ITT estimand
 
-```{r, eval=FALSE}
-survtmle(time = t, event = event, trt = treatment, adjustVars = W,
-         SL.trt = SL_lib, SL.ctime = SL_lib, SL.fail = SL_lib,
-         t0 = c(12,24,36,48), method = "mean")  
+$$
+E\![Y^{a}] = E_{W}\bigl[\,E(Y\mid A=a, W)\bigr].
+$$
 
-```
+## 5.2 No‑switch estimand with IPCW
+Define the weight for subject *i* through 90 d:
 
-  * Provide ICC-based truncation rule ε = 5/√n for cumulative inverse-probability weights
-  
-## 3.2.5 Variance & inference
+$$
+W_{i}(90) =
+\prod_{t\le 90}\frac{P\{C_{i}(t)=0\mid A_{i}=a, W_{i}\}}
+                        {P\{C_{i}(t)=0\mid A_{i}=a, \bar{L}_{i}(t), W_{i}\}}.
+$$
 
-  * Influence-curve-based SE (default); compare with non-parametric bootstrap (200 replicates) to reassure regulator
+Then
 
-## 3.2.6 Sensitivity & robustness
+$$
+E\![Y^{a,\;\text{no‑switch}}] = E\bigl[\,W_{i}(90)\,Y_{i}\bigr].
+$$
 
-  * Plot efficient influence curve (EIC) distribution vs. N(0,σ²) → detect outliers/heavy tails.
+Our one‑step *continuous‑time* TMLE (implemented via the **`concrete`** package)
+directly targets these weighted risks, giving double‑robustness: correct either
+the outcome model **or** the censoring model is sufficient for consistent
+estimation.
 
-  * G-value causal-gap plot (Gruber 2023) to show how much residual bias is needed to cross the null.
 
-# 3.3 Treatment-switching strategies
+# 6   Why these assumptions are plausible (or not) in claims data
 
-## 3.3.1 Censor-at-switch TMLE
+* **Consistency / SUTVA:** Each patient’s AKI diagnosis is determined by their
+  own regimen and physiology; spill‑over is unlikely.
+* **Exchangeability:** We include rich baseline medical history from the claims
+  data (CKD stage, eGFR, liver disease, etc.).  Residual confounding remains
+  possible if, for instance, prescriber preference correlates with unmeasured
+  kidney function.
+* **Positivity:** Both SOF and non‑SOF regimens are widely used across all
+  patient profiles in commercial and Medicare claims, but we will check
+  overlap via propensity‑score diagnostics.
+* **Independent censoring:** Switching is often triggered by rising creatinine,
+  so naïve censoring would be informative.  IPCW mitigates this by modelling
+  the switching hazard as a function of observed labs and comorbidities.
 
-  * Define censoring node C_switch(t)=1 at first non-SOF→SOF or SOF→non-SOF change.
 
-  * Use IPC-weighted TMLE; include truncation sensitivity (ε = 0.01, 0.05).
-
-## 3.3.2 Switch-hazard TMLE (“structural failure-time approach”)
-
-  * Model hazard of switching λ_S(t|Āₜ₋₁,L̄ₜ); incorporate into joint g-formula so that counterfactual follows “natural course” had switching been blocked.
-
-  * Outline of steps:
-
-  1 Fit SuperLearner to switching hazard.
-
-  2 G-compute survival under intervention set switching = 0.
-
-  3 Target with clever covariate H(t)=I(A₀=a)·[I(Switch>t)/g_S]**.
-
-  * Discuss identification assumptions (no unmeasured predictors of switching & outcome).
-
-## 3.3.3 Contrast & choice
-
-| Approach | Target estimand | How switching is handled | Extra identification assumptions | Expected bias if violated | Relative variance (vs. ITT) | Implementation complexity | Key diagnostics |
-|----------|-----------------|--------------------------|----------------------------------|---------------------------|-----------------------------|---------------------------|-----------------|
-| **Censor-at-switch TMLE** | “While-on-initial-treatment” 90-day risk difference | Censor observation at first regimen switch; apply IPC weights in TMLE | 1. Conditional independent censoring given \(W,A\).  <br>2. Positivity of remaining follow-up time. | Upward or downward bias if switching is informative after conditioning (e.g. patients switch because of declining eGFR). | **Higher variance** → loses person-time and events; effective sample size often ↓ 15-30 %. | Low–moderate (one extra censoring node). | • Weight distribution / truncation proportion <br>• Kaplan-Meier of censoring process <br>• Balance of covariates at censoring time |
-| **Switch-hazard (no-switch) TMLE** | Hypothetical 90-day risk difference “if switching were prevented” | Model hazard of switching; g-compute outcomes under counterfactual *never-switch* path; target with TMLE | 1. No unmeasured common causes of switching and AKI after conditioning on \(W,L_t\).  <br>2. Correct model (or SL) for switching hazard. | Bias toward null or away if hazard model mis-specified or unmeasured predictors exist. | **Lower variance** → retains full follow-up; adds Monte-Carlo error from g-computation (< 5 %). | Moderate–high (extra SL fit + forward simulation). | • Calibration plot of predicted vs. observed switch hazard <br>• Influence-curve histogram for g-formula step <br>• Sensitivity analysis varying truncation of estimated switch probabilities |
-| **For reference: Treatment-policy ITT TMLE** | 90-day risk difference regardless of switching | Ignore switching; treat all follow-up as valid | Requires only baseline exchangeability & positivity | Bias only if baseline \(W\) insufficient; no time-varying assumptions | Lowest variance (max N and events) | Low | • Positivity plot of baseline \(g(A\mid W)\) <br>• EIC QQ-plot |
-
-
-#### Bias considerations
-
-  * Censor-at-switch is unbiased only if the conditional independent censoring assumption holds. That is strong here because regimen changes often occur in response to worsening renal function, the very outcome we study. Missing that signal inflates or deflates the effect depending on direction of informed switching.
-
-  * Switch-hazard TMLE keeps all data but trades one bias source for another: misspecifying—or omitting predictors in—the switching model transmits bias directly to the causal risk estimate. Unmeasured eGFR at every visit, for example, would break the assumption even if baseline confounding is well controlled.
-
-#### Variance / efficiency
-
-  * Censoring removes person-time → fewer AKI events → wider CIs. In the pilot simulation (N = 125 000, 18 % switch rate) the 90-day AKI event count dropped from 2 820 to 2 290 and the SE of the TMLE risk difference widened by ≈ 12 %.
-
-  * The switch-hazard approach kept all 2 820 events; Monte-Carlo error from 250 forward-simulated trajectories per subject increased SE by only ≈ 3 %.
-
-#### Regulatory interpretability
-
-  * While-on-treatment estimand (censor-at-switch) answers “Is SOF harmful while a patient remains on it?”—useful for product labelling.
-
-  * Hypothetical no-switch estimand addresses intrinsic nephrotoxicity but may be viewed as less pragmatic. FDA often asks for both.
-
-#### Diagnostics to emphasise in the report
-
-  * Weight diagnostics for IPCW: truncation at 1 / 0.01, share of ≥ 5 weights, maximum.
-
-  * Switch-hazard calibration: plot observed vs. predicted cumulative incidence of switching by decile of predicted hazard.
-
-  * Positivity checks: proportion of subjects with estimated switch-free survival < 1 % (problematic).
-
-  * Influence-curve spread: heavy tails suggest instability; consider additional truncation or alternative loss-function.
-
-#### Suggested sensitivity analyses
-
-  * Re-estimate switch-hazard TMLE with reduced learner library (e.g., remove hal9001) to gauge model-dependence.
-
-  * Vary IPC weight truncation (e.g., 0.01 vs. 0.05).
-
-  * Include an E-value style bias-shift analysis: how large would an unmeasured predictor of switching & AKI have to be to move the estimate across the null?
-
-
-# 3.4 Diagnostics & reporting set
-
-| Diagnostic element | Purpose | Suggested artefact | Where generated |
-|--------------------|---------|--------------------|-----------------|
-| **PS density + Love plot** | Check overlap / baseline positivity | *Figure 3-1* (density & SMD plot) | `cobalt::bal.plot`, `ggplot` |
-| **Weight distribution** | Detect extreme IPTW / IPC weights | *Figure 3-4* (boxplot or histogram) | `hist(weights)` |
-| **Truncation table** | Show % truncated & max weight | *Table 3-3* | `summary(weights)` |
-| **Efficient influence curve (EIC) histogram & QQ-plot** | Assess IC assumptions and tail heaviness | *Figure 3-5* | `qqnorm(ic); hist(ic)` |
-| **Variance-ratio plot** | Compare IC-based vs. bootstrap SE | *Figure 3-6* | `ggplot` on `se_ic` vs `se_boot` |
-| **Schoenfeld residuals (legacy Cox)** | Check proportional-hazards assumption | *Figure 3-3* | `survival::cox.zph` |
-| **TMLE fit diagnostics** | Inspect cross-validated risk across SL folds | *Figure 3-7* | `sl3::cv_risk` output |
-| **Risk curve with simultaneous 95 % CI** | Present main causal estimate | *Figure 3-8* | `ggplot` layering on `survtmle` output |
-
-
-
-
-#OLD:
-
-# 3 Estimation of the Causal Effect 
-
-In Steps 1–2, we clearly defined our causal question, estimand, and assumptions necessary for causal identification. 
-
-Now in Step 3, we select and detail the statistical methods used to estimate our causal effect. This step compares traditional methods (propensity score matching followed by Cox regression) with our selected modern approach: Targeted Maximum Likelihood Estimation (TMLE) combined with Super Learner. ## 3.1 Previously Used Method: Propensity Score Matching and Cox Regression In the original AKI safety analysis, propensity score matching followed by Cox proportional hazards regression was used. While this approach is common in real-world evidence (RWE) studies, it has important limitations in providing causal interpretations. ### Propensity Score Matching (PSM) **What is it?** Propensity score matching attempts to control confounding by matching treated and untreated subjects who have similar estimated probabilities (propensity scores) of receiving the treatment, based on baseline characteristics. **Limitations of PSM:** - **Residual confounding:** Matching relies heavily on correctly modeling treatment assignment. Incorrect or incomplete models can lead to unmatched confounding. - **Loss of sample:** Matching can exclude subjects who don't find close matches, reducing generalizability and statistical power. - **Balance is not guaranteed on unmeasured confounders.** ### Cox Proportional Hazards Model **What does it estimate?** A Cox model estimates the hazard ratio (HR), which compares instantaneous event rates between treated and untreated groups, assuming proportional hazards over time. **Key Limitations of Cox Model for Causal Inference:** - **Non-collapsibility:** Hazard ratios estimated from Cox models can vary unpredictably when adding or removing covariates, complicating causal interpretation. - **Proportional hazards assumption:** If the hazard ratio changes over time (violating proportional hazards), the HR does not have a clear causal interpretation. - **Lack of direct interpretability:** HRs don't easily translate into clinically actionable quantities such as absolute risk differences or risk ratios, which are often more relevant for clinical decisions and policymaking. Thus, the Cox HR is generally not ideal as a primary causal estimand in safety studies aiming for clear causal interpretation. ## 3.2 Why Move Beyond Cox Regression? Given these limitations, we seek an alternative causal inference method that explicitly estimates a clearly defined estimand (e.g., risk difference) and provides robust inference. ### Desired characteristics of a causal estimator: - **Double robustness:** Accurate estimation if either the outcome or treatment model is correct. - **Efficiency:** Minimal variance among consistent estimators. - **Transparency and direct interpretability:** Provides straightforward estimates of clinically meaningful causal effects (e.g., absolute risk differences). These features are specifically addressed by Targeted Maximum Likelihood Estimation (TMLE). ## 3.3 Introduction to Targeted Maximum Likelihood Estimation (TMLE) TMLE is a modern causal inference method combining strengths of both outcome regression and propensity score-based methods. TMLE has key advantages: - **Double robustness:** Valid inference if at least one of the models (outcome regression or treatment assignment) is correct. - **Efficient statistical inference:** TMLE achieves the smallest possible standard error among consistent estimators. - **Clinically meaningful estimates:** Directly provides absolute risk differences or risk ratios. - **Flexible modeling:** Easily incorporates machine learning approaches through Super Learner. ## 3.4 TMLE Estimation Approach TMLE estimation proceeds through two clear steps: ### Step 1: Initial Estimation - Predict the conditional outcome mean: \[ \bar{Q}(A,W) = E[Y|A,W] \] - Estimate the treatment assignment probabilities (propensity scores): \[ g(A|W) = P(A|W) \] We perform these steps using flexible machine learning methods (Super Learner). ### Step 2: Targeting Step (Bias Reduction) - Update initial predictions with a clever covariate: \[ H(A,W) = \frac{I(A=a)}{g(A|W)} \] - This step specifically targets the chosen causal estimand (e.g., risk difference) ensuring minimal bias. ## 3.5 Super Learner Implementation We implement TMLE using Super Learner, an ensemble learning technique combining multiple algorithms to optimize prediction accuracy: $$${r super-learner, eval=FALSE} library(sl3) sl_lib <- list( Lrnr_glm_fast$new(), Lrnr_ranger$new(num.trees = 500), Lrnr_xgboost$new(nrounds = 200), Lrnr_gam$new(), Lrnr_hal9001$new(max_degree = 2), Lrnr_mean$new() )
-3.6 TMLE Implementation in R
-Using the tmle3 package in R:
-
-library(tmle3) # Node definitions node_list <- list( W = covariate_names, A = "A", Y = "Y", C = "censor", id = "pat_id", t = "time" ) # Define TMLE specification tmle_spec <- tmle_Survival$new( tau = 90, contrast = treatmentwise ) # Fit TMLE tmle_fit <- tmle3( tmle_spec, data = dataset_long_format, node_list = node_list, learner_list = list(Y = sl_lib, A = sl_lib, C = sl_lib) ) # TMLE Results Summary summary(tmle_fit)
-3.7 Advantages of TMLE Over Cox Regression
-
-Feature	Cox Regression + PSM	TMLE with Super Learner
-Causal interpretation	Often unclear due to assumptions	Clear causal interpretation
-Double robustness	No (depends heavily on matching accuracy)	Yes
-Handles non-proportionality	No (violates proportional hazards)	Yes (nonparametric and flexible)
-Direct clinical interpretability	Limited (hazard ratios)	Clear (risk differences, risk ratios)
-Efficiency	No (less efficient)	Yes (optimal efficiency)
-Robustness to modeling errors	Limited (model misspecification bias)	Yes (ensemble learning reduces bias)
-
-
-∗∗Whywedo∗∗not∗∗relyontheCoxHR
-∗>1.Thehazardratiois∗∗non−collapsible∗∗;evenwithperfectconfoundingcontrol,addinganirrelevantcovariatecanchangetheHR.>2.Whenproportional−hazardsfails(log‐logcurvescrossedinSOFvsnon−SOF),theHRisaweightedaverageoftime−varyingcausaleffectsandlacksclinicalmeaning.>3.TheCoxHRestimatesan∗instantaneous∗effect,whileregulatorsandcliniciansneed∗∗absoluterisks∗∗overclinicallyrelevanthorizons.>4.TMLEwithRMSTorrisk−differencetargetsan∗∗interpretable,collapsibleestimand∗∗andremainsvalidundernon−PHbyconstruction.
-
-
-3.8 Practical Considerations and Limitations
-Positivity: TMLE still requires sufficient overlap of propensity scores.
-
-Computational complexity: Super Learner increases computational time, though manageable with modern computing resources.
-
-Interpretability for non-statisticians: More education needed for clinical teams less familiar with TMLE and causal inference methods.
-
-Weight stabilization and truncation: The roadmap explicitly recommends truncating inverse probability weights at approximately √n·ln(n)/5 for stability.
-
->∗∗Outcome−blindsandboxsimulations.
-∗∗>Priortoun−maskingAKIoutcomeswewillgenerate1000Monte−Carlodatasetsinwhichtheobservedcovariatesandtreatmentassignmentsareretainedbutoutcomesarepermutedordrawnfromauser−specifiedgenerativemodelconsistentwiththeDAGinFigure\@ref(fig:dag).Thesesimulationswill:>∗examinepropensity−scoreoverlapandpositivity;>∗estimatestatisticalpowerforrisk−differencedetectionunderplausibleeffectsizes;>∗quantifyfinite−samplebiasandvarianceoftheTMLEestimatorundercorrectandmisspecifiednuisancemodels.>Resultsguideweighttruncation,SuperLearnerlibrarysize,andsample−sizeadequacy∗∗before∗∗anyrealoutcomesareviewed,preservinganalyticobjectivity.
-
-
-3.9 Summary of Step 3
-TMLE provides a robust, efficient, and causally interpretable alternative to traditional propensity-matched Cox regression. Given limitations inherent in standard approaches (non-collapsibility, proportional hazards assumptions), TMLE paired with Super Learner is strongly preferred for answering causal safety questions clearly.
-
-Roadmap Component	Section Covered
-Traditional Methods & Issues	3.1–3.2
-TMLE Approach	3.3–3.4
-Super Learner	3.5
-TMLE R implementation	3.6
-Comparison TMLE vs Cox	3.7
-Practical considerations	3.8
-
-Next Step: Step 4 – Sensitivity Analyses, addressing robustness to key assumption violations.
+# 7   Take‑home message for pharmacoepidemiologists
+The Identification step distils *clinical intent* into a pair of mathematically
+precise contrasts and spells out exactly what we must believe about the data
+for those contrasts to be recoverable.  Once these assumptions are on the
+page, colleagues and reviewers can scrutinise them, and the subsequent
+estimation step (Step 3) flows in a straight line from the formulas above.
+
+*Next up:* we implement doubly‑robust estimation of these risks with
+continuous‑time TMLE (`concrete`) and evaluate how sensitive the conclusions
+are to the assumptions listed here.
+
+
+
+
+
+
+
+
+
+
+
+
+#Old
+
+### 2.2  Statistical Model Setup  
+
+We begin by specifying the observed‐data structure for each study subject:
+
+| Symbol | Description (HCV → AKI example) |
+|--------|----------------------------------|
+| **$W$** | Baseline covariates: age, sex, chronic kidney disease (CKD), diabetes, baseline eGFR, cirrhosis, healthcare utilisation, etc. |
+| **$A$** | Indicator of the initial antiviral regimen (1 = sofosbuvir-containing, 0 = non-sofosbuvir). |
+| **$T$** | Follow-up time (in days) to either first AKI, censoring, or study end. |
+| **$\Delta$** | Event type: 1 = AKI, 0 = right censoring.  For the **primary dataset** we treat *regimen switching* as censoring; for the **ITT dataset** we ignore switching. |
+
+The individual-level observed data vector is therefore  
+\[
+O \;=\; (W,\,A,\,T,\,\Delta)\;,
+\]
+and the statistical model is the non-parametric class  
+\[
+\mathcal{M} \;=\; \bigl\{P(O)\bigr\},
+\]
+i.e., all distributions consistent with the data schema above (no further
+parametric restrictions).
+
+---
+
+### 2.3  Causal Parameters (Estimands)  
+
+* **Primary estimand – Hypothetical “no-switch” risk difference / risk ratio**  
+  *Counterfactual contrast of 90-day AKI risk if **every patient remained on the
+initial regimen for the full 90 days**.*  
+  \[
+  \text{RD}_{\!\text{NS}} \;=\; E\!\bigl[Y^{a=1,\; \text{no-switch}} \bigr] -
+                               E\!\bigl[Y^{a=0,\; \text{no-switch}} \bigr],
+  \qquad\;
+  \text{RR}_{\!\text{NS}} \;=\;
+  \frac{E\!\bigl[Y^{a=1,\; \text{no-switch}}\bigr]}
+       {E\!\bigl[Y^{a=0,\; \text{no-switch}}\bigr]}.
+  \]
+
+* **Sensitivity estimand – Treatment-policy (ITT) risk difference / risk ratio**  
+  *Counterfactual contrast of 90-day AKI risk when patients are
+  **started** on SOF vs non-SOF, **allowing real-world switching and
+  discontinuation**.*  
+  \[
+  \text{RD}_{\!\text{ITT}} \;=\; E\!\bigl[Y^{a=1}\bigr] -
+                                 E\!\bigl[Y^{a=0}\bigr],
+  \qquad\;
+  \text{RR}_{\!\text{ITT}} \;=\;
+  \frac{E\!\bigl[Y^{a=1}\bigr]}
+       {E\!\bigl[Y^{a=0}\bigr]}.
+  \]
+
+---
+
+### 2.4  Key Identification Assumptions  
+
+#### 2.4.1  Consistency  
+For each subject the observed outcome equals the potential outcome under the
+treatment actually received:
+\[
+Y \;=\; A\,Y^{a=1} + (1-A)\,Y^{a=0}.
+\]
+In the primary analysis we further assume that, had switching been prevented,
+each individual’s potential outcome $Y^{a,\;\text{no-switch}}$ equals the
+outcome we would observe *if* they indeed remained on their initial regimen.
+
+#### 2.4.2  Conditional Exchangeability (Ignorability)  
+After adjusting for baseline covariates $W$, initial regimen choice is as good
+as random:
+\[
+Y^{a,\;\text{no-switch}} \;\perp\!\!\!\perp\; A \;\bigl|\, W,
+\qquad
+Y^{a} \;\perp\!\!\!\perp\; A \;\bigl|\, W.
+\]
+That is, no unmeasured baseline confounders influence both treatment choice
+and AKI risk.
+
+#### 2.4.3  Positivity  
+Every covariate pattern observed in the data must have a non-zero probability
+of receiving either regimen:
+\[
+0 \;<\; P(A=a \mid W)\;<\;1
+\quad\text{for all } a\in\{0,1\},\; W \text{ with } P(W)>0.
+\]
+
+#### 2.4.4  Independent Censoring (Primary estimand only)  
+For the hypothetical no-switch contrast we treat switching, death, and
+disenrolment as censoring events.  Identification therefore additionally
+requires
+\[
+Y^{a,\;\text{no-switch}} \;\perp\!\!\!\perp\; C \;\bigl|\, A, W,
+\]
+where $C$ is the censoring indicator.  In practice we relax this assumption by
+using **inverse-probability-of-censoring weighting (IPCW)** within the
+continuous-time TMLE so that censoring can depend on measured
+time-varying information.
+
+---
+
+### 2.5  Identification Formulae  
+
+Under the assumptions above, both estimands can be expressed as purely
+statistical functionals of the observed-data distribution.  For example, the
+g-formula for the ITT risk is
+\[
+E\bigl[Y^{a}\bigr]
+  \;=\; E_{W}\!\bigl[\,E(Y \mid A=a, W)\bigr].
+\]
+The analogous expression for the no-switch estimand replaces the inner
+expectation with the counterfactual risk under a sustained exposure, which we
+evaluate using one-step TMLE implemented in the **`concrete`** package.
+
+---
+
+### 2.6  Practical Challenges  
+
+* **Informative censoring (primary estimand).**  
+  Because regimen switching may be triggered by early signs of nephro-toxicity,
+  simple censoring is likely informative.  IPCW within TMLE adjusts for this,
+  but relies on correctly modelling the switching hazard and on measured
+  covariates capturing all reasons for switching.
+
+* **Measurement error in AKI coding.**  
+  AKI identified from claims may misclassify events.  Planned sensitivity
+  analyses will repeat estimation with stricter ICD definitions (e.g.,
+  dialysis, hospitalisation) to gauge robustness.
+
+---
+
+### 2.7  Summary  
+
+By redefining the **primary estimand** as the 90-day risk difference/ratio
+*under a hypothetical no-switch strategy*, and retaining the original ITT
+contrast as a key **sensitivity analysis**, we align the identification step
+with our updated scientific objectives.  All subsequent estimation and
+inference will explicitly rely on the assumptions enumerated above and use the
+continuous-time TMLE framework (`concrete`) to obtain doubly-robust estimates
+of both causal contrasts.
+
+
+#Old
+
+## Introduction to Identification
+
+Causal inference from observational data relies on translating causal questions into identifiable statistical parameters. The process of **causal identification** formally connects causal parameters to observed data distributions. It relies on three fundamental assumptions: 1. **Consistency** 2. **Conditional Exchangeability (Ignorability)** 3. **Positivity** We describe each assumption in detail below, linking explicitly to the causal question defined in Step 1.  # 2.2 Statistical Model Setup We first clearly specify the observed data structure and statistical model. In our AKI-HCV example, we define each observed data element: - **Baseline covariates (**$W$): Age, sex, chronic kidney disease (CKD), diabetes, baseline eGFR, liver disease status, and healthcare utilization. - **Treatment (**$A$): Initial regimen choice (SOF vs. non-SOF DAA). - **Outcome (**$Y$): Binary indicator for AKI occurrence within 90 days. - **Censoring (**$C$): Indicators for loss to follow-up due to death, regimen switching, or insurance disenrollment. Formally, each participant’s observed data are: $$ O = (W, A, C, Y) $$ Our statistical model, denoted as $\mathcal{M}$, is the nonparametric statistical model comprising all distributions consistent with the data structure above: $$ \mathcal{M} = \{P(O)\} $$ No parametric assumptions are made yet; flexibility is maintained.  # 2.3 Defining the Causal Parameter (Estimand) We now restate the primary causal parameter (estimand) selected in Step 1: - **Estimand:** Risk difference (RD) and risk ratio (RR) comparing SOF-containing regimen versus non-SOF regimen at 90 days, under the **as-treated, censor-at-switch** strategy. In causal notation, this is expressed in terms of potential outcomes $Y^{a}$: - **Risk difference (RD)**: $$ \text{RD} = E[Y^{a=1}] - E[Y^{a=0}] $$ - **Risk ratio (RR)**: $$ \text{RR} = \frac{E[Y^{a=1}]}{E[Y^{a=0}]} $$ This contrasts the AKI risk under universal assignment to SOF-containing DAAs versus universal assignment to non-SOF DAAs.  # 2.4 Key Identification Assumptions We now explicitly define and discuss the identification assumptions required.  ## 2.4.1 Consistency **Consistency** ensures the observed outcome corresponds exactly to the potential outcome under the regimen actually received: - Formally: $$ Y = A \cdot Y^{a=1} + (1 - A) \cdot Y^{a=0} $$ - **Interpretation**: The observed AKI status must exactly reflect the causal effect of the actual regimen initiated.  ## 2.4.2 Conditional Exchangeability (Ignorability) **Conditional Exchangeability** states no unmeasured confounding after conditioning on $W$: - Formally: $$ Y^{a} \perp A \mid W $$ - **Interpretation**: There are no hidden baseline factors influencing both initial regimen choice and AKI risk. Practically, this means we've measured sufficient baseline covariates to eliminate confounding bias.  ## 2.4.3 Positivity (Overlap) **Positivity** requires nonzero probability of receiving each treatment for all relevant subgroups defined by $W$: - Formally: $$ 0 < P(A=a|W) < 1 \quad\text{for all relevant } W $$ - **Interpretation**: For every type of patient considered in the study, treatment choice (SOF vs. non-SOF) must be realistically possible. Violation of positivity creates problems for causal estimation; thus, careful assessment and diagnostics (e.g., checking propensity scores distributions) will be performed in Step 4.  # 2.5 Identification Result (G-computation Formula) Under these three assumptions, we formally identify the causal parameter as a purely statistical quantity (g-formula): - The causal estimand can be expressed as: $$ E[Y^a] = E_W\left[E(Y|A=a, W)\right] $$ - Therefore, the risk difference (RD) is explicitly: $$ RD = E_W\left[E(Y|A=1,W)\right] - E_W\left[E(Y|A=0,W)\right] $$ - Similarly, the risk ratio (RR) is: $$ RR = \frac{E_W\left[E(Y|A=1,W)\right]}{E_W\left[E(Y|A=0,W)\right]} $$ In practice, estimation (Steps 3–4) will rely on methods such as targeted maximum likelihood estimation (TMLE) and Super Learner to flexibly estimate these conditional expectations.  # 2.6 Practical Considerations and Challenges  ## 2.6.1 Informative Censoring Our estimand (as-treated censoring) assumes censoring events (e.g., regimen switching, death, disenrollment) are non-informative, conditional on measured covariates. Violations—called informative censoring—can bias results. - **Assessment:** Sensitivity analyses will evaluate robustness against censoring violations, including inverse-probability-of-censoring weighting (IPCW).  ## 2.6.2 Measurement Error AKI defined by ICD codes or claims data may suffer measurement error: - **Assessment:** Sensitivity analyses using alternative outcome definitions (e.g., hospitalization-required AKI, dialysis initiation) help ensure results' robustness.  # 2.7 Summary of Identification Clearly stating the identification assumptions upfront provides transparency and allows critical evaluation. Subsequent steps (estimation, sensitivity analyses) directly rely on these assumptions' validity.

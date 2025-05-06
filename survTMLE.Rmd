@@ -74,7 +74,7 @@ cv20    <- list(V = 2)
 4 TMLE fit — 90-day treatment-policy estimand
 
 
-```{r}
+```{r, eval=F}
 
 set.seed(1234)
 fit <- survtmle(
@@ -106,6 +106,9 @@ knitr::kable(fit$est, caption = "Table 3-1 — TMLE 90-day risk estimates")
 # 5 Compute RMST(0–90) from TMLE survival curves
 
 ```{r}
+
+fit <- readRDS(file = here::here("results/survtmle_fit.rds"))
+
 # Extract discrete survival curves (St) for each arm
 St0 <- fit$estimates$`A=0`$St
 St1 <- fit$estimates$`A=1`$St
@@ -131,7 +134,7 @@ knitr::kable(rmst_tab,
 
 # 6 Weight diagnostics
 
-```{r}
+```{r, eval=F}
 wts <- fit$ipcwEst$iptw
 hist(wts, breaks = 50, main = "", xlab = "Weight")
 knitr::kable(summary(wts),
@@ -176,23 +179,34 @@ data.frame(SE_type = c("EIF","Bootstrap"),
 
 # 9 Survival & risk curves with 95 % CI
 
-```{r}
-library(ggplot2)
+```{r, eval=F}
 
 ## 9.1  Extract risks for every day 1 … 90
 times <- 1:90
 tp    <- timepoints(fit, times = times)   # uses models stored in 'fit'
+saveRDS(tp, file = here::here("results/survtmle_curve_ests.rds"))
 
-# Row-1 = non-SOF (A = 0); Row-2 = SOF (A = 1)
-risk0 <- tp$est[1, ]            # non-SOF cumulative risk
-risk1 <- tp$est[2, ]            # SOF      cumulative risk
-rd    <- risk1 - risk0          # risk difference SOF − non-SOF
+```
 
-## 9.2  Pointwise standard errors
-# tp$var is a 2×2×T array: Var/​Cov of (risk0, risk1) at each time-point
-var_rd <- sapply(seq_along(times), function(i) {
-  V <- tp$var[ , , i]
-  V[2, 2] + V[1, 1] - 2 * V[1, 2]          # delta-method: Var(r1-r0)
+```{r}
+
+times <- 1:90
+tp <- readRDS(here::here("results/survtmle_curve_ests.rds"))
+
+library(ggplot2)
+# helper to strip the leading "t" and coerce to integer
+times <- as.integer(sub("^t", "", names(tp)))
+
+# vectors of risks per arm
+risk0 <- sapply(tp, function(x) x$est[1])   # non-SOF   (A = 0)
+risk1 <- sapply(tp, function(x) x$est[2])   # SOF       (A = 1)
+rd     <- risk1 - risk0                     # risk diff  (A=1 – A=0)
+rr     <- risk1 / risk0                    
+
+# point-wise variance of the difference
+var_rd <- sapply(tp, function(x) {
+  V <- x$var          # 2 × 2 matrix
+  V[2, 2] + V[1, 1] - 2 * V[1, 2]
 })
 sd_rd  <- sqrt(var_rd)
 
@@ -203,7 +217,7 @@ risk_df <- data.frame(
   hi  = rd + 1.96 * sd_rd
 )
 
-## 9.3  Plot
+## 9.2  Plot
 ggplot(risk_df, aes(day, rd)) +
   geom_line(size = 0.9) +
   geom_ribbon(aes(ymin = lo, ymax = hi), alpha = 0.25) +
@@ -213,7 +227,9 @@ ggplot(risk_df, aes(day, rd)) +
     title = "Cumulative risk-difference curve with 95 % confidence band"
   ) +
   theme_minimal()
+
 ```
+
 
 
 # 10 Discussion of estimator diagnostics

@@ -9,11 +9,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Andrew Mertens" />
 
-<meta name="date" content="2025-05-01" />
 
-<title>Step 4 – Sensitivity Analyses</title>
+<title>Step 4 (Statistical Estimand) – Translating the HCV→AKI Identification into a Quantity We Can Estimate</title>
 
 <script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -245,13 +243,19 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
   <a href="step0.html">Causal roadmap and case study introduction</a>
 </li>
 <li>
   <a href="step1v2.html">Roadmap step 1-alt</a>
 </li>
 <li>
-  <a href="step1.html">Roadmap step 1</a>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
 </li>
 <li>
   <a href="step2.html">Roadmap step 2</a>
@@ -264,12 +268,6 @@ $(document).ready(function () {
 </li>
 <li>
   <a href="step5.html">Roadmap step 5</a>
-</li>
-<li>
-  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
-</li>
-<li>
-  <a href="case_study_AKI.html">Case study intro: Hep. C and AKI</a>
 </li>
 <li>
   <a href="PS_analysis.html">Propensity score matching analysis</a>
@@ -289,142 +287,376 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Step 4 – Sensitivity Analyses</h1>
-<h4 class="author">Andrew Mertens</h4>
-<h4 class="date">2025-05-01</h4>
+<h1 class="title toc-ignore">Step 4 (Statistical Estimand) – Translating
+the HCV→AKI Identification into a Quantity We Can Estimate</h1>
 
 </div>
 
+<div id="TOC">
+true
+</div>
 
-<div id="sensitivity-analyses" class="section level1">
-<h1>4 Sensitivity Analyses</h1>
-<p>In Steps 1–3, we defined the causal estimand, established
-identifiability assumptions, and outlined our primary estimation
-strategy using TMLE and Super Learner. In this step, we assess the
-robustness of our causal estimates to violations of these critical
-assumptions through structured sensitivity analyses.</p>
-<div id="importance-of-sensitivity-analysis" class="section level2">
-<h2>4.1 Importance of Sensitivity Analysis</h2>
-<p>Sensitivity analyses systematically evaluate how robust our results
-are to violations of key assumptions:</p>
+<div id="statistical-estimand-step" class="section level2">
+<h2>Statistical Estimand step</h2>
 <ul>
-<li><p><strong>Positivity (overlap)</strong>: All individuals have some
-chance of receiving either treatment.</p></li>
-<li><p><strong>Conditional exchangeability</strong>: No unmeasured
-confounding.</p></li>
-<li><p><strong>Non-informative censoring</strong>: Follow-up loss or
-treatment switching not related to underlying risk. We explicitly
-examine each assumption and propose sensitivity analyses to evaluate
-potential bias if these assumptions are violated.</p></li>
+<li><strong>Identification (Step 3)</strong> converts the
+<em>causal</em> estimand – a parameter of the unobservable
+counterfactual distribution – into <em>some</em> functional of the
+<em>observable</em> data <strong>under a set of assumptions</strong>.
+The output of Step 3 is often called an <strong>observed‑data
+functional</strong>.</li>
+<li><strong>Statistical Estimand (Step 4)</strong> chooses <strong>one
+particular summary of that functional</strong> (e.g. risk difference,
+risk ratio, RMST‑difference) and pins down <em>how</em> we will evaluate
+it (single time‑point vs. curve; marginal vs. conditional; additive
+vs. multiplicative scale). – This choice must also respect the
+audience’s needs (regulatory vs. mechanistic) and the estimator’s
+large‑sample properties.</li>
+</ul>
+<blockquote>
+<p>Think of Step 2 as <em>mapping the road</em> and Step 4 as
+<em>deciding exactly where to park the car</em>.</p>
+</blockquote>
+<p>The Roadmap paper (Figure 1 on page 3) shows Step 2 “Observed Data →
+Identifiability” followed by Step 4 “Statistical Estimand &amp;
+Estimator” citeturn6file0.</p>
+<hr />
+</div>
+<div id="observeddata-functionals-inherited-from-step-2"
+class="section level2">
+<h2>2  Observed‑data functionals inherited from Step 2</h2>
+<p>We carry forward two functionals derived in the Identification
+section:</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Psi_{\text{NS}}(P) &amp;= E\Big[ W_i(90)\,Y_i \Big] \\
+\Psi_{\text{ITT}}(P) &amp;= E\Big[\,E\{Y \mid A=a\}\Big]\_{a=1}^{a=0}
+\end{aligned}
+\]</span></p>
+<ul>
+<li>$W_i(90)$ is the inverse‑probability‑of‑censoring weight that
+up‑weights uncensored individuals out to 90 days (switching, death, and
+disenrolment treated as censoring).</li>
+<li>$Y_i$ indicates first AKI within 90 days.</li>
+</ul>
+<hr />
+</div>
+<div id="statistical-estimands-for-this-protocol"
+class="section level2">
+<h2>3  Statistical estimands for this protocol</h2>
+<table>
+<colgroup>
+<col width="21%" />
+<col width="31%" />
+<col width="5%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Label</th>
+<th>Notation</th>
+<th>Natural scale</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Primary</strong> – Hypothetical <em>no‑switch</em> risk
+difference</td>
+<td>$*{} = ^{a=1} - _{}^{a=0}$</td>
+<td>additive</td>
+<td>90‑day difference in weighted cumulative incidence if
+<strong>all</strong> patients were kept on their initial regimen</td>
+</tr>
+<tr class="even">
+<td>Sensitivity – Treatment‑policy (ITT) risk difference</td>
+<td>$*{} = ^{a=1} - _{}^{a=0}$</td>
+<td>additive</td>
+<td>90‑day difference in cumulative incidence when switching is
+allowed</td>
+</tr>
+<tr class="odd">
+<td>(Optional) Risk ratio on each scale</td>
+<td>$= <sup>{a=1}/</sup>{a=0}$</td>
+<td>multiplicative</td>
+<td>Reported for regulatory completeness</td>
+</tr>
+</tbody>
+</table>
+<p>Both estimands are marginal <strong>population‑level</strong>
+contrasts, suited to regulatory safety questions.</p>
+<hr />
+</div>
+<div id="illustration-with-concrete" class="section level2">
+<h2>4  Illustration with <code>concrete</code></h2>
+<p>Below is a <em>template</em> R chunk (not executed here)
+demonstrating how the primary estimand is passed to
+<code>concrete</code>. <code>formatArguments()</code> encodes “treat
+everybody with SOF” vs. “treat everybody with non‑SOF” as two static
+interventions; censoring weights are handled automatically when
+<code>EventType = "status"</code> includes 0 = censor.</p>
+<pre class="r"><code>ConcreteArgs_NS &lt;- formatArguments(
+  DataTable    = df_ns,               # censor at switch dataset
+  EventTime    = &quot;time&quot;,
+  EventType    = &quot;status&quot;,           # 1 = AKI, 0 = censored
+  Treatment    = &quot;trt&quot;,              # 1 = SOF, 0 = non‑SOF
+  Intervention = 0:1,                # treat‑all strategies
+  TargetTime   = 90,                 # single horizon
+  TargetEvent  = 1,                  # AKI only
+  CVArg        = list(V = 10)
+)
+ConcreteEst_NS &lt;- doConcrete(ConcreteArgs_NS)
+RD_NS &lt;- getOutput(ConcreteEst_NS, Estimand = &quot;RD&quot;)</code></pre>
+<p>A parallel chunk using <code>df_itt</code> (full follow‑up, ignoring
+switch) yields <code>RD_ITT</code>.</p>
+<hr />
+</div>
+<div id="communicating-the-estimands" class="section level2">
+<h2>5  Communicating the estimands</h2>
+<p>For a pharmaco‑epi audience unfamiliar with the Roadmap we recommend
+reporting <em>both</em> estimands side‑by‑side, emphasising:</p>
+<ul>
+<li><strong>Policy relevance</strong> – ITT mirrors “start‑regimen”
+decisions.</li>
+<li><strong>Biologic relevance</strong> – No‑switch isolates
+on‑treatment toxicity but relies on IPC weighting and time‑varying
+positivity.</li>
+</ul>
+<p>A short boiler‑plate sentence suitable for manuscripts:</p>
+<blockquote>
+<p>“The primary statistical estimand was the 90‑day risk difference in
+first acute kidney injury had all patients remained on their index
+antiviral regimen, estimated by continuous‑time one‑step TMLE using
+inverse‑probability‑of‑censoring weights. A treatment‑policy (ITT)
+estimand served as a prespecified sensitivity analysis.”</p>
+</blockquote>
+<hr />
+</div>
+<div id="key-takeaways-for-regulators-clinicians"
+class="section level2">
+<h2>6  Key take‑aways for regulators &amp; clinicians</h2>
+<ul>
+<li>Declaring the <em>statistical</em> estimand forces us to pick the
+exact contrast (RD vs RR, 90 d vs 120 d, etc.).</li>
+<li>The observed‑data functional is the <em>blueprint</em>; the
+statistical estimand is the <em>specific measurement</em> we will read
+off that blueprint.</li>
+<li>Both must be specified <strong>before</strong> looking at
+results.</li>
+</ul>
+<hr />
+</div>
+<div id="old" class="section level1">
+<h1>Old</h1>
+<div id="aim-of-step-4" class="section level2">
+<h2>Aim of Step 4</h2>
+<p>Translate each causal estimand (Step 1a) into a precise mathematical
+statistical estimand—a functional of the observed data distribution that
+equals the causal quantity if the identification assumptions hold (Step
+3).</p>
+<ul>
+<li><p><strong>Statistical estimand</strong><br />
+<span class="math display">\[
+  \Psi_{\text{RD}}(P_0)=
+    \mathbb{E}_{W}\!\bigl[\, Q(90,1,W) - Q(90,0,W) \bigr],
+\]</span> where<br />
+<span class="math inline">\(Q(t,a,W)=\Pr\{Y(t)=1 \mid A=a, W,
+C(t)=0\}\)</span>.</p></li>
+<li><p><strong>Planned estimator</strong><br />
+Discrete-time TMLE via <code>survtmle(method = "mean")</code> with
+SuperLearner libraries for both <span class="math inline">\(g\)</span>
+(treatment &amp; censoring) and <span class="math inline">\(Q\)</span>
+(failure).</p></li>
 </ul>
 </div>
-<div id="assessing-positivity-violations" class="section level2">
-<h2>4.2 Assessing Positivity Violations</h2>
-<p><strong>What is positivity?</strong> Positivity requires that every
-subgroup defined by measured covariates has a realistic chance of
-receiving either treatment.</p>
-<p><strong>How can positivity violations affect results?</strong> Lack
-of overlap leads to unstable estimates, large standard errors, or bias.
-### Diagnostic Checks for Positivity Use propensity scores to identify
-regions with poor overlap:</p>
-<pre><code>\$\$${r positivity-check, eval=FALSE} # Examine propensity score distributions hist(tmle_fit$likelihood$factor_list$A$eval_nodes$g1,
-breaks = 50, main = &quot;Propensity Score Distribution (Probability of
-SOF)&quot;, xlab = &quot;Propensity Score&quot;)</code></pre>
-<p>Sensitivity Analysis for Positivity Truncation: Limit analyses to
-regions of sufficient overlap (e.g., propensity scores between 0.05 and
-0.95).</p>
-<p>Alternative matching or stratification: Compare TMLE estimates within
-well-overlapped subgroups.</p>
-<p>4.3 Evaluating Unmeasured Confounding What is unmeasured confounding?
-Unobserved variables related to both treatment and outcome that bias the
-causal estimate.</p>
-<p>E-value Calculation E-values quantify how strong an unmeasured
-confounder must be to explain away observed effects.</p>
-<p>Calculate E-values for estimated Risk Ratios (RR):</p>
-<p>library(EValue) # Example calculation, replace with your actual
-estimate/confidence interval RR_estimate &lt;- 1.5 RR_ci_lower &lt;- 1.2
-RR_ci_upper &lt;- 1.9 evalue_result &lt;- evalue(RR_estimate, lo =
-RR_ci_lower, hi = RR_ci_upper) print(evalue_result) Interpretation: An
-E-value of 2 means an unmeasured confounder would need to double the
-likelihood of treatment and outcome to fully explain away our observed
-association.</p>
-<p>Negative Control Outcomes Using outcomes unaffected by treatment but
-sharing confounding structure can detect residual confounding:</p>
-<p>For example, “Urinary tract infection (UTI)” is unlikely caused by
-SOF but shares similar healthcare-seeking confounders.</p>
-<p>A significant treatment-UTI association would indicate unmeasured
-confounding.</p>
 </div>
+<div id="notation-recap" class="section level1">
+<h1>4.1 Notation recap</h1>
+<ul>
+<li><span class="math inline">\(O = (W,\,A,\,C,\,Y)\)</span> – baseline
+covariates <span class="math inline">\(W\)</span>; treatment <span
+class="math inline">\(A \in \{0,1\}\)</span>; censoring indicator <span
+class="math inline">\(C(t)\)</span>; outcome <span
+class="math inline">\(Y(t)\)</span> (AKI observed by day <span
+class="math inline">\(t\)</span>).<br />
+</li>
+<li>Distribution of <span class="math inline">\(O\)</span>: <span
+class="math inline">\(P_0\)</span>.<br />
+</li>
+<li>Statistical expectations with respect to <span
+class="math inline">\(P_0\)</span>: <span
+class="math inline">\(\mathbb{E}_{P_0}[\cdot]\)</span>.</li>
+</ul>
+<p>We operate on the discrete-time grid <span class="math inline">\(t =
+1,\dots,90\)</span> (days).</p>
 </div>
-<div
-id="repeat-analysis-using-uti-as-outcome-compare-to-primary-aki-results"
+<div id="linking-causal-statistical-estimands" class="section level1">
+<h1>4.2 Linking causal ↔︎ statistical estimands</h1>
+<table>
+<colgroup>
+<col width="7%" />
+<col width="44%" />
+<col width="48%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Label</th>
+<th>Causal estimand (potential-outcome form)</th>
+<th>Statistical estimand (functional of <span
+class="math inline">\(P_0\)</span>)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>ΔRisk<span
+class="math inline">\(_{0–90}\)</span></strong><br>(treatment-policy)</td>
+<td><span class="math inline">\(\psi_{\text{RD}} =
+\mathbb{E}\!\bigl[Y^{(1)}\!\le 90\bigr] - \mathbb{E}\!\bigl[Y^{(0)}\!\le
+90\bigr]\)</span></td>
+<td><span class="math inline">\(\displaystyle
+\Psi_{\text{RD}}(P_0)=\mathbb{E}_{W}\!\left[\, Q(90,1,W) - Q(90,0,W)
+\right]\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>Cox HR</strong><br>(while-on-treatment)</td>
+<td>Instantaneous hazard ratio while on initial regimen</td>
+<td><span class="math inline">\(\displaystyle
+\Psi_{\text{HR}}(P_0)=\exp\{\beta_A\}\)</span> where <span
+class="math inline">\(\beta_A\)</span> solves the Cox partial-likelihood
+score</td>
+</tr>
+<tr class="odd">
+<td><strong>ΔRMST(0–90)</strong></td>
+<td><span class="math inline">\(\psi_{\text{RMST}} = \int_{0}^{90}\!
+\bigl[S^{(1)}(u)-S^{(0)}(u)\bigr]\,du\)</span></td>
+<td><span class="math inline">\(\displaystyle
+\Psi_{\text{RMST}}(P_0)=\sum_{u=1}^{89}\!
+\bigl[S(u,1)-S(u,0)\bigr]\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>Hypothetical no-switch ΔRisk</strong></td>
+<td>Same as ΔRisk but under intervention “never switch”</td>
+<td><span class="math inline">\(\displaystyle
+\Psi_{\text{NS}}(P_0)=\mathbb{E}_{W}\!\bigl[ Q^{\dagger}(90,1,W) -
+Q^{\dagger}(90,0,W) \bigr]\)</span></td>
+</tr>
+<tr class="odd">
+<td><strong>Principal-stratum ΔRisk</strong></td>
+<td>ΔRisk among subjects who would adhere ≥ 8 wk under either arm</td>
+<td><span class="math inline">\(\displaystyle
+\Psi_{\text{PS}}(P_0)=\frac{\mathbb{E}\!\bigl[
+\pi(W)\,[Q(90,1,W)-Q(90,0,W)]\bigr]}{\mathbb{E}[\pi(W)]}\)</span> with
+<span class="math inline">\(\pi(W)=\Pr(A^{\!*}=1,\,A^{\#}=0\mid
+W)\)</span></td>
+</tr>
+</tbody>
+</table>
+<p><em>Definitions used in the functionals</em></p>
+<p><span class="math display">\[
+\begin{aligned}
+Q(t,a,W)        &amp;= \Pr\bigl\{Y(t)=1 \mid A=a,\,W,\,C(t)=0\bigr\},\\
+S(t,a)          &amp;= \Pr\bigl\{Y(t)=0,\,C(t)=0 \mid A=a\bigr\},\\
+Q^{\dagger}(t,a,W) &amp;= \text{Risk under the “never-switch”
+intervention},\\
+\pi(W)          &amp;= \Pr\bigl\{\text{adhere} \mid W\bigr\}.
+\end{aligned}
+\]</span></p>
+<p>Each statistical estimand is a functional of the observed-data
+distribution <span class="math inline">\(P_0\)</span>; under the
+identification assumptions (Step 3) it equals its corresponding causal
+estimand.</p>
+</div>
+<div id="example-computing-the-statistical-estimand-in-the-simulation"
 class="section level1">
-<h1>Repeat analysis using UTI as outcome # Compare to primary AKI
-results</h1>
-<p>4.4 Assessing Informative Censoring What is informative censoring?
-Censoring due to treatment switching, loss to follow-up, or death
-correlated with the risk of the outcome.</p>
-<p>If censoring is informative, it biases estimates from as-treated
-analyses.</p>
-<p>Inverse Probability of Censoring Weighting (IPCW) Re-run TMLE with
-censoring weights (IPCW) to correct potential bias:</p>
+<h1>4.3 Example: computing the statistical estimand in the
+simulation</h1>
+<div id="plug-in-g-formula-estimate" class="section level3">
+<h3>4.3.1 Plug-in (g-formula) estimate</h3>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+## ✔ purrr     1.0.2     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>dat &lt;- read.csv(here::here(&quot;data/sim_hcv_aki.csv&quot;))
+
+risk &lt;- dat |&gt;
+  group_by(A = treatment) |&gt;
+  summarise(risk = mean(event == 1 &amp; follow_time &lt;= 90))
+
+plug_RD &lt;- diff(rev(risk$risk))   # risk_A=1 – risk_A=0
+plug_RD</code></pre>
+<pre><code>## [1] -0.005397418</code></pre>
 </div>
-<div
-id="specify-tmle-with-ipcw-weights-for-censoring-events-tmle_fit_ipcw---tmle3-tmle_spec-data-dataset_long_format-node_list-node_list-learner_list-list-y-sl_lib-a-sl_lib-c-sl_lib-censoring-model-ipcw-true-summarytmle_fit_ipcw"
-class="section level1">
-<h1>Specify TMLE with IPCW weights for censoring events tmle_fit_ipcw
-&lt;- tmle3( tmle_spec, data = dataset_long_format, node_list =
-node_list, learner_list = list( Y = sl_lib, A = sl_lib, C = sl_lib #
-censoring model ), ipcw = TRUE ) summary(tmle_fit_ipcw)</h1>
-<p>Compare IPCW and Primary Results If results differ substantially,
-informative censoring may be important, requiring deeper
-investigation.</p>
-<p>4.5 Alternative Outcome Definitions (Measurement Error) Given the
-potential measurement error in claims-based AKI definitions, we conduct
-sensitivity analyses using alternative outcome definitions:</p>
-<p>More stringent AKI definition: AKI requiring hospitalization or
-dialysis initiation.</p>
-<p>Less stringent definition: Any creatinine elevation from electronic
-medical records (if available).</p>
-<p>Evaluate whether estimates change substantially under different
-outcome definitions.</p>
-<p>4.6 Sensitivity to Model Specification Evaluate robustness of
-estimates to alternative Super Learner specifications. Example:</p>
 </div>
-<div
-id="super-learner-with-simpler-learners-simpler_sl_lib---list-lrnr_glm_fastnew-lrnr_meannew-tmle_fit_simple---tmle3-tmle_spec-data-dataset_long_format-node_list-node_list-learner_list-listy-simpler_sl_lib-a-simpler_sl_lib-c-simpler_sl_lib-summarytmle_fit_simple"
+<div id="mapping-estimands-to-planned-estimators-preview-of-step-5"
 class="section level1">
-<h1>Super Learner with simpler learners simpler_sl_lib &lt;- list(
-Lrnr_glm_fast<span class="math inline">\(new(), Lrnr_mean\)</span>new()
-) tmle_fit_simple &lt;- tmle3( tmle_spec, data = dataset_long_format,
-node_list = node_list, learner_list = list(Y = simpler_sl_lib, A =
-simpler_sl_lib, C = simpler_sl_lib) ) summary(tmle_fit_simple)</h1>
-<p>If results remain consistent, findings are robust to model
-choices.</p>
-<p>G-value Reporting: Introduces the concept of a “G-value,” the minimal
-causal gap on the risk-difference scale needed to move the observed
-confidence interval to the null, providing stakeholders a clear
-quantitative metric of robustness.</p>
-<p>Multiverse Analysis: Recommends explicitly performing sensitivity
-analyses varying key analytic choices (propensity-score specifications,
-weight truncation rules, outcome definitions), helping clarify
-robustness of causal estimates to analytic decisions.</p>
-<p>4.7 Summary of Sensitivity Analyses Sensitivity analyses provide
-assurance of robustness or help uncover weaknesses requiring attention.
-A structured approach addressing potential violations of positivity,
-unmeasured confounding, censoring assumptions, measurement error, and
-model specification strengthens credibility of the causal findings.</p>
-<p>Sensitivity Analyses Purpose Method(s) Positivity Ensure valid
-comparisons across groups Propensity score overlap diagnostics,
-truncation Unmeasured Confounding Assess robustness to unknown
-confounders E-values, negative controls Informative Censoring Evaluate
-censoring bias IPCW, alternative censoring definitions Measurement Error
-Robustness of outcome measurement Alternative outcome definitions Model
-Specification Robustness of statistical modeling choices Alternative
-Super Learner libraries</p>
-<p>Next Step: Step 5 – Interpretation of Findings and Reporting. We’ll
-integrate sensitivity results with primary estimates, discussing
-practical implications and conclusions clearly for stakeholders.</p>
+<h1>4.4 Mapping estimands to planned estimators (preview of Step 5)</h1>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="30%" />
+<col width="17%" />
+<col width="27%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Statistical estimand</th>
+<th>Planned primary estimator</th>
+<th>Double-robust?</th>
+<th>Uses machine learning?</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>ΔRisk<span class="math inline">\(_{0–90}\)</span></strong>
+(treatment-policy)</td>
+<td><code>survtmle</code> (<code>method = "mean"</code>)</td>
+<td><strong>Yes</strong></td>
+<td><strong>Yes</strong> (SuperLearner for <span
+class="math inline">\(g\)</span> and <span
+class="math inline">\(Q\)</span>)</td>
+</tr>
+<tr class="even">
+<td><strong>Cox HR</strong> (while-on-treatment)</td>
+<td>PS-matched Cox with robust SE</td>
+<td><strong>No</strong></td>
+<td><strong>No</strong> (legacy baseline model)</td>
+</tr>
+<tr class="odd">
+<td><strong>ΔRMST(0–90)</strong></td>
+<td>Aalen-Stratified stacked-survival TMLE</td>
+<td><strong>Yes</strong></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr class="even">
+<td><strong>ΔRisk (hypothetical no-switch)</strong></td>
+<td>(i) Censor-at-switch TMLE<br>(ii) Switch-hazard TMLE</td>
+<td><strong>Yes</strong></td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr class="odd">
+<td><strong>Principal-stratum ΔRisk</strong></td>
+<td>Substitution estimator with sensitivity band</td>
+<td><strong>No</strong></td>
+<td>Optional (HAL or GLM)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="stakeholder-checks" class="section level1">
+<h1>4.5 Stakeholder checks</h1>
+<div id="take-home" class="section level2">
+<h2>Take-home</h2>
+<p>Step 4 anchors each causal question to a concrete, data-level
+functional. Every subsequent choice of estimator, diagnostic and
+sensitivity analysis flows from these definitions.</p>
+</div>
 </div>
 
 

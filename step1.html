@@ -11,7 +11,7 @@
 
 <meta name="author" content="AKI Safety Working Group" />
 
-<meta name="date" content="2025-05-04" />
+<meta name="date" content="2025-05-05" />
 
 <title>Step 1 – Causal Question, Causal Model, and Causal Estimand</title>
 
@@ -368,7 +368,7 @@ div.tocify {
 <h1 class="title toc-ignore">Step 1 – Causal Question, Causal Model, and
 Causal Estimand</h1>
 <h4 class="author">AKI Safety Working Group</h4>
-<h4 class="date">2025-05-04</h4>
+<h4 class="date">2025-05-05</h4>
 
 </div>
 
@@ -1373,19 +1373,25 @@ must align with the chosen estimand.</p>
 <div id="causal-model-ggdag-plot" class="section level2" number="6.2">
 <h2><span class="header-section-number">6.2</span> 2 Causal Model –
 ggdag plot</h2>
-<pre class="r"><code>library(tidyverse) 
-library(dagitty) </code></pre>
+<pre class="r"><code>library(tidyverse) </code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+## ✔ purrr     1.0.2     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(dagitty) </code></pre>
 <pre><code>## Warning: package &#39;dagitty&#39; was built under R version 4.4.3</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dagitty&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:survey&#39;:
-## 
-##     neighbours</code></pre>
 <pre class="r"><code>library(ggdag)</code></pre>
 <pre><code>## Warning: package &#39;ggdag&#39; was built under R version 4.4.3</code></pre>
 <pre><code>## 
-## Attaching package: &#39;ggdag&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:stats&#39;:
+## Attaching package: &#39;ggdag&#39;
+## 
+## The following object is masked from &#39;package:stats&#39;:
 ## 
 ##     filter</code></pre>
 <pre class="r"><code># DAG specification -------------------------------------------------------

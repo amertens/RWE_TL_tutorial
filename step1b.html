@@ -10,8 +10,9 @@
 
 
 
+<meta name="date" content="2025-05-05" />
 
-<title>Step 1b: Statistical Model and Causal Identification</title>
+<title>Roadmap Step 1b — Causal Model</title>
 
 <script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -30,6 +31,7 @@
        code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
        pre:not([class]) { background-color: white }</style>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
@@ -216,6 +218,9 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -243,6 +248,9 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
   <a href="step0.html">Causal roadmap and case study introduction</a>
 </li>
 <li>
@@ -267,9 +275,6 @@ $(document).ready(function () {
   <a href="step5.html">Roadmap step 5</a>
 </li>
 <li>
-  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
-</li>
-<li>
   <a href="PS_analysis.html">Propensity score matching analysis</a>
 </li>
 <li>
@@ -285,19 +290,241 @@ $(document).ready(function () {
 
 <div id="header">
 
-
-
-<h1 class="title toc-ignore">Step 1b: Statistical Model and Causal
-Identification</h1>
-
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
 </div>
 
 
+
+<h1 class="title toc-ignore">Roadmap Step 1b — Causal Model</h1>
+<h4 class="date">2025-05-05</h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#b-study-type-background-knowledge"
+id="toc-b-study-type-background-knowledge">1b Study-type &amp;
+background knowledge</a>
+<ul>
+<li><a href="#b.1-target-trial-emulation-schematic"
+id="toc-b.1-target-trial-emulation-schematic">1b.1 Target-trial
+emulation schematic</a></li>
+<li><a href="#b.2-causal-graph-baseline-dag"
+id="toc-b.2-causal-graph-baseline-dag">1b.2 Causal graph (baseline
+DAG)</a></li>
+<li><a href="#b.3-intercurrent-events-time-varying-mechanisms"
+id="toc-b.3-intercurrent-events-time-varying-mechanisms">1b.3
+Intercurrent events &amp; time-varying mechanisms</a></li>
+<li><a href="#b.4-identification-assumptions-preview"
+id="toc-b.4-identification-assumptions-preview">1b.4 Identification
+assumptions – preview</a></li>
+</ul></li>
+<li><a href="#step-2-statistical-model-and-causal-identification"
+id="toc-step-2-statistical-model-and-causal-identification">Step 2 —
+Statistical Model and Causal Identification</a>
+<ul>
+<li><a href="#introduction-to-identification"
+id="toc-introduction-to-identification">2.1 Introduction to
+Identification</a></li>
+</ul></li>
+<li><a href="#old" id="toc-old">OLD</a></li>
+</ul>
+</div>
+
+<div id="b-study-type-background-knowledge" class="section level1">
+<h1>1b Study-type &amp; background knowledge</h1>
+<div id="b.1-target-trial-emulation-schematic" class="section level2">
+<h2>1b.1 Target-trial emulation schematic</h2>
+<p>We emulate a two-arm pragmatic trial that randomises at t = 0 (first
+DAA dispense) to</p>
+<p>A = 1 Sofosbuvir-containing regimen</p>
+<p>A = 0 Non-sofosbuvir regimen</p>
+<p>and follows individuals for 90 days to the first occurrence of acute
+kidney injury (AKI) or censoring. The analytic data used here are fully
+simulated by generate_hcv_data() in DGP.R, with parameters calibrated to
+the real HealthVerity HCV cohort. No protected health information is
+present.</p>
+<p><em>Roadmap link:</em> this schematic translates Step 1a’s causal
+question into an explicit target-trial design</p>
+</div>
+<div id="b.2-causal-graph-baseline-dag" class="section level2">
+<h2>1b.2 Causal graph (baseline DAG)</h2>
+<pre class="r"><code>library(tidyverse) 
+library(dagitty) 
+library(ggdag)
+
+# DAG specification -------------------------------------------------------
+#   W  = baseline confounders
+#   A0 = initial DAA regimen (SOF vs non-SOF)
+#   C  = censoring processes (death, switch, disenroll)
+#   Y  = 90-day AKI
+
+dag_txt &lt;- &quot;
+dag {
+  W  -&gt; A0
+  W  -&gt; Y
+  A0 -&gt; Y
+  W  -&gt; C
+  A0 -&gt; C
+}&quot;
+
+aki_dag &lt;- dagitty(dag_txt)
+
+# Visualise ---------------------------------------------------------------
+ggdag(aki_dag, text = FALSE, use_labels = &#39;name&#39;, seed = 123) +
+  theme_dag() +
+  ggtitle(&#39;AKI Safety DAG: Sofosbuvir vs Non-Sofosbuvir&#39;)</code></pre>
+<p><img src="step1b_files/figure-html/unnamed-chunk-1-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><strong>Explanation of DAG components:</strong></p>
+<ul>
+<li><strong>W (Baseline Covariates):</strong> Factors like age, sex,
+baseline kidney function, diabetes, liver cirrhosis, healthcare
+utilization. These influence both treatment selection (A) and AKI
+outcome (Y).</li>
+<li><strong>A (Treatment):</strong> Initial choice between
+SOF-containing or non-SOF-containing DAAs.</li>
+<li><strong>Y (Outcome):</strong> AKI event within 90 days after
+treatment initiation.</li>
+<li><strong>C (Censoring events):</strong> Events that lead to
+incomplete follow-up, such as death, regimen switching, or loss of
+insurance. The DAG explicitly assumes no direct arrows from unknown or
+unmeasured variables to A and Y (conditional on W), reflecting the key
+assumption of conditional exchangeability.</li>
+</ul>
+<p>The DAG encodes our current subject-matter understanding: baseline
+factors influence both treatment choice and AKI risk; treatment may
+induce early kidney events and may also trigger regimen switching or
+dropout (informative censoring).</p>
+</div>
+<div id="b.3-intercurrent-events-time-varying-mechanisms"
+class="section level2">
+<h2>1b.3 Intercurrent events &amp; time-varying mechanisms</h2>
+<table>
+<colgroup>
+<col width="35%" />
+<col width="26%" />
+<col width="37%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Intercurrent event</th>
+<th>Representation</th>
+<th>Roadmap implication</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Regimen switch</strong> (non-SOF → SOF or vice-versa)</td>
+<td>First crossover time enters <code>C(t)</code></td>
+<td>Competes with AKI; requires clear <em>estimand</em> choice
+(treatment-policy vs hypothetical no-switch).</td>
+</tr>
+<tr class="even">
+<td><strong>Death</strong></td>
+<td>Cause-specific hazard in <code>C(t)</code></td>
+<td>Competing risk; can be handled via composite outcome or Fine–Gray
+estimand.</td>
+</tr>
+<tr class="odd">
+<td><strong>Loss of follow-up / disenrollment</strong></td>
+<td>Administrative censoring</td>
+<td>Treated as random given measured <code>W</code>; verify positivity
+and apply IPC weighting if needed.</td>
+</tr>
+</tbody>
+</table>
+<p>Because the current dataset is <em>simulated</em> with baseline
+treatment assignment only (no programmed switching), time-varying
+confounding is absent <strong>by design</strong>. This simplification
+lets us focus on demonstrating the Roadmap mechanics without additional
+longitudinal complexity. Note the additional simulated case study at the
+end of this tutorial demonstrating longitudinal TMLE to untangle
+longitudinal confounding in HIV treatment adherence.</p>
+</div>
+<div id="b.4-identification-assumptions-preview" class="section level2">
+<h2>1b.4 Identification assumptions – preview</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Exchangeability:</strong> <span class="math inline">\(Y^{a}
+\perp\!\!\!\perp A \mid W\)</span>.<br />
+</li>
+<li><strong>Positivity:</strong> <span class="math inline">\(0 &lt; P(A
+= a \mid W = w) &lt; 1\)</span> for all <span
+class="math inline">\(w\)</span> in support <span
+class="math inline">\(W\)</span>.<br />
+</li>
+<li><strong>Consistency:</strong> Observed <span
+class="math inline">\(Y\)</span> equals <span
+class="math inline">\(Y^{a}\)</span> for the treatment actually
+received.<br />
+</li>
+<li><strong>Correct model for censoring:</strong> <span
+class="math inline">\(C\)</span> independent of counterfactual outcomes
+conditional on <span class="math inline">\(W, A\)</span>.</li>
+</ol>
+<p>These minimal assumptions will be revisited formally in Step 3
+(Identifiability Assessment).</p>
+<div id="link-to-simulation-design" class="section level3">
+<h3>Link to simulation design</h3>
+<table>
+<colgroup>
+<col width="36%" />
+<col width="30%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Feature in the simulated DGP</th>
+<th>Rationale for inclusion</th>
+<th>Estimands that depend on it</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Baseline covariates <span class="math inline">\(W\)</span>
+generated under exchangeability</strong></td>
+<td>Guarantees the causal assumptions for ΔRisk and ΔRMST hold by
+design, allowing validation of estimator bias.</td>
+<td>All estimands</td>
+</tr>
+<tr class="even">
+<td><strong>No programmed regimen switching</strong></td>
+<td>Ensures ITT and “no-switch” estimands coincide in simulation so any
+divergence in real data highlights switching bias.</td>
+<td>Diagnostic reference for ITT, hypothetical no-switch,
+while-on-Tx</td>
+</tr>
+<tr class="odd">
+<td><strong>Event-time generator calibrated to 2 % 90-day AKI
+risk</strong></td>
+<td>Provides realistic incidence for variance demonstrations and power
+calculations.</td>
+<td>All estimands (affects standard errors and coverage)</td>
+</tr>
+</tbody>
+</table>
+<div id="note-on-fitness-for-purpose-audit" class="section level4">
+<h4>Note on fitness-for-purpose audit</h4>
+<p>A “fitness-for-purpose” data audit is normally completed at this
+stage to verify that variable definitions, time-stamps, and measurement
+reliability align with the causal model. Because we are using fully
+simulated data whose generating mechanism is known and transparent, such
+an audit is not applicable. When we later port the workflow to the real
+HealthVerity cohort, this audit will be mandatory.</p>
+<p>#Old:</p>
 <p>1b Roadmap Step 1b – Causal Model (Study-type &amp; background
 knowledge)<br />
 1b.1 Study design schematic (target-trial emulation)<br />
 1b.2 Baseline DAG / SWIG highlighting time-varying processes<br />
 1b.3 Identification assumptions preview</p>
+</div>
+</div>
+</div>
+</div>
 <div id="step-2-statistical-model-and-causal-identification"
 class="section level1">
 <h1>Step 2 — Statistical Model and Causal Identification</h1>
@@ -406,7 +633,7 @@ audit:</p>
 <colgroup>
 <col width="28%" />
 <col width="28%" />
-<col width="43%" />
+<col width="42%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -475,6 +702,18 @@ statistical methods to estimate the identified causal parameter.</p>
 </div>
 </div>
 </div>
+<div id="old" class="section level1">
+<h1>OLD</h1>
+<p>## 1.2 Specifying the Causal Model (DAG) Causal inference typically
+involves representing relationships between variables visually using
+directed acyclic graphs (DAGs). A DAG helps clarify the assumptions
+necessary for valid causal inference, particularly: -
+<strong>Exchangeability (no unmeasured confounding)</strong> -
+<strong>Positivity (treatment assignment possible across
+covariates)</strong> - <strong>Consistency (treatment definitions
+correspond to reality)</strong> Consider the following simplified DAG
+illustrating relationships in our AKI study:</p>
+</div>
 
 
 
@@ -509,6 +748,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

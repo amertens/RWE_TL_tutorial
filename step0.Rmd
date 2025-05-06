@@ -10,9 +10,27 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+# Introduction
+
+Real-world evidence (RWE) studies in pharma often rely on familiar regression methods to analyze outcomes. However, to answer causal questions (e.g. "Does Treatment X *cause* better outcomes than no treatment?"), we need more than a p-value or an adjusted hazard ratio. The **causal inference roadmap** provides a structured approach to design analyses that yield **causally interpretable results**. A key first step in this roadmap is **estimand selection** – defining *what* effect we aim to estimate. In time-to-event studies (e.g. time to kidney injury), choosing the right estimand is crucial for meaningful interpretation.
+
+This tutorial is for MPH-level epidemiologists and other researchers transitioning from traditional regression to causal inference in RWE. We will:
+
+* Explain what an estimand is and why it matters in causal inference.
+* Highlight limitations of the Cox proportional hazards model and the hazard ratio (HR) as a causal effect measure in time-to-event analysis.
+* Introduce alternative estimands and estimation methods (like Targeted Maximum Likelihood Estimation (TMLE) and G-computation) that align better with causal questions.
+* Walk through a case study of an HCV drug and kidney injury to illustrate these concepts in practice.
+* Provide a summary table of different estimands and when to use them.
+* Include example R code snippets (kept simple) for those interested in running these analyses.
+
+By the end, you should understand how to integrate the causal inference roadmap into your RWE studies, especially how to define and estimate the right estimand for time-to-event outcomes.
+
+# The Causal Inference Roadmap
+
+Modern causal inference encourages researchers to think like they are designing a "target trial." This means explicitly stating the causal question, the population, the treatment strategies to compare, and the outcome – before looking at data. A central part of this planning is choosing an estimand, which is the specific quantity that answers your causal question. In simple terms, the estimand is *what you want to estimate* (e.g. a risk difference, a risk ratio, a survival probability at 1 year, etc.). It should align with the question stakeholders care about. For example, "By how much would 12-month kidney injury risk decrease if all patients took the new HCV drug versus if none did?" is a causal question whose estimand could be the 12-month risk difference in kidney injury between treatment strategies.
 
 
-# 0 Background & Prior Evidence
+# 0 Case Study Background & Prior Evidence
 
 ## 0.1 Why AKI in SOF vs non-SOF?
 

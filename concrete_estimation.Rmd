@@ -1,0 +1,161 @@
+---
+title: "HCV → AKI: 90‑Day Primary & ITT Sensitivity (Continuous‑Time TMLE via *concrete*)"
+author: "Your Name Here"
+output:
+html_document:
+toc: true
+toc_depth: 2
+---
+
+> **Goal.** Re‑estimate the 90‑day cumulative risk of first acute kidney injury (AKI) for sofosbuvir‑containing vs non‑sofosbuvir DAA regimens using the **`concrete`** package’s one‑step *continuous‑time* TMLE:
+>
+> * **Primary estimand – Hypothetical *no‑switch***: censor subjects at first regimen switch (treated as right‑censoring) and target the counterfactual risk *if everyone remained on their index regimen*.
+> * **Sensitivity estimand – Treatment‑policy (ITT)**: ignore switching (no extra censoring) to estimate the effect of *starting* a SOF‑containing vs non‑SOF regimen.
+>
+> `concrete` targets *cause‑specific absolute risks*; here we have a single cause (AKI) plus right‑censoring.
+>
+> The same simulated dataset (`sim_hcv_aki_complex.csv`) is analysed twice—once with switch → censoring (primary) and once with switch ignored (ITT).
+
+```{r setup, message=FALSE, warning=FALSE}
+# Core tidyverse + utilities
+library(tidyverse)
+library(here)
+
+# concrete & friends
+library(concrete)  # one‑step continuous‑time TMLE
+library(SuperLearner)  # leveraged internally by concrete
+```
+
+\## 1   Load simulated data
+
+```{r import}
+# Load dataset (generated previously by DGP.R)
+path <- here("data/sim_hcv_aki_complex.csv")
+if (!file.exists(path)) stop("Data file not found: ", path)
+
+df0 <- read_csv(path, show_col_types = FALSE)
+
+# Glimpse key columns
+print(names(df0))
+```
+
+**Assumed columns (modify if different)**
+
+| Variable      | Meaning                                                           |
+| ------------- | ----------------------------------------------------------------- |
+| `A`           | Treatment indicator (1 = SOF, 0 = non‑SOF)                        |
+| `follow_time` | min(actual event time, censoring time, switch +30 d)              |
+| `event`       | 1 = AKI, 0 = no AKI by `follow_time`                              |
+| `switch`      | 1 = regimen switch occurred at `follow_time`                      |
+| covariates    | `age`, `sex_male`, `ckd`, `cirrhosis`, `diabetes`, `hypertension` |
+
+We derive two analysis datasets:
+
+* **No‑switch (primary)** – treat switching as right‑censoring.
+* **ITT (sensitivity)** – ignore switching (switchers keep their observed follow‑up).
+
+```{r derive-datasets}
+max_follow <- 90  # analysis horizon (days)
+
+make_concrete_input <- function(data, censor_at_switch = TRUE) {
+  data %>%
+    mutate(
+      # event time is bounded by horizon
+      time   = pmin(follow_time, max_follow),
+      status = case_when(
+        event == 1 & follow_time <= max_follow ~ 1,                # AKI
+        censor_at_switch & switch == 1 & follow_time <= max_follow ~ 0,  # censored at switch
+        TRUE ~ 0                                                   # administrative censor
+      )
+    ) %>%
+    # Select columns needed by concrete (time, status, treatment + covariates)
+    select(time, status, trt = A, age, sex_male, ckd, cirrhosis, diabetes, hypertension) %>%
+    # Drop any incomplete cases (concrete cannot handle missing)
+    drop_na()
+}
+
+data_ns  <- make_concrete_input(df0, censor_at_switch = TRUE)   # primary
+
+data_itt <- make_concrete_input(df0, censor_at_switch = FALSE)  # sensitivity
+```
+
+\## 2   Specify analysis arguments
+`concrete` requires a *static* pair of interventions (`0:1`) and target times. We target the single horizon `t = 90` days.
+
+```{r concrete-args}
+# Common pieces
+my_SL  <- list(V = 10)      # 10‑fold CV for SuperLearner
+T0_vec <- c(max_follow)     # vector of target times (length 1)
+
+# Function to build ConcreteArgs given a dataframe
+make_args <- function(dat) {
+  formatArguments(
+    DataTable   = dat,
+    EventTime   = "time",
+    EventType   = "status",
+    Treatment   = "trt",
+    Intervention= 0:1,           # treat‑none vs treat‑all
+    TargetTime  = T0_vec,
+    TargetEvent = 1,             # only one cause of failure (AKI)
+    CVArg       = my_SL,
+    Verbose     = FALSE
+  )
+}
+
+args_ns  <- make_args(data_ns)
+args_itt <- make_args(data_itt)
+```
+
+\## 3   Run one‑step TMLE with `doConcrete()`
+
+```{r run-concrete}
+set.seed(202506)
+fit_ns  <- doConcrete(args_ns)
+fit_itt <- doConcrete(args_itt)
+```
+
+\## 4   Extract 90‑day risk differences & ratios
+
+```{r extract-out}
+# helper to pull RD & RR
+get_RD_RR <- function(fit) {
+  out <- getOutput(fit, Estimand = c("RD", "RR"), Simultaneous = FALSE)
+  out %>%
+    rename(Estimate = `Pt Est`, SE = se) %>%
+    mutate(`95% CI lower` = Estimate - 1.96 * SE,
+           `95% CI upper` = Estimate + 1.96 * SE)
+}
+
+out_ns  <- get_RD_RR(fit_ns)  %>% mutate(Model = "Primary (no‑switch)")
+out_itt <- get_RD_RR(fit_itt) %>% mutate(Model = "Sensitivity (ITT)")
+
+results <- bind_rows(out_ns, out_itt) %>%
+  select(Model, Time, Estimand, Estimate, `95% CI lower`, `95% CI upper`)
+
+knitr::kable(results, digits = 3,
+             caption = "90‑day risk difference and risk ratio for AKI: primary (no‑switch) vs sensitivity (ITT) estimands – one‑step TMLE via *concrete*")
+```
+
+---
+
+\### Diagnostics & plots
+Optional: plot risk curves or RD using `plot()` on the `ConcreteOut` object; see package vignette for customisation.
+
+```{r optional-plots, eval=FALSE}
+# Uncomment to display counterfactual risk curves
+# plot(getOutput(fit_ns, Estimand = "Risk"), ask = FALSE)
+# plot(getOutput(fit_ns, Estimand = "RD"),  ask = FALSE, NullLine = TRUE)
+```
+
+---
+
+\### Interpretation
+
+* **Primary (no‑switch)** reflects the counterfactual scenario where switching is prevented; censoring‑related selection is addressed internally by TMLE → unbiased biologic effect of continuous SOF exposure.
+* **Sensitivity (ITT)** answers the pragmatic policy question: what happens when clinicians *start* SOF vs non‑SOF, allowing subsequent regimen changes.
+
+Consistency between the two estimates supports robustness; divergence would flag treatment‑effect dilution (cross‑over) or residual confounding of switching.
+
+---
+
+*Generated with the `concrete` R package (v≥0.1.0).*

@@ -1,12 +1,5 @@
 ---
-title: "Step 1b: Statistical Model and Causal Identification"
-output: html_document
----
-
-
----
 title:  "Roadmap Step 1b — Causal Model"
-author: "AKI Safety Tutorial Team"
 date:   "`r Sys.Date()`"
 output:
   html_document:
@@ -19,9 +12,12 @@ output:
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.align = "center")
 ```
 
-# 1b Study-type & background knowledge
+# Study-type & background knowledge
 
-## 1b.1 Target-trial emulation schematic
+Step 1b in the causal roadmap explicitly defines the statistical model and discusses assumptions necessary for causal identification. Clear articulation of these assumptions is crucial for valid causal inference.
+
+
+## Target-trial emulation schematic
 We emulate a two-arm pragmatic trial that randomises at t = 0 (first DAA dispense) to
 
 A = 1 Sofosbuvir-containing regimen
@@ -33,50 +29,73 @@ The analytic data used here are fully simulated by generate_hcv_data() in DGP.R,
 
 *Roadmap link:* this schematic translates Step 1a’s causal question into an explicit target-trial design 
 
-## 1b.2 Causal graph (baseline DAG)
+## Causal graph (baseline DAG)
+
+
 ```{r}
-library(dagitty); library(ggdag)
+
+library(tidyverse) 
+library(dagitty) 
+library(ggdag)
+
+# DAG specification -------------------------------------------------------
+#   W  = baseline confounders
+#   A0 = initial DAA regimen (SOF vs non-SOF)
+#   C  = censoring processes (death, switch, disenroll)
+#   Y  = 90-day AKI
 
 dag_txt <- "
 dag {
-  ## baseline common causes
-  W -> A
-  W -> Y
-  W -> C
-  ## treatment effects
-  A -> Y
-  A -> C
-}
-"
+  W  -> A0
+  W  -> Y
+  A0 -> Y
+  W  -> C
+  A0 -> C
+}"
+
 aki_dag <- dagitty(dag_txt)
-ggdag(aki_dag, text = FALSE, seed = 123) +
+
+# Visualise ---------------------------------------------------------------
+ggdag(aki_dag, text = FALSE, use_labels = 'name', seed = 123) +
   theme_dag() +
-  ggtitle('Baseline DAG: SOF vs non-SOF and 90-day AKI')
+  ggtitle('AKI Safety DAG: Sofosbuvir vs Non-Sofosbuvir')
 ```
 
-W = age, sex, CKD stage, diabetes, cirrhosis, healthcare utilisation
 
-A = initial regimen (SOF vs non-SOF)
+**Explanation of DAG components:** 
 
-C = composite censoring process (death, switching, disenrolment)
+- **W (Baseline Covariates):** Factors like age, sex, baseline kidney function, diabetes, liver cirrhosis, healthcare utilization. These influence both treatment selection (A) and AKI outcome (Y). 
+- **A (Treatment):** Initial choice between SOF-containing or non-SOF-containing DAAs. 
+- **Y (Outcome):** AKI event within 90 days after treatment initiation.
+- **C (Censoring events):** Events that lead to incomplete follow-up, such as death, regimen switching, or loss of insurance. The DAG explicitly assumes no direct arrows from unknown or unmeasured variables to A and Y (conditional on W), reflecting the key assumption of conditional exchangeability. 
 
-Y = first AKI within 90 days
 
 The DAG encodes our current subject-matter understanding: baseline factors influence both treatment choice and AKI risk; treatment may induce early kidney events and may also trigger regimen switching or dropout (informative censoring).
 
-## 1b.3  Intercurrent events & time-varying mechanisms
+
+
+
+## Intercurrent events & time-varying mechanisms
 
 | Intercurrent event | Representation | Roadmap implication |
 |--------------------|---------------|---------------------|
 | **Regimen switch** (non-SOF → SOF or vice-versa) | First crossover time enters `C(t)` | Competes with AKI; requires clear *estimand* choice (treatment-policy vs hypothetical no-switch). |
 | **Death** | Cause-specific hazard in `C(t)` | Competing risk; can be handled via composite outcome or Fine–Gray estimand. |
-| **Loss of follow-up / disenrolment** | Administrative censoring | Treated as random given measured `W`; verify positivity and apply IPC weighting if needed. |
+| **Loss of follow-up / disenrollment** | Administrative censoring | Treated as random given measured `W`; verify positivity and apply IPC weighting if needed. |
 
 Because the current dataset is *simulated* with baseline treatment assignment only (no programmed switching), time-varying confounding is absent **by design**. This simplification lets us focus on demonstrating the Roadmap mechanics without additional longitudinal complexity. Note the additional simulated case study at the end of this tutorial demonstrating longitudinal TMLE to untangle longitudinal confounding in HIV treatment adherence.
 
 
+\## 1.2 Specifying the Causal Model (DAG) Causal inference typically involves representing relationships between variables visually using directed acyclic graphs (DAGs). A DAG helps clarify the assumptions necessary for valid causal inference, particularly: - **Exchangeability (no unmeasured confounding)** - **Positivity (treatment assignment possible across covariates)** - **Consistency (treatment definitions correspond to reality)** Consider the following simplified DAG illustrating relationships in our AKI study:
 
-## 1b.4 Identification assumptions – preview
+```{r dag, echo=FALSE, eval=FALSE}
+
+
+dag_txt <- " dag { W -> A W -> Y W -> C A -> Y A -> C }" 
+ggdag(dagitty(dag_txt), text=FALSE, use_labels='name', seed=873) + theme_dag() + ggtitle('DAG: Sofosbuvir (SOF) vs Non-SOF DAAs and AKI risk')
+```
+
+## Identification conditions  
 
 1. **Exchangeability:** \(Y^{a} \perp\!\!\!\perp A \mid W\).  
 2. **Positivity:** \(0 < P(A = a \mid W = w) < 1\) for all \(w\) in support \(W\).  
@@ -85,43 +104,30 @@ Because the current dataset is *simulated* with baseline treatment assignment on
 
 These minimal assumptions will be revisited formally in Step 3 (Identifiability Assessment).
 
+
+
+
+### Link to simulation design
+
+| Feature in the simulated DGP | Rationale for inclusion | Estimands that depend on it |
+|------------------------------|-------------------------|----------------------------|
+| **Baseline covariates \(W\) generated under exchangeability** | Guarantees the causal assumptions for ΔRisk and ΔRMST hold by design, allowing validation of estimator bias. | All estimands |
+| **No programmed regimen switching** | Ensures ITT and “no-switch” estimands coincide in simulation so any divergence in real data highlights switching bias. | Diagnostic reference for ITT, hypothetical no-switch, while-on-Tx |
+| **Event-time generator calibrated to 2 % 90-day AKI risk** | Provides realistic incidence for variance demonstrations and power calculations. | All estimands (affects standard errors and coverage) |
+
 #### Note on fitness-for-purpose audit
 A “fitness-for-purpose” data audit is normally completed at this stage to verify that variable definitions, time-stamps, and measurement reliability align with the causal model. Because we are using fully simulated data whose generating mechanism is known and transparent, such an audit is not applicable. When we later port the workflow to the real HealthVerity cohort, this audit will be mandatory.
 
 
-#Old: 
 
-1b Roadmap Step 1b – Causal Model (Study-type & background knowledge)\
-1b.1 Study design schematic (target-trial emulation)\
-1b.2 Baseline DAG / SWIG highlighting time-varying processes\
-1b.3 Identification assumptions preview
 
-# Step 2 — Statistical Model and Causal Identification
 
-The second step in the causal roadmap explicitly defines the statistical model and discusses assumptions necessary for causal identification. Clear articulation of these assumptions is crucial for valid causal inference.
-
-## 2.1 Introduction to Identification
-
-Causal inference from observational data relies on translating causal questions into identifiable statistical parameters. The process of **causal identification** formally connects causal parameters to observed data distributions. It relies on three fundamental assumptions: 1. **Consistency** 2. **Conditional Exchangeability (Ignorability)** 3. **Positivity** We describe each assumption in detail below, linking explicitly to the causal question defined in Step 1. \## 2.2 Statistical Model Setup We first clearly specify the observed data structure and statistical model. In our AKI-HCV example, we define each observed data element: - **Baseline covariates (**$W$): Age, sex, chronic kidney disease (CKD), diabetes, baseline eGFR, liver disease status, and healthcare utilization. - **Treatment (**$A$): Initial regimen choice (SOF vs. non-SOF DAA). - **Outcome (**$Y$): Binary indicator for AKI occurrence within 90 days. - **Censoring (**$C$): Indicators for loss to follow-up due to death, regimen switching, or insurance disenrollment. Formally, each participant’s observed data are: $$ O = (W, A, C, Y) $$ Our statistical model, denoted as $\mathcal{M}$, is the nonparametric statistical model comprising all distributions consistent with the data structure above: $$ \mathcal{M} = \{P(O)\} $$ No parametric assumptions are made yet; flexibility is maintained. \## 2.3 Defining the Causal Parameter (Estimand) We now restate the primary causal parameter (estimand) selected in Step 1: - **Estimand:** Risk difference (RD) and risk ratio (RR) comparing SOF-containing regimen versus non-SOF regimen at 90 days, under the **as-treated, censor-at-switch** strategy. In causal notation, this is expressed in terms of potential outcomes $Y^{a}$: - **Risk difference (RD)**: $$ \text{RD} = E[Y^{a=1}] - E[Y^{a=0}] $$ - **Risk ratio (RR)**: $$ \text{RR} = \frac{E[Y^{a=1}]}{E[Y^{a=0}]} $$ This contrasts the AKI risk under universal assignment to SOF-containing DAAs versus universal assignment to non-SOF DAAs. \## 2.4 Key Identification Assumptions We now explicitly define and discuss the identification assumptions required. \### 2.4.1 Consistency **Consistency** ensures the observed outcome corresponds exactly to the potential outcome under the regimen actually received: - Formally: $$ Y = A \cdot Y^{a=1} + (1 - A) \cdot Y^{a=0} $$ - **Interpretation**: The observed AKI status must exactly reflect the causal effect of the actual regimen initiated. \### 2.4.2 Conditional Exchangeability (Ignorability) **Conditional Exchangeability** states no unmeasured confounding after conditioning on $W$: - Formally: $$ Y^{a} \perp A \mid W $$ - **Interpretation**: There are no hidden baseline factors influencing both initial regimen choice and AKI risk. Practically, this means we've measured sufficient baseline covariates to eliminate confounding bias. \### 2.4.3 Positivity (Overlap) **Positivity** requires nonzero probability of receiving each treatment for all relevant subgroups defined by $W$: - Formally: $$ 0 < P(A=a|W) < 1 \quad\text{for all relevant } W $$ - **Interpretation**: For every type of patient considered in the study, treatment choice (SOF vs. non-SOF) must be realistically possible. Violation of positivity creates problems for causal estimation; thus, careful assessment and diagnostics (e.g., checking propensity scores distributions) will be performed in Step 4. \## 2.5 Identification Result (G-computation Formula) Under these three assumptions, we formally identify the causal parameter as a purely statistical quantity (g-formula): - The causal estimand can be expressed as: $$ E[Y^a] = E_W\left[E(Y|A=a, W)\right] $$ - Therefore, the risk difference (RD) is explicitly: $$ RD = E_W\left[E(Y|A=1,W)\right] - E_W\left[E(Y|A=0,W)\right] $$ - Similarly, the risk ratio (RR) is: $$ RR = \frac{E_W\left[E(Y|A=1,W)\right]}{E_W\left[E(Y|A=0,W)\right]} $$ In practice, estimation (Steps 3–4) will rely on methods such as targeted maximum likelihood estimation (TMLE) and Super Learner to flexibly estimate these conditional expectations. \## 2.6 Practical Considerations and Challenges \### 2.6.1 Informative Censoring Our estimand (as-treated censoring) assumes censoring events (e.g., regimen switching, death, disenrollment) are non-informative, conditional on measured covariates. Violations—called informative censoring—can bias results. - **Assessment:** Sensitivity analyses will evaluate robustness against censoring violations, including inverse-probability-of-censoring weighting (IPCW). \### 2.6.2 Measurement Error AKI defined by ICD codes or claims data may suffer measurement error: - **Assessment:** Sensitivity analyses using alternative outcome definitions (e.g., hospitalization-required AKI, dialysis initiation) help ensure results' robustness. \## 2.7 Summary of Identification Clearly stating the identification assumptions upfront provides transparency and allows critical evaluation. Subsequent steps (estimation, sensitivity analyses) directly rely on these assumptions' validity.
-
-#### Fitness-for-purpose Data Audit (REQUEST/SPIFD)
-
-Before un-masking outcomes we will complete a REQUEST-style audit:
-
-| Dimension | Questions | Evidence source |
-|---------------------|---------------------|-------------------------------|
-| Relevance | Does the data capture all eligibility, treatment, and AKI-definition fields? | OMOP → CDM mapping report |
-| Completeness | \% missing for each baseline covariate; ≥95 % threshold | EHR/claims completeness log |
-| Accuracy | Positive-predictive value for AKI ICD-codes vs chart review (literature 80–90 %) | Validation citation |
-| Provenance | Date–stamped ETL pipeline, version control, SHA-256 hash | Data-traceability log (appendix) |
 
 **Outcome-Blind Sandbox Approach**: Conducting all modeling choices (covariate selection, learner tuning, etc.) prior to outcome unblinding or using permuted/simulated datasets ensures unbiased model selection, avoiding overfitting or biased results.
 
-| Roadmap Step               | Covered     |
-|----------------------------|-------------|
-| Statistical Model          | Section 2.2 |
-| Causal Parameter           | Section 2.3 |
-| Identification assumptions | Section 2.4 |
-| Identification formula     | Section 2.5 |
 
---- **Next Step:** Step 3 (Estimation) introduces specific statistical methods to estimate the identified causal parameter.
+
+
+
+
+

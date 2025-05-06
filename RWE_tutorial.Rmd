@@ -13,34 +13,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
 ```
 
-## Introduction
 
-Real-world evidence (RWE) studies in pharma often rely on familiar regression methods to analyze outcomes. However, to answer causal questions (e.g. "Does Treatment X *cause* better outcomes than no treatment?"), we need more than a p-value or an adjusted hazard ratio. The **causal inference roadmap** provides a structured approach to design analyses that yield **causally interpretable results**. A key first step in this roadmap is **estimand selection** – defining *what* effect we aim to estimate. In time-to-event studies (e.g. time to kidney injury), choosing the right estimand is crucial for meaningful interpretation.
 
-This tutorial is for MPH-level epidemiologists and other researchers transitioning from traditional regression to causal inference in RWE. We will:
 
-* Explain what an estimand is and why it matters in causal inference.
-* Highlight limitations of the Cox proportional hazards model and the hazard ratio (HR) as a causal effect measure in time-to-event analysis.
-* Introduce alternative estimands and estimation methods (like Targeted Maximum Likelihood Estimation (TMLE) and G-computation) that align better with causal questions.
-* Walk through a case study of an HCV drug and kidney injury to illustrate these concepts in practice.
-* Provide a summary table of different estimands and when to use them.
-* Include example R code snippets (kept simple) for those interested in running these analyses.
 
-By the end, you should understand how to integrate the causal inference roadmap into your RWE studies, especially how to define and estimate the right estimand for time-to-event outcomes.
-
-## The Causal Inference Roadmap and Estimand Selection
-
-Modern causal inference encourages researchers to think like they are designing a "target trial." This means explicitly stating the causal question, the population, the treatment strategies to compare, and the outcome – before looking at data. A central part of this planning is choosing an estimand, which is the specific quantity that answers your causal question. In simple terms, the estimand is *what you want to estimate* (e.g. a risk difference, a risk ratio, a survival probability at 1 year, etc.). It should align with the question stakeholders care about. For example, "By how much would 12-month kidney injury risk decrease if all patients took the new HCV drug versus if none did?" is a causal question whose estimand could be the 12-month risk difference in kidney injury between treatment strategies.
-
-Why focus on estimands? Defining the estimand upfront clarifies the study goal and guides the analysis. It ensures that everyone (analysts, clinicians, regulators) interprets the result the same way. Regulatory guidance (ICH E9 (R1) addendum) now emphasizes pre-specifying estimands in clinical research. In the causal roadmap framework, Step 1 is to define the causal question and causal estimand. This step is crucial because every analysis choice (study design, model, etc.) should follow from what you're trying to estimate. As a recent paper on the causal roadmap noted, "precise definition of the causal question and estimand... is crucial for specifying a study design and analysis plan to provide the best possible effect estimate". In other words, if we don't clearly define what effect we're after, we can't be sure our analysis will answer the right question.
-
-### Estimand vs. Estimator vs. Estimate
-
-* **Estimand**: The target causal quantity we want (e.g. risk difference in 1-year incidence between treated vs. untreated).
-* **Estimator**: The statistical method or formula we use to compute an estimate of the estimand from data (e.g. a regression model, TMLE algorithm, etc.).
-* **Estimate**: The result we get from the estimator applied to our data (e.g. an estimated 1-year risk difference of -3%, meaning 3% fewer injuries with treatment).
-
-By first nailing down the estimand, we ensure the estimator and resulting estimate are meaningful for the policy or clinical question.
 
 ## Time-to-Event Outcomes: Common Estimands and Pitfalls
 
