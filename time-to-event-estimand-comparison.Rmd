@@ -1,0 +1,266 @@
+---
+title: "Comparing Time-to-Event Estimands with Treatment Switching"
+output: html_document
+---
+
+## Introduction
+
+In an observational study comparing two drugs on time-to-event outcomes (e.g. time to acute kidney injury, AKI), patients may switch from one drug to the other during follow-up. Such treatment changes (a type of intercurrent event) complicate the definition of the "treatment effect" because the simple comparison of original groups no longer reflects patients staying on their initial therapy. Different analytic approaches correspond to different estimands – precise targets of estimation – in this context. We discuss three key estimands for time-to-event data with switching:
+
+1. **Intention-to-Treat (ITT) Analysis**: Classify and analyze patients by the drug they started on, ignoring any subsequent switching.
+2. **Censoring at Time of Switching**: Treat a switch as a censoring event – patients are censored (their follow-up is cut off) once they switch treatments, so only time on the initial drug is considered.
+3. **Inverse Probability of Censoring Weighting (IPCW)**: Use statistical weights to adjust for potentially informative censoring due to switching. This estimates the hypothetical causal effect as if patients had remained on their initial drug without switching.
+
+Each approach answers a slightly different question and has distinct statistical interpretations, assumptions, pros/cons, and implications for bias and causal inference. Below, we explain each estimand in detail.
+
+## 1. Intention-to-Treat (ITT) Estimand
+
+### Statistical Interpretation
+
+In an ITT analysis, patients are analyzed according to their initial treatment (the drug they started on), regardless of any switches afterward. This mirrors the usual ITT principle from randomized trials – it estimates the effect of treatment assignment or initiation as a strategy. Essentially, ITT compares groups as originally allocated (or chosen), reflecting the treatment policy effect: "start drug A versus start drug B," including all real-world behavior thereafter (switching, adherence, etc.). The outcome contrast (e.g. hazard ratio for AKI) from ITT reflects differences in time to AKI based on initial therapy choice, allowing patients to do whatever happened in practice after that. It does not attempt to disentangle the effects of switching – those are considered part of the natural course under each initial treatment.
+
+### Assumptions
+
+In a randomized trial, ITT is unbiased because randomization balances confounders at baseline. In an observational study, however, initial treatment choice may be confounded by patient characteristics. A valid ITT-type analysis in this context assumes we have adequately controlled or accounted for baseline differences between the groups (no unmeasured baseline confounding of the drug selection). If we adjust for all relevant baseline covariates (using regression, matching, etc.), we approximate a comparison as if treatment assignment were random.
+
+ITT also assumes the definition of the groups remains fixed despite switching – i.e. a patient's outcome is attributed to their start drug (consistency assumption). Unlike per-protocol approaches, ITT does not require assumptions about the switching process because it simply ignores switches (treats them as part of the outcome of the strategy). There is no need for "no informative censoring" here, since no censoring is done at switch; all patients are followed for outcome regardless of switching, so no selection occurs post-baseline.
+
+Thus, the primary assumptions for ITT estimand validity are baseline comparability (no unmeasured confounding) and that the measured outcome indeed reflects the effect of initial treatment policy.
+
+### Advantages
+
+ITT is straightforward and avoids bias from post-initiation selection. By including all patients as originally grouped, it preserves the comparability established at baseline (in trials, this preserves randomization; in observational studies, it preserves the matching/adjustment).
+
+It captures a pragmatic effect – the real-world effectiveness of choosing one drug versus the other, inclusive of switching patterns and non-adherence that occur in practice. This can be valuable for policy or clinical decision-making: ITT tells us, for example, "if we start patients on Drug A rather than Drug B, what is the difference in AKI risk over time, given that some may switch or stop treatment as observed?"
+
+It is often considered conservative; if switching dilutes differences between drugs, the ITT estimate of effect size will be closer to null (smaller) than the per-protocol effect. ITT analyses use all available outcome data (patients aren't dropped or censored due to switching), which maximizes sample size and generally provides more stable estimates. Moreover, ITT is conceptually simple and reproducible, requiring no complex modeling of post-baseline events.
+
+Because of these properties, ITT is the default approach in randomized trials and can be applied in observational studies as an "as-initially-treated" analysis.
+
+### Disadvantages
+
+The ITT estimand does not answer the question of staying on the initial drug. If the scientific question is "what is the effect of continuously taking Drug A vs continuously taking Drug B on AKI risk?", ITT is misaligned with that because it allows patients to switch.
+
+In situations with frequent or differential switching, ITT can "dilute" the true treatment effect. For example, if Drug A truly has a higher AKI risk but many high-risk patients on A quickly switch to Drug B, the ITT analysis might underestimate A's harm because those patients (who might have had AKI on A) are counted in the A group but didn't stay on A for long. Indeed, it's known that ITT analyses often fail to fully capture the causal effect of treatment in the presence of treatment switching.
+
+In one real trial (ALTA-1L), the ITT hazard ratio for an outcome was 0.81, whereas an analysis that accounted for no switching estimated a hazard ratio of 0.50 – the ITT analysis was much closer to 1 (no difference), indicating a diluted effect when switches were allowed. Thus, ITT can mask the full benefit or harm of a treatment if many patients cross over to the other therapy.
+
+Another limitation in observational ITT analyses is that baseline confounding must be addressed; unlike an RCT, simply grouping by initial treatment could be biased if, say, healthier patients tended to start Drug A. Failure to adjust for confounders will compromise the ITT comparison. Even with adjustment, unmeasured confounders can still bias the ITT estimate in an observational study (this caveat applies to all causal analyses on observational data).
+
+Finally, ITT's inclusion of all post-switch outcomes means it's an "intention-to-treat effect" rather than a "pure drug effect" – for instance, if many in the Drug A group eventually switched to Drug B, the ITT result is partly comparing a strategy that often ends up on B versus the group that started on B (a muddling of treatments). This can make interpretation tricky if switching is very common or occurs early.
+
+### Implications for Bias and Causal Inference
+
+When its assumptions are met, ITT provides an unbiased estimate of the effect of initial treatment strategy. In a randomized trial, this is the primary analysis because it preserves randomization and avoids biases from non-random dropout or crossover. In an observational study, an ITT-like approach (after baseline adjustment) can similarly estimate a causal effect of choosing one drug initially, so long as no residual confounding exists.
+
+Importantly, ITT does not introduce selection bias due to switching because it does not condition on any post-initiation event – everyone is followed regardless of what happens. Thus, problems like informative censoring or time-varying confounding due to switching do not affect the internal validity of the ITT estimand; all such post-baseline prognostic differences are essentially baked into the effect being estimated.
+
+However, because ITT mixes in the effects of patients changing treatments, it estimates a different causal effect than a per-protocol approach. We might call the ITT effect a "treatment policy estimand" (in ICH E9 terminology) – the effect of starting Drug A versus Drug B under usual clinical practice (where switching can occur). This is a perfectly valid causal estimand, but it may not be the one of interest if we want to know the efficacy of sustained treatment.
+
+In summary, ITT is robust against bias from post-baseline selection but may yield a biased answer to a different question if our goal is the hypothetical effect of no switching. It is appropriate when we are interested in a pragmatic, real-world effect of initial treatment choice. It becomes less appropriate if our aim is to infer the effect of continuous use of a drug (for that, per-protocol estimands are more suitable).
+
+### When to Use ITT
+
+Use an ITT approach when you want a pragmatic comparison of the two treatment strategies as implemented in practice. For example, health policy decisions or prescribing guidelines might favor ITT-like evidence since it reflects what happens when patients are started on a drug (including any switches or discontinuations).
+
+ITT is the right choice if treatment switching is considered part of the clinical pathway and you want to account for its impact in the outcome. In randomized trials, ITT is standard to avoid bias; in observational studies, an ITT-style analysis (with confounding control) is often a good starting point or primary analysis for effectiveness.
+
+It is also useful when switching is infrequent or the differences in outcomes are expected to persist despite some switching – under those conditions, ITT and per-protocol effects will be similar.
+
+On the other hand, if switching is very common and one wants the unconfounded effect of staying on therapy, ITT alone may not be sufficient (it would be used in conjunction with a per-protocol analysis for a full picture).
+
+In practice, one might report ITT as the main result (since it uses all data and is straightforward), and then explore how switching may have influenced results via additional methods like IPCW.
+
+In summary, ITT is appropriate for estimating the effect of initial treatment choice in a scenario where treatment changes occur, but it implicitly folds in the consequences of those changes into the effect estimate.
+
+## 2. Censoring at Time of Switching (Per-Protocol Analysis)
+
+### Statistical Interpretation
+
+Censoring at the time of switching is a form of per-protocol analysis. Here, each patient is followed only as long as they remain on their initial therapy; if they switch to the other drug, we censor their data at that switch point. Essentially, we pretend the patient is "lost to follow-up" once they deviate from the original treatment. This approach attempts to compare outcomes while on the originally assigned drug, thereby aiming to estimate the effect as if patients had adhered to their initial treatment throughout.
+
+In a time-to-AKI analysis, this means we compare the time until AKI for Drug A vs Drug B, counting only the period on the first drug for each patient. Any AKI events that occur after a switch are not attributed to the initial drug (since that person's follow-up was cut off at switch). Formally, this method is defining the estimand as the survival experience under no switching, but it obtains it by literally discarding (censoring) data once switching happens.
+
+For example, if a patient on Drug A switches to Drug B at 6 months without experiencing AKI by then, that patient's follow-up is censored at 6 months in the Drug A group; similarly, a patient originally on B who switches to A would be censored at switch in the B group. We then compare the censored time-to-event data between groups (often via Kaplan-Meier curves or Cox models). The idea is to approximate what would have happened if everyone stayed on their initial drug up to the time of event or end of study.
+
+### Assumptions
+
+The critical assumption for validity of this approach is non-informative censoring at the time of switching. "Non-informative" means that the reason a patient switches (and thus is censored) is unrelated to their underlying risk of the outcome (after accounting for known factors). In other words, those who switch at a given time should be, on average, similar in prognosis to those who continue therapy at that time.
+
+This is a very strong assumption and often unrealistic: in practice, treatment switching is often informative – patients may switch drugs because of symptoms, side effects, or lack of efficacy, all of which are related to outcome risk. For instance, if a patient on Drug A shows early signs of kidney dysfunction, the doctor might switch them to Drug B to prevent AKI; that patient was at high risk for AKI, and censoring them at the switch removes an impending event from the Drug A group. This violates non-informative censoring because the act of switching carries information about the patient's outcome risk.
+
+Formally, we have selection bias if switching is associated with patient characteristics or intermediate outcomes that also affect AKI risk. Unless we adjust for those characteristics, the comparison of "adherers" in each group will be biased.
+
+In a randomized trial, we start with balanced groups at baseline, but post-randomization switching can break that balance: one group may preferentially retain lower-risk patients (those who tolerate the drug) while high-risk patients leave. In an observational study, we have both baseline confounding and time-varying confounding to consider – simply censoring at switch does not by itself control either.
+
+Thus, the censoring-at-switch analysis assumes: (1) we have eliminated baseline confounding (e.g. via baseline covariate adjustment, similar to ITT assumption), and (2) conditional on baseline factors, the decision to switch is not driven by any unmeasured risk factors for the outcome (or equivalently, that we could treat censoring as independent of outcome given observed data).
+
+Without additional adjustment, assumption (2) is essentially saying switching is "as good as random" after controlling baseline – a very strong condition. In reality, meeting this would require that either almost no one switches (so it doesn't matter), or switching happens for idiosyncratic reasons unrelated to health status.
+
+If we have measured time-varying indicators (like lab tests, blood pressure, etc.) that predict switching, one could in theory stratify or adjust for those to make the censoring closer to non-informative. However, standard survival analysis with simple censoring typically does not account for time-varying confounders without specialized methods.
+
+Summary of assumptions: All confounders of treatment selection and switching are accounted for, and treatment switching is not driven by factors related to outcome risk (no informative censoring). If these hold, censoring at switching can recover the hypothetical estimand of no switching; if not, bias results.
+
+### Advantages
+
+The primary appeal of censoring at switching is that it focuses on the effect of staying on the initial treatment, which is often the causal effect of interest. By removing patients at the moment they deviate, we attempt to compare "clean" groups of adherers: Drug A group represents outcomes if kept on A, Drug B group if kept on B. This can reveal larger differences if one drug is truly better or worse, which ITT might have masked.
+
+In the earlier example, if Drug A is nephrotoxic, the ITT analysis might underestimate that harm due to patients switching off A; censoring at switch would more directly capture the high AKI incidence among those who would stay on A.
+
+Another practical advantage is simplicity: censoring at an event is a standard technique in survival analysis. One can implement this easily by treating the switch date as a censoring time in the dataset, without requiring advanced modeling.
+
+It uses each patient's data up until they switch, which is more efficient than outright excluding all switchers from the analysis (excluding wastes all data from those patients, whereas censoring uses them until switch). Indeed, censoring is generally preferred over excluding entire patients because it at least keeps the pre-switch follow-up.
+
+The approach can be useful as a sensitivity analysis alongside ITT: large differences between ITT and the censored analysis indicate that switching had a big impact on outcomes. If switching is rare or happens late, a censor-at-switch analysis will yield results similar to ITT (and in that scenario, bias from censoring is minimal because few are censored).
+
+In summary, the censoring approach is conceptually aligned with a per-protocol effect (estimating efficacy under full adherence) and is easy to execute with available survival analysis tools.
+
+### Disadvantages
+
+The major drawback is potential bias from informative censoring. If patients who switch are systematically different in risk, the results will be skewed. This method can essentially compare a non-random subset of patients on Drug A to a non-random subset on Drug B.
+
+For example, suppose high-risk patients on A tend to switch to B early (perhaps due to early signs of renal problems), whereas low-risk patients on A stay. Meanwhile, on Drug B maybe fewer switch or they switch for different reasons. The naive per-protocol analysis will then find that the remaining Drug A patients have relatively good outcomes (because the ones prone to AKI left early and got censored), making Drug A look safer than it truly is.
+
+In general, per-protocol analyses without proper adjustment are "prone to selection bias when intervention deviation (switching) is associated with time-varying confounders that also influence outcomes". This selection bias can lead to an overestimate or underestimate of the true effect.
+
+Another disadvantage is loss of information: by censoring at switch, we ignore what happened to patients after they switched. Those outcomes might still be relevant (especially if a patient switches and then immediately has AKI, ITT would count that toward the original group's failure, but the per-protocol censored analysis drops it entirely).
+
+Censoring reduces effective sample size and statistical power, since events that occur after switch are not counted and follow-up time is truncated. If a large fraction of patients switch, the analysis may end up with few events and wide confidence intervals.
+
+There is also complexity in interpretation: the resulting estimate ostensibly applies to a scenario of "no switching," but because it's biased if switching was informative, it's unclear exactly what population or condition it represents.
+
+In essence, naively censoring introduces uncertainty about validity – we might get a result, but we must question if it reflects causation or just selection.
+
+Lastly, per-protocol analyses in trials break the protection of randomization; in observational studies, they exacerbate confounding issues by conditioning on post-baseline factors. For these reasons, guidelines caution against simple per-protocol comparisons unless you can argue switching was negligible or random.
+
+### Implications for Bias and Causal Inference
+
+If (and only if) switching is non-informative (independent of outcome risk given baseline covariates), censoring at switching would yield an unbiased estimate of the causal effect under no switching. In that ideal case, it answers the question "how do outcomes compare if everyone remained on their initial drug until event or study end?" and could be interpreted causally.
+
+However, when switching is influenced by patient prognosis or intermediate outcomes (the usual case), this approach fails to produce a valid causal effect. The estimate can be seen as a biased per-protocol effect, because the comparability of groups is "broken" once we condition on staying vs switching.
+
+Essentially, the act of switching is a collider of prior factors and outcomes – conditioning on it (via censoring) opens a backdoor path for confounding. Without special methods, the censored analysis does not account for time-varying confounders that both affect switching and outcome, thus introducing selection bias.
+
+In causal inference terms, this method is only valid under a strong assumption of "no unmeasured confounders for adherence" and no feedback between treatment and risk; if that assumption fails, the estimand from this analysis is not equal to the true causal effect we want.
+
+Practically, epidemiologists consider the simple censoring approach as potentially misleading – it might show a treatment effect, but part of that difference could be due to who remained on therapy rather than the therapy itself. For example, per-protocol analysis often overestimates treatment efficacy in trials because patients who adhere tend to be healthier or more motivated. In the AKI example, it might underestimate harm if those at risk left early.
+
+Therefore, from a causal inference standpoint, a naive per-protocol analysis is usually viewed as biased, and techniques like IPCW or other G-methods are recommended to properly estimate the causal effect of continuous treatment.
+
+In summary: censoring at switching targets the hypothetical estimand of no switching, but it will only reflect the true causal effect under stringent conditions that rarely strictly hold without further adjustment. Analysts should interpret results with caution, considering the direction and magnitude of possible selection bias.
+
+### When to Use Censoring-at-Switch
+
+This approach may be used as a secondary or sensitivity analysis, especially in randomized trials or well-controlled studies, to explore what the effect might be under full adherence. It is appropriate when the goal is to approximate a per-protocol effect and one is aware of the bias risk.
+
+Situations where this might be reasonable include:
+(a) Minimal switching – if <5% of patients switch, censoring them likely won't distort the comparison much, and the primary impact is just a slight loss of power.
+(b) External reasons for switching – e.g. if a drug was withdrawn from market for reasons unrelated to patient health, those switches might be fairly random with respect to AKI risk, making censoring less problematic.
+(c) No ability to model switching – if the dataset lacks detailed information on why/when patients switch (precluding advanced methods), one might present a per-protocol analysis with caveats, rather than no analysis of adherence at all.
+(d) Trial protocols – in some trials, a per-protocol analysis (often implemented by censoring or excluding switchers) is requested by regulators or investigators to see efficacy among completers; again, it must be interpreted alongside ITT.
+
+In observational research, one would very rarely rely on a censored-at-switch result as the definitive finding due to confounding concerns, but it can be illustrative.
+
+Importantly, whenever censoring at switching is used, one should check for and discuss the potential bias. Modern analytic frameworks (like the ICH E9 estimand framework) actually discourage naive per-protocol without accounting for informative censoring.
+
+Thus, while this method is conceptually aligned with a "no-switch" estimand, a better approach to achieve that estimand is to use IPCW or related methods. Use simple censoring only if you have good reason to believe it approximates random censoring or if you are using it as a baseline for more advanced corrections.
+
+## 3. Inverse Probability of Censoring Weighting (IPCW) Estimand
+
+### Statistical Interpretation
+
+IPCW is a causal inference method to correctly estimate the effect of a treatment strategy in a hypothetical scenario where switching does not occur. Like the censoring approach, IPCW will censor patients at the moment they switch drugs (treating those times as end of follow-up for the original treatment). However, IPCW doesn't simply drop those patients; instead, it assigns weights to the remaining uncensored patients to compensate for those who were censored.
+
+Intuitively, IPCW creates a "pseudo-population" in which no one switches by up-weighting individuals who stay on their initial treatment to represent those who left. The weight at any given time for a patient who is still on their original drug is the inverse of the probability that they would have remained uncensored (not switched) up to that time, given their covariates.
+
+Thus, if a certain type of patient (with specific characteristics) is likely to switch early, then patients of that type who miraculously haven't switched are given a high weight to stand in for the others. By doing so, IPCW adjusts for the selection bias from informative censoring, restoring the comparability between groups as if neither had switching.
+
+In practical terms, one fits a model for the time-to-switch (or probability of staying on initial treatment) as a function of relevant covariates (which can be time-updated), then uses the inverse of that predicted probability to weight each person's contribution to the survival analysis. The weighted analysis (e.g. weighted Kaplan-Meier or weighted Cox model) then estimates the hazard or survival for each group under the hypothetical intervention of full adherence.
+
+As one source explains, "IPCW works by censoring at [the time of deviation] and giving weights to uncensored participants to recover the broken balance of prognostic characteristics. The weight is the inverse of the probability of remaining uncensored given the values of baseline and time-varying confounders."
+
+This yields an estimate of what the time-to-AKI distribution would have been if patients had never switched drugs, by accounting for the fact that certain patients were more likely to switch.
+
+In summary, IPCW targets the same estimand as the per-protocol approach (effect of Drug A vs Drug B if everyone stayed on their initial drug), but does so in a way that controls for the factors that led to switching. It is one of the "G-methods" in causal analysis for time-varying treatments, specifically estimating a hypothetical estimand where the intercurrent event (switching) is eliminated.
+
+### Assumptions
+
+IPCW, like any causal method, has its own assumptions for validity. The key assumptions are:
+
+1. **No unmeasured confounders (for censoring)** – All variables that influence both the likelihood of switching and the risk of AKI must be measured and included in the weighting model. If there are unrecorded reasons for switching that also affect outcomes (e.g. subtle clinical signs of renal trouble that weren't captured), then even IPCW will be biased because the model cannot adjust for those. This assumption is essentially the same as saying treatment switching is conditionally random given the covariates we accounted for.
+
+2. **Positivity**: Every patient, at every time point, has some positive probability of not switching (and of switching) given their covariate history. If there is a subgroup of patients who always switch immediately (or conversely never switch) no matter what, then we cannot construct a valid weight (the inverse probability would blow up to infinity or be undefined). Positivity means we have enough overlap – for every combination of predictors, there are examples of patients who continued on their drug, so we can use them to represent others.
+
+3. **Correct model specification**: The model used to estimate the switching probability (or hazard of switching) must be correctly specified (or at least not severely mis-modeled). IPCW requires modeling the relationship between covariates and switching; if this model is wrong (omits non-linear terms, interactions, etc.), the weights may be incorrect and introduce bias. Usually one uses diagnostics to check stabilized weights, etc., but the assumption is that we can adequately model the censoring process.
+
+4. **Independent censoring aside from modeled factors**: We assume that any censoring (including administrative end of study or loss-to-follow-up) or other competing risks are either handled or not informative in a way not accounted by weights. Often IPCW is combined with assumptions of no other biases like informative loss-to-follow-up beyond measured covariates.
+
+5. **Consistency**: If we say we're estimating "no switching" outcomes, we assume that a patient who did not switch has the same outcome risk as they would under a hypothetical world where they were not allowed to switch (this is a standard consistency assumption – the observed outcomes correspond to the defined treatment strategies).
+
+In essence, if our weights perfectly balance the groups with respect to confounders, we assume that the remaining differences in outcomes are due to the treatment effect.
+
+All these assumptions are strong but are analogous to assumptions made in other causal inference methods. Particularly, no unmeasured confounding for the switching process is crucial – IPCW "inherits" this requirement because we treat the switching as a quasi-random (after conditioning) event. Violation of this (say doctors switch high-risk patients based on clinical judgment that isn't fully captured in the data) will lead to biased results.
+
+It's worth noting that these assumptions are often unverifiable from the data; one must rely on subject-matter knowledge to argue they are reasonable.
+
+### Advantages
+
+When its assumptions hold, IPCW provides an unbiased estimate of the causal effect of staying on initial treatment (vs switching), effectively correcting the bias that the simple censoring approach would have introduced.
+
+The big advantage is that we do not have to throw away information or assume switching is random; instead, we explicitly model the switching behavior. By up-weighting patients who remain on therapy, we account for the fact that those who remain may be a select subset, thus realigning them to represent the original population.
+
+This method allows us to answer the clinically relevant hypothetical question: "What would the risk of AKI be if patients had never switched from their initial drug?" with a sound statistical footing.
+
+Another advantage is that IPCW uses all available data up until a patient switches. Like the censoring approach, a patient's follow-up contributes information until the switch, but unlike a naive approach, their premature departure is compensated for by weights rather than ignored. This tends to produce less biased and more efficient estimates than excluding switchers entirely.
+
+IPCW can handle time-varying confounders that are affected by past treatment – something standard regression cannot do properly. For example, if blood creatinine is rising (a time-varying covariate) due to being on Drug A, and that prompts switching and also predicts AKI, IPCW can include current creatinine in the model for switching and thus adjust for that "treatment-confounder feedback".
+
+Traditional Cox models with time-dependent covariates would fail to give a causal estimate in that scenario, but IPCW (or other G-methods) can address it by appropriate weighting or modeling.
+
+Another advantage is generalizability of the estimand: the IPCW result corresponds to a clearly defined hypothetical intervention (no switching), which stakeholders (clinicians, decision-makers) often want to know about. In the ALTA-1L trial example, decision-makers were interested in overall survival if patients stayed on the originally assigned drug; IPCW enabled estimating that (and found a much larger effect than ITT).
+
+So IPCW aligns analysis with the question of drug efficacy/pure effect. Technically, IPCW is relatively straightforward to implement with modern statistical software (though conceptually advanced): one fits a logistic or survival model for censoring and then applies weights in a Cox model – many epidemiologic analyses have used this, so it's a well-established method.
+
+Compared to more complex methods like g-formulas or structural models, IPCW is often easier to apply and understand (it's analogous to weighting for inverse probability of treatment, which many are familiar with).
+
+Finally, when done correctly, IPCW ameliorates selection bias and thus tends to produce estimates closer to the truth than per-protocol without weighting. In summary, the advantage of IPCW is that it lets us retain a causal interpretation for a per-protocol estimand without sacrificing rigor: we get the answer to "what if no one switched?" in an unbiased way (assuming confounders accounted).
+
+### Disadvantages
+
+The IPCW approach comes with greater complexity and some statistical challenges. First, it requires modeling the switching process, which demands careful consideration and sufficient data. If the model is misspecified or important predictors are omitted, the weights may not fully remove bias.
+
+There is also a risk of extreme weights: if some patients have a very low probability of staying on treatment (i.e. nearly everyone like them would switch), the inverse probability will be very large for any who didn't switch. Such extreme weights can lead to instability – high variance in estimates and wide confidence intervals, or even convergence issues. Analysts often stabilize weights or truncate extremely large weights to mitigate this, but that introduces some bias-variance tradeoff.
+
+Another issue is that IPCW relies on strong assumptions (no unmeasured confounding) that, as noted, are not testable. If this assumption is violated, IPCW can give a false sense of security – the result is precise but still biased. In contrast, a wildly different per-protocol result versus ITT at least alerts you that something's up; a flawed IPCW might yield a number that seems plausible but hides residual confounding.
+
+Implementation-wise, one must decide on the correct set of covariates (including time-varying ones) to include in the weight model. Including too many irrelevant covariates can increase variance (through unstable weights), while missing key ones causes bias. Thus, IPCW requires expertise to choose and model predictors of switching appropriately.
+
+Another disadvantage is efficiency: although IPCW uses available data efficiently, heavily weighted analyses can effectively reduce the "effective sample size." If many patients switch early, the analysis is essentially carried by fewer weighted observations, which can result in less precise estimates than ITT.
+
+Standard error estimation must account for the weighting (robust or sandwich variance estimators, or bootstrapping, are often used), which is another layer of complexity.
+
+From a communication standpoint, IPCW results might be harder to explain to clinicians or policymakers unfamiliar with the method. For instance, it may be puzzling that the "hypothetical no-switch" effect is different from the observed reality (ITT); one has to explain the concept of weighting and causal estimands.
+
+Finally, IPCW generally addresses bias from measured confounders; it cannot fix bias due to fundamentally different patient populations if switching is extremely common in one group – in such cases, one might have little information about what would happen if those patients stayed (lack of positivity).
+
+In short, the disadvantages of IPCW are the heavy reliance on model quality and data richness, the potential for high variance due to weighting, and the complexity in execution and interpretation.
+
+### Implications for Bias and Causal Inference
+
+Under the core assumptions, IPCW will produce an estimate of the causal effect of the two drugs under a policy of no switching that is as unbiased as one could get from the given data. It addresses the selection bias that afflicts the simple censored analysis by effectively re-balancing the treatment groups at each time point with respect to prognostic factors.
+
+This means we can interpret the weighted hazard ratio or survival difference as the per-protocol effect: "Drug A vs Drug B if patients had remained on their initial treatment throughout." This is powerful for causal inference because it answers the question of comparative efficacy (as opposed to ITT's comparative effectiveness).
+
+For example, if IPCW finds Drug A has a significantly higher hazard of AKI than Drug B in the no-switch scenario, we infer that intrinsically A is more nephrotoxic; any attenuation in ITT was due to switching patterns.
+
+IPCW estimates are consistent with the idea of emulating a target trial where switching is not allowed – it's as if we ran a trial instructing patients to stay on their assigned drug, and measured AKI outcomes.
+
+Of course, the causal validity hinges on no unmeasured confounding: if an important predictor of switching and outcome was left out, then the IPCW result is still biased (though we often expect it's less biased than unweighted per-protocol).
+
+One should always perform diagnostics on the weights; if weights are extreme or if weighted covariate balance is not achieved, it calls into question the reliability of the causal inference.
+
+When done properly, IPCW is regarded as a reliable method in causal inference to handle time-varying treatment and censoring. It's one of the simpler g-methods (others include g-formula and marginal structural models) that can recover the causal estimand of interest.
+
+In the context of AKI, IPCW would allow us to say: "Based on observational data,
+
+

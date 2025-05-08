@@ -1,0 +1,257 @@
+---
+title: "Dynamic & Stochastic Adherence‑Forgiveness with **lmtp**"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+> **Goal.** Walk through a *complete* causal‐inference pipeline for the question:
+>
+> > *Is Antiretroviral Regimen&nbsp;1 virologically superior to Regimens 2–n when we account for dynamic adherence patterns?  At what adherence threshold is it still “forgiving” ?*
+>
+> We (i) simulate realistic longitudinal data, (ii) define static, dynamic **and** stochastic adherence interventions, and (iii) estimate 1‑year risk & risk‑differences with {lmtp} (v≥1.1).
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = TRUE)
+
+# BONUS: progressr progress bars!
+progressr::handlers(global = TRUE)
+```
+
+## 1 Road‑map for a Longitudinal Causal Question
+
+| Road‑map Step | Our specification |
+|--------------:|-------------------|
+| **1a Question** | *Adherence forgiveness*: “Had everyone initiated Regimen 1 (vs. observed comparators) **and** we dynamically boosted each 90‑day block’s adherence (`PDCᵗ`) to ≥ ϑ, what is the 12‑mo risk of virologic failure?” |
+| **Population** | Adults starting *any* first‑line ART in an integrated EHR/claims DB |
+| **Treatment nodes `Aₜ`** | Indicator that current regimen is **Regimen 1** (1) or another comparator (0) at start of each 90‑day block (`t = 0,…,K−1`) |
+| **Time‑varying `Lₜ`** | Last‑block % days‑covered (`PDCᵗ₋¹`), log viral‑load, creatinine, comorbidity flare score |
+| **Outcome `Y`** | Viral‑suppression failure at 12 months (VL > 200 copies/ml) |
+| **Censoring `Cₜ`** | Loss to FU, death, regimen discontinuation |
+| **Estimand** | $\,\psi(\vartheta)=\Pr\bigl\{Y^{d_{\vartheta}}=1\bigr\}$ under the MTP that raises `PDCᵗ` to ≥ ϑ whenever below |
+| **Identification** | Sequential exchangeability, positivity, consistency |
+| **Estimation** | `lmtp_sdr()` (sequentially doubly‑robust) with **sl3** Super Learner |
+| **Sensitivity** | Vary ϑ ∈ {0.5, 0.7, 0.9}; IPCW for LTFU; alternative VL thresholds |
+
+
+## 2 Simulating a Realistic ART Cohort
+
+We create 5 blocks (`K = 5`, i.e. 15 months) so the last viral‑load occurs ≈ 12 mo.
+
+```{r simulate}
+library(tidyverse)
+library(data.table)
+
+sim_dat <- function(N = 4000, K = 5, censor_prob = .15, seed = 123) {
+  
+  set.seed(seed)
+  
+  ## -------- baseline ---------------------------------------------------
+  id  <- 1:N
+  age <- rnorm(N, 45, 10)
+  sex <- rbinom(N, 1, 0.4)
+  cd4 <- pmax(50, rnorm(N, 500, 150))
+  
+  DT  <- CJ(id, t = 0:(K - 1))
+  DT  <- merge(DT, data.table(id, age, sex, cd4), by = "id")
+  
+  ## -------- block 0 ----------------------------------------------------
+  DT[t == 0, `:=`(
+    A    = rbinom(.N, 1, plogis(0.5 - 0.01 * age + 0.5 * sex)),
+    PDC  = runif(.N, .5, 1)
+  )]
+  
+  ## -------- iterate blocks 1 … K-1 ------------------------------------
+  for (tt in 1:(K - 1)) {
+    
+    ## lag from previous block
+    lag <- DT[t == tt - 1,
+              .(id,
+                A_prev   = A,
+                PDC_prev = PDC)]
+    
+    DT <- merge(DT, lag, by = "id", all.x = TRUE)
+    
+    ## treatment switching uses lagged vars
+    DT[t == tt,
+       A := rbinom(.N, 1,
+                   plogis(1.5 * A_prev -
+                            3 * (PDC_prev < .6) -
+                            0.01 * age))]
+    
+    ## new current adherence
+    DT[t == tt,
+       PDC := pmin(1,
+                   pmax(0,
+                        rnorm(.N,
+                              0.85 * A + 0.6 * (1 - A), .2)))]
+    
+    ## drop the temporary lags
+    DT[, c("A_prev", "PDC_prev") := NULL]
+  }
+  
+  ## -------- viral load & outcome --------------------------------------
+  DT[, VL := rnorm(.N, 4 - 1.2 * A - 2 * PDC, 0.6)]
+  
+  Y <- DT[t == K - 1,
+          .(id,
+            Y = rbinom(.N, 1,
+                       plogis(-3 - 0.4 * A - 2 * PDC + 0.3 * (VL > 4))))]
+  
+  ## -------- censoring --------------------------------------------------
+  drop <- data.table(id,
+                     t_cens = rbinom(N, 1, censor_prob) *
+                       sample(1:K, N, TRUE))
+  
+  DT <- merge(DT, drop, by = "id")
+  DT[, C := as.integer(t >= t_cens & t_cens > 0)]
+  DT[, t_cens := NULL]
+  
+  ## -------- merge outcome, order, return ------------------------------
+  long <- merge(DT, Y, by = "id")
+  setorder(long, id, t)
+  
+  long <- as.data.frame(long)
+  return(long[])
+}
+
+## test
+long_dat <- sim_dat() %>% as.data.frame()
+
+```
+
+
+## 3 Define Shift Functions (Static, Dynamic, Stochastic)
+
+```{r shifts}
+library(lmtp)
+# 3.1 Dynamic “boost-to-threshold” (MTP)
+make_dyn <- function(thr=.8){
+  function(data, trt){
+    pdc <- data[[gsub("^A","PDC_prev", trt)]]
+    at  <- data[[trt]]
+    ifelse(pdc < thr, 1, at)   # force Regimen 1 when adherence low
+  }
+}
+
+# 3.2 Stochastic shift: when pdc<thr, switch to Regimen 1 with prob p
+make_stoch <- function(thr=.8, p=.7){
+  function(data, trt){
+    pdc <- data[[gsub("^A","PDC_prev", trt)]]
+    at  <- data[[trt]]
+    need<- (pdc < thr)
+    flip<- rbinom(length(at),1,p)
+    ifelse(need & flip==1, 1, at)
+  }
+}
+```
+
+
+## 4 Super Learner Library via **sl3**
+
+```{r sl3}
+library(SuperLearner)
+sl_lib <- c("SL.glm")
+```
+
+
+## 5 Fit SDR‑TMLE under Natural Course & Interventions
+
+```{r fit}
+
+
+# Map time‑varying covariates into list-of-lists for lmtp
+Lnodes <- list( c("PDC"))
+
+# Natural course (reference)
+fit_nat <- lmtp_sdr(
+  data          = long_dat,
+  id            = "id", 
+  trt           = "A",                 # single treatment col in long data
+  outcome       = "Y",                 # third argument
+  baseline      = c("age", "sex", "cd4"),
+  time_vary     = Lnodes,              # list of time-varying covars
+  cens     = "C",                 # name of censoring column
+  outcome_type  = "binomial",
+  folds         = 5,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib
+)
+
+# Dynamic thr=0.8
+fit_dyn <- lmtp_sdr(
+  data          = long_dat,
+  id            = "id",
+  trt           = "A",          # <-- one column
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,       # list of "PDC" or "PDC_prev"
+  cens     = "C",          # <-- one column
+  shift         = make_dyn(.8),
+  outcome_type  = "binomial",
+  folds         = 5,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib
+)
+
+# Stochastic (thr=0.8, p=0.7)
+fit_sto <- lmtp_sdr(long_dat, "Y", trt_nodes,
+                    baseline = c("age","sex","cd4"),
+                    time_vary = Lnodes,
+                    censoring = cen_nodes,
+                    shift = make_stoch(.8,.7),
+                    outcome_type = "binomial",
+                    folds = 5,
+                    learners_trt = sl_lib,
+                    learners_outcome = sl_lib)
+```
+
+
+## 6 Results
+
+```{r results}
+print(summary(fit_nat))
+print(summary(fit_dyn))
+print(lmtp_contrast(fit_dyn, fit_nat, type = "diff"))
+print(summary(fit_sto))
+```
+
+*Interpretation*   `lmtp_contrast()` shows the **risk difference** if we had ensured ≥80 % adherence each block.  A negative RD ⇒ fewer failures (better suppression) under the dynamic boost.
+
+
+## 7 Sensitivity: Varying the Threshold
+
+```{r sens}
+ths <- c(.5,.7,.9)
+cts <- lapply(ths, function(th){
+  f <- lmtp_sdr(long_dat,"Y",trt_nodes,
+                baseline=c("age","sex","cd4"), time_vary=Lnodes,
+                censoring=cen_nodes, shift=make_dyn(th),
+                outcome_type="binomial", folds=5,
+                learners_trt=sl_lib, learners_outcome=sl_lib)
+  data.frame(th=th, psi = f$estimates$theta, se=f$estimates$std.error)
+})
+knitr::kable(do.call(rbind, cts), digits=3)
+```
+
+
+## 8 Discussion
+
+* **Dynamic vs. stochastic**: Dynamic MTPs enforce a deterministic rule; stochastic shifts can mimic partial program uptake.
+* **Why SDR/TMLE?** Doubly‑robust + efficient in large models; compatible for ≥90‑day blocks; easy Super Learner integration.
+* **Limitations**: Requires positivity (`PDC` boosted for *some* low‑adherence patients in observed data). Outcome measured at a fixed time; extensions exist for restricted mean‑time‑to‑suppression.
+
+
+## 9 References
+
+1. Díaz, I., & van der Laan, M. (2021). *Non‑parametric causal effects based on longitudinal modified treatment policies.* JASA.
+2. Young, J. G., et al. (2020). *A causal roadmap for generating high‑quality real‑world evidence.* JCTS.
+3. Rudolph, K., et al. (2022). *lmtp: An R package for longitudinal modified treatment policies.*
+
+
+```{r session, echo=FALSE}
+sessionInfo()

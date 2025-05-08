@@ -6,7 +6,7 @@ output: html_document
 Objective: document exactly what we will observe (simulated or real) and how those measurements map to the causal model specified in Step 1b.
 
 
-\## 2   Observed‑data structure and statistical model
+## Observed‑data structure and statistical model
 Each patient contributes the following variables:
 
 | Symbol         | Meaning (HCV→AKI example)                                                                         |

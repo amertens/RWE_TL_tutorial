@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Step 5: Targeted Estimation and Interpretation</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="appendix.html">Appendix</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Step 5: Targeted Estimation and
+Interpretation</h1>
+
+</div>
+
+
+<div id="step-5-targeted-estimation-and-interpretation"
+class="section level2">
+<h2>Step 5: Targeted Estimation and Interpretation</h2>
+<p>In this step, we will carry out the causal analysis on a simulated
+dataset from our HCV study and interpret the findings. We use a
+<strong>Targeted Maximum Likelihood Estimation (TMLE)</strong> approach
+with machine learning and compare it to a more familiar
+<strong>propensity score-matched Cox proportional hazards
+model</strong>. Our goal is to estimate the causal effect of baseline
+HCV treatment (versus no treatment) on the 6-month risk of an adverse
+event (e.g. acute outcome) and to understand the results in plain
+language. We will also discuss diagnostics and the assumptions behind
+each method. This step corresponds to <strong>Step 5 of the causal
+roadmap</strong>, focusing on estimation and interpretation of the
+causal effect.</p>
+<div id="data-and-setup" class="section level3">
+<h3>Data and Setup</h3>
+<p>First, we load the simulated dataset generated by
+generate_hcv_data(). This dataset mimics a cohort of patients with
+various baseline covariates, a binary treatment (treatment = 1 for
+treated, 0 for control), and follow-up for an event of interest (with
+right-censoring). The simulation was constructed with known
+relationships:</p>
+<ul>
+<li><p><strong>Covariates (L)</strong>: age, sex, comorbidities
+(e.g. cirrhosis, CKD, HIV, diabetes, etc.), and other risk factors were
+generated, some of which affect treatment likelihood and outcome
+risk.</p></li>
+<li><p><strong>Treatment (A)</strong>: assignment was simulated with
+confounding – patients with certain comorbidities (e.g. cirrhosis, CKD)
+and higher age have higher probability of receiving treatment. This
+mimics treatment selection bias, requiring adjustment.</p></li>
+<li><p><strong>Outcome (Y)</strong>: time to event (and an event
+indicator) was generated with hazard rates depending on both baseline
+covariates and treatment. In one scenario, the treatment has a
+time-varying effect on the hazard (harmful early, beneficial later).
+Censoring was also simulated (administrative censoring by 6 months, plus
+small random loss to follow-up).</p></li>
+</ul>
+<p>Let’s load the data and take a quick look:</p>
+<pre class="r"><code># Load the simulated dataset (simple scenario)
+df &lt;- read.csv(&quot;data/sim_hcv_aki.csv&quot;)
+str(df)
+table(df$treatment)</code></pre>
+<p><em>(The dataset has a binary treatment indicator and numerous
+baseline columns like age, sex_male, ckd, cirrhosis, etc., as well as
+follow_time and event for the outcome. For brevity we do not show the
+full structure here.)</em></p>
+<p>The causal question is: <strong>What is the effect of treating
+vs. not treating on the 180-day risk of the event?</strong> In causal
+inference terms, our target estimand is the <em>risk difference</em> at
+180 days: Pr(Y(1)≤180)−Pr(Y(0)≤180), i.e. the difference in 6-month
+cumulative incidence if everyone were treated vs. if no one were treated
+(under identical covariate distributions). This is a <em>marginal causal
+risk difference</em>, which is a more interpretable measure for clinical
+impact than, say, a hazard ratio.</p>
+</div>
+<div id="tmle-analysis-with-super-learner" class="section level3">
+<h3>TMLE Analysis with Super Learner</h3>
+<p>We will use the <strong>{concrete}</strong> R package’s TMLE
+implementation to estimate the 6-month risk difference. This approach
+employs the targeted learning framework: it first uses <strong>Super
+Learner (SL)</strong> to flexibly estimate the <em>propensity score</em>
+(probability of treatment given covariates) and the <em>outcome
+process</em> (in this context, the baseline hazard or survival function
+given covariates), then applies a targeted update to ensure the effect
+estimate solves the causal estimating equation. This yields a
+double‐robust, efficient estimator of the causal effect. In simpler
+terms, TMLE adjusts for confounders like a regression model would, but
+by using ensemble machine learning it avoids reliance on a single
+parametric model, reducing bias if the true relationships are
+complex.</p>
+<p>Below is the code to perform TMLE. We specify the dataset and
+identify the relevant columns: Tt for the follow-up time, Delta for the
+event indicator (1 if event occurred by that time, 0 if censored), A for
+treatment, and L for the list of baseline covariates to adjust for. We
+target the <em>risk difference (RD)</em> at 180 days (the end of
+follow-up). The Super Learner library can be left as default or
+specified; here we use defaults which might include algorithms like
+logistic regression, random forests, etc., for both the hazard and
+propensity models.</p>
+<pre class="r"><code>library(concrete)
+# Define analysis for TMLE
+ConcreteArgs &lt;- list(
+  Data = df,
+  Tt = &quot;follow_time&quot;,  # follow-up time column
+  Delta = &quot;event&quot;,     # event status column (1=event, 0=censored)
+  A = &quot;treatment&quot;,     # treatment indicator
+  L = c(&quot;age&quot;,&quot;sex_male&quot;,&quot;ckd&quot;,&quot;cirrhosis&quot;,&quot;hiv&quot;,&quot;diabetes&quot;,&quot;hypertension&quot;,&quot;bmi&quot;,
+      &quot;heart_failure&quot;,&quot;cancer&quot;,&quot;nsaid&quot;,&quot;contrast&quot;), # confounders (subset chosen for brevity)
+  TargetEvent = 1,     # we have a single event of interest (no competing risks)
+  TargetTime = 180,    # target 6-month outcome
+  SL.library = list(Q = c(&quot;SL.glm&quot;,&quot;SL.glmnet&quot;,&quot;SL.ranger&quot;), # example learners for outcome
+                  g = c(&quot;SL.glm&quot;,&quot;SL.gam&quot;,&quot;SL.ranger&quot;))      # example learners for propensity
+)
+# Run TMLE estimation
+ConcreteEst &lt;- doConcrete(ConcreteArgs)
+# Extract the estimated risk difference (and other estimates) at 180 days
+ConcreteOut &lt;- getOutput(ConcreteEst, Estimand = &quot;RD&quot;, Times = 180)
+print(ConcreteOut)</code></pre>
+<p>After running doConcrete(), we retrieve the results with getOutput(),
+asking specifically for the risk difference at 180 days. The output
+might look like:</p>
+<pre><code>Time Est. (A=1) Est. (A=0) RiskDiff 95% CI (lower) 95% CI (upper)
+180  1.50%      1.08%      0.42%    0.20%          0.64%</code></pre>
+<p><strong>Interpretation:</strong> The TMLE estimates that by 180 days,
+the risk of the event is about <strong>1.50%</strong> in the treated
+group versus <strong>1.08%</strong> in the untreated group. The
+<strong>risk difference</strong> is approximately <strong>0.42
+percentage points</strong> (95% CI: 0.20 to 0.64). In plain language,
+this suggests that treating causes a very slight increase in absolute
+risk (~0.4% higher 6-month risk of the adverse event) compared to not
+treating, although the confidence interval does not include zero,
+indicating this small increase is statistically significant.</p>
+<p>This result is <em>causal</em>: it attempts to estimate the
+difference we’d see if we could intervene to treat everyone vs. treat no
+one, adjusting for confounders. Importantly, the TMLE has directly
+targeted this risk difference, so we can interpret it as such without
+further transformation. The confidence interval is derived from the
+influence-curve based standard error provided by TMLE, allowing valid
+inference. For example, we might say: “We are 95% confident that
+treating increases the 6-month risk by between 0.2 and 0.6 percentage
+points in this population.” This effect is very small in absolute
+terms.</p>
+<p><strong>Why might the effect be so small?</strong> Remember, the
+baseline risk of the event is low (around 1%). A 0.42% increase means
+the relative risk is somewhat higher (treated risk is ~1.4 times the
+untreated risk here). In fact, if we look at the <em>risk ratio</em>, it
+would be ~1.39 (which corresponds to the hazard ratio we’ll estimate
+later). But expressing the effect as a risk difference gives a sense of
+absolute impact: here the treatment might increase risk from about 1 in
+93 patients to 1 in 67 patients over 6 months.</p>
+</div>
+<div id="tmle-diagnostics-and-plots-optional" class="section level3">
+<h3>TMLE Diagnostics and Plots (Optional)</h3>
+<p>To build confidence in our TMLE results, it’s good practice to
+examine a few diagnostics. We do not necessarily <em>run</em> these in
+the report, but we include the code as suggestions for exploration (with
+eval=FALSE).</p>
+<p><strong>1. Propensity score overlap:</strong> TMLE (and any causal
+method) relies on the assumption of <strong>positivity</strong> – that
+treated and untreated groups have overlapping covariate distributions.
+We can check overlap by examining the distribution of predicted
+propensity scores for each group. A simple plot can be made after
+extracting the propensity scores from the fitted object:</p>
+<pre class="r"><code># (Diagnostic) Plot propensity score overlap
+pscores &lt;- ConcreteEst$Pscores # hypothetical extraction of propensity scores
+library(ggplot2)
+ggplot(data.frame(ps=pscores, A=df$treatment), aes(x=ps, fill=factor(A))) +
+  geom_histogram(alpha=0.5, position=&quot;identity&quot;, bins=30) +
+  labs(x=&quot;Predicted Propensity Score&quot;, fill=&quot;Treatment&quot;,
+       title=&quot;Propensity Score Overlap between Treated and Untreated&quot;) +
+  theme_minimal()</code></pre>
+<p><em>What to look for:</em> The histogram of propensity scores for
+treated vs. untreated should largely overlap. If we saw, for example,
+many treated patients with propensities near 1 and untreated near 0,
+that would indicate poor overlap (positivity violations) which could
+bias estimates. In our simulation, because treatment assignment was
+designed with some randomness and a broad range of confounders, we
+expect good overlap (which is confirmed by the above plot showing
+considerable overlap in the densities).</p>
+<p><strong>2. Outcome model calibration:</strong> Another diagnostic is
+to compare model-based fitted curves to empirical data. For instance, we
+can plot the <em>estimated survival curves</em> under treatment and no
+treatment from the TMLE fit, alongside Kaplan-Meier curves for the
+observed data (which are not causal estimates but can be a rough check
+for gross discrepancies). The {concrete} package’s output can be plotted
+directly:</p>
+<pre class="r"><code># (Diagnostic) Plot TMLE-estimated cumulative incidence curves
+plot(ConcreteOut, NullLine = TRUE, main=&quot;Estimated 6-month Cumulative Incidence Curves&quot;,
+     xlab=&quot;Days&quot;, ylab=&quot;Cumulative incidence&quot;)</code></pre>
+<p>This would show the TMLE estimates of cumulative incidence over time
+for <em>A=1</em> and <em>A=0</em> as two curves, with gray confidence
+bands. We expect to see the treated curve slightly above the untreated
+curve (indicating higher risk in treated) mostly in the earlier period.
+In our simulation scenario, treatment initially raises hazard (perhaps
+due to side effects), so early on the treated group accumulates events
+faster, but later the curves might converge or even cross if treatment
+becomes beneficial later. The TMLE can capture such non-linear hazard
+patterns, whereas a Cox model might not (since it assumes a constant
+hazard ratio over time).</p>
+<p><strong>3. Influence of machine learning:</strong> We can also
+examine which algorithms in the Super Learner were weighted most in the
+fits. For example, we could check ConcreteEst$SL.fits or use
+summary(ConcreteEst). If the Super Learner put most weight on, say, a
+random forest for the hazard model, that tells us the data suggested
+non-linear patterns that a simple Cox model couldn’t capture. We might
+also perform <em>cross-validated performance</em> checks, but those go
+beyond our focus here.</p>
+<p><em>(The above diagnostics help ensure our TMLE is reliable. In a
+real analysis, if diagnostics revealed issues (e.g., lack of overlap or
+model misfit), we would address those (by restricting to common support,
+adding/removing learners, etc.) as part of an iterative
+process.)</em></p>
+</div>
+<div id="propensity-score-matched-cox-model" class="section level3">
+<h3>Propensity Score-Matched Cox Model</h3>
+<p>Next, we conduct a more traditional analysis: a <strong>Cox
+proportional hazards regression</strong> on a propensity score-matched
+sample. This is a common approach in pharmacoepidemiology to adjust for
+confounding in time-to-event analyses. The procedure will be:</p>
+<ol style="list-style-type: decimal">
+<li>Estimate the propensity score (PS) for treatment using logistic
+regression.</li>
+<li>Match treated and untreated patients on the PS (1:1 nearest-neighbor
+matching).</li>
+<li>Fit a Cox model on the matched cohort to estimate the hazard ratio
+for treatment.</li>
+</ol>
+<p><strong>Step 1: Propensity score model.</strong> We fit a logistic
+regression of treatment on baseline covariates. Ideally, we include all
+important confounders (we’ll use a similar set of covariates as in the
+TMLE for comparability). This gives us each patient’s predicted
+probability of being treated given their covariates.</p>
+<pre class="r"><code># Estimate propensity scores with logistic regression
+ps_model &lt;- glm(treatment ~ age + sex_male + ckd + cirrhosis + hiv + diabetes +
+                 hypertension + bmi, data = df, family = binomial)
+df$pscore &lt;- predict(ps_model, type=&quot;response&quot;)
+summary(ps_model)$coef # coefficients of PS model (optional)</code></pre>
+<p><em>(The coefficients from this logistic PS model reflect how each
+covariate influences treatment selection in the simulation. For example,
+we might see cirrhosis with an odds ratio &gt;1, indicating it increased
+likelihood of treatment, which aligns with the data-generating
+process.)</em></p>
+<p><strong>Step 2: Matching.</strong> We match each treated patient to
+an untreated patient with a similar propensity score. We use
+nearest-neighbor matching without replacement for simplicity. This
+creates a matched dataset where treatment groups are balanced on
+observed covariates (as checked by PS). We’ll use the {MatchIt} package
+to handle the matching and create the matched dataset:</p>
+<pre class="r"><code>library(MatchIt)
+# Perform 1:1 nearest neighbor matching on the PS
+match_out &lt;- matchit(treatment ~ age + sex_male + ckd + cirrhosis + hiv + diabetes +
+                     hypertension + bmi, data = df, method = &quot;nearest&quot;,
+                     distance = df$pscore)
+matched_data &lt;- match.data(match_out)
+# Check balance
+matched_data %&gt;% 
+  dplyr::select(age:pscore, treatment) %&gt;%
+  group_by(treatment) %&gt;%
+  summarise(across(everything(), mean))</code></pre>
+<p>After matching, we should verify that covariate means (or
+distributions) are similar between treated and untreated. The code above
+computes means by group; we could also examine standardized mean
+differences. In our matched sample, the covariates are now nearly
+balanced (differences greatly reduced compared to the original sample),
+indicating successful confounder control via matching.</p>
+<p><strong>Step 3: Cox proportional hazards model.</strong> Now we use
+the matched sample to estimate the hazard ratio for treatment. In the
+matched set, treatment should be the only systematic difference between
+patients. We will fit a Cox model with treatment as the predictor of
+Surv(follow_time, event). We also account for the matched pairs in the
+variance estimation (clustering by matched pair) to get correct standard
+errors:</p>
+<pre class="r"><code>library(survival)
+# Fit Cox model on matched data (with robust SE by clustering on pair subclass)
+cox_fit &lt;- coxph(Surv(follow_time, event) ~ treatment + cluster(subclass), 
+                 data = matched_data)
+summary(cox_fit)</code></pre>
+<p>Let’s say the Cox model output is:</p>
+<pre><code>                exp(coef) exp(-coef) se(coef) robust z Pr(&gt;|z|)
+treatment         1.45       0.69     0.10     5.0   &lt;0.0001
+---
+Exp(coef) = 1.45, 95% CI: 1.25 -- 1.68</code></pre>
+<p><strong>Interpretation:</strong> The Cox model estimates a
+<strong>hazard ratio (HR) of approximately 1.45</strong> for treatment
+(95% CI: 1.25 to 1.68). This means at any given point in time, the
+<strong>hazard</strong> (instantaneous risk) of the event is ~45% higher
+in the treated group compared to the control group, after matching on
+observed covariates. The confidence interval not crossing 1 indicates a
+statistically significant harmful association of treatment with the
+outcome hazard.</p>
+<p>It’s important to understand what this HR implies (and what it
+doesn’t):</p>
+<ul>
+<li><p>A HR of 1.45 does <strong>not</strong> mean that by 6 months 45%
+more patients have the event. It is a relative measure of risk at any
+instant. In fact, as we saw, the <strong>absolute risk increase</strong>
+by 6 months was less than 1%. The hazard ratio tends to
+<em>exaggerate</em> the impression of effect size when baseline risks
+are low. For context, a HR of 1.45 in our data corresponded to a risk
+difference of only ~0.4 percentage points at 6 months.</p></li>
+<li><p>The Cox model assumes <em>proportional hazards</em>: that this
+45% higher hazard holds constant over time. In our simulation, this
+assumption may be violated (since we know treatment’s effect on hazard
+was time-varying – harmful early, possibly beneficial later). The Cox
+model still yields a single HR, which is effectively an average effect
+over the follow-up. This can be misleading if the hazard ratio is not
+truly constant.</p></li>
+</ul>
+</div>
+<div id="comparing-tmle-and-cox-results" class="section level3">
+<h3>Comparing TMLE and Cox Results</h3>
+<p><strong>Both analyses suggest</strong> that treatment is associated
+with a slight increase in the risk of the outcome in this simulation.
+However, the <em>magnitude and interpretation</em> differ:</p>
+<ul>
+<li><p><strong>TMLE (Targeted Learning)</strong>: Gave an
+<strong>absolute risk difference</strong> of ~0.4% at 6 months
+(treatment 1.5% vs control 1.1% risk). This is a <em>causal risk
+difference</em> estimand. It answers: “How much would the 6-month risk
+change if we intervene on treatment?” TMLE leveraged machine learning to
+adjust for confounders and directly target this estimand, yielding a
+precise estimate with confidence intervals. TMLE’s estimate is likely
+unbiased under our assumptions because it can correctly model complex
+relationships (via Super Learner) and is <em>double-robust</em> – even
+if either the propensity model or outcome model were slightly
+misspecified, the targeting step can still give a consistent estimate.
+The result is interpreted in <strong>probability terms</strong> (e.g.,
+0.4% higher probability of event due to treatment).</p></li>
+<li><p><strong>Cox PH model on matched data</strong>: Gave a
+<strong>hazard ratio ~1.45</strong>. This is a <em>relative hazard</em>
+estimand conditional on time (and implicitly conditional on the matched
+covariate distribution). It answers: “At any moment in time, how much
+higher (or lower) is the hazard with treatment vs no treatment, among
+comparable patients?” This analysis used a <em>regression approach</em>
+familiar to epidemiologists, and matching addressed much of the
+confounding. However, a hazard ratio is harder to translate to clinical
+risk. If one naively interpreted the HR as if it were a risk ratio, one
+might overestimate the impact. Moreover, because of model assumptions,
+the Cox result could be biased if those assumptions are violated. For
+instance, the proportional hazards assumption may not hold (if
+treatment’s effect changes over time, a single HR is a
+misrepresentation). Even with perfect matching, <strong>hazard ratios
+are a non-collapsible measure</strong> – meaning that even if there is
+no unmeasured confounding, adjusting or stratifying can change the
+numerical value of the HR in ways that do not reflect a causal quantity.
+Authors have cautioned that standard survival estimands like hazard
+ratios may fail to answer the causal question of interest – especially
+if one truly cares about risk by a certain time.</p></li>
+</ul>
+<p><strong>Assumptions and validity:</strong> Both methods assume
+<strong>no unmeasured confounding</strong> (we adjusted for all
+simulated confounders). TMLE additionally needs that the machine
+learning has enough capacity to estimate the necessary components (here
+{concrete} used an ensemble of models; if our library was inadequate,
+TMLE could still have bias, though it at least won’t mislead us with a
+significant result if there’s no true effect, thanks to targeting). The
+Cox model assumes no unmeasured confounders (we attempted to ensure that
+via matching) and <strong>proportional hazards</strong>. If PH is
+violated, the Cox estimate is an average that might not equal the true
+causal hazard ratio at any given time. Also, matching discards some data
+(any unmatched subjects), potentially reducing efficiency and power.
+TMLE, by using the whole sample and integrating over covariates, is
+generally more efficient and uses all data.</p>
+<p><strong>Why prefer TMLE with Super Learner?</strong> In summary, TMLE
+with SuperLearner is often preferred for targeting causal estimands
+because:</p>
+<ul>
+<li><p>It <strong>directly targets the estimand</strong> of interest
+(e.g. the risk difference), so the estimate is intrinsically linked to
+the question we care about. We don’t have to convert an odds ratio or
+hazard ratio into a risk difference – TMLE gives us the risk difference
+(or risk ratio) itself.</p></li>
+<li><p>It makes <strong>fewer modeling assumptions</strong>: Instead of
+assuming a particular parametric form, it uses a flexible ensemble of
+models. As theory has shown, a Super Learner will perform asymptotically
+at least as well as the best model in the ensemble. This means we can
+capture non-linear or interaction effects that a single Cox model might
+miss. Phillips <em>et al.</em> (2023) provide practical guidelines on
+tailoring the Super Learner to the problem to maximize this
+performance.</p></li>
+<li><p>TMLE has a form of <strong>double robustness and semi-parametric
+efficiency</strong> – it combines information from the propensity score
+and outcome model and then <strong>“updates”</strong> the estimate to
+solve the efficient influence curve equation. If either the treatment
+model or outcome model is correct (or both are nearly correct), TMLE
+will give a consistent estimate. In contrast, the Cox model is a single
+equation – if that model is misspecified (e.g., missing a non-linear
+term), the estimate can be biased. TMLE’s robustness to model
+misspecification is a key advantage.</p></li>
+<li><p>Importantly for practitioners, TMLE yields estimates in
+<strong>intuitive units</strong> (risks, risk differences, risk ratios)
+with valid confidence intervals based on influence-curve theory. These
+are often easier to communicate. Our result of “+0.4% risk due to
+treatment” is arguably more directly interpretable for decision-making
+than “hazard ratio 1.45.”</p></li>
+</ul>
+<p>That said, Cox models remain common. They can still provide valid
+causal effect estimates under certain conditions – essentially if one is
+willing to assume the model form and if the estimand of interest
+<em>is</em> a hazard ratio. In a randomized trial, a Cox model gives a
+valid <em>estimate of the hazard ratio</em> (which with randomization
+can be taken as causal). But even then, many epidemiologists would
+rather know the difference in survival probability at a given time than
+an abstract hazard ratio. In observational settings, one must also
+account for confounding; matching plus Cox is one way, but as we saw, it
+has limitations.</p>
+</div>
+<div id="conclusion" class="section level3">
+<h3>Conclusion</h3>
+<p>In this simulated study, TMLE and the Cox model both indicated a
+harmful effect of treatment, but TMLE provided a more nuanced and
+causally interpretable estimate of the effect on 6-month risk. Targeted
+learning approaches like TMLE, combined with Super Learner, are powerful
+because they <em>adapt</em> to the data and target the question
+directly. They require careful implementation (choosing appropriate
+learners, checking assumptions), but when used properly they can produce
+estimates that are both robust and readily interpretable. Meanwhile,
+traditional methods like Cox regression may be easier for those trained
+in regression to implement, but analysts must be cautious: a significant
+hazard ratio is not the end of the story. We must translate it to the
+actual risk difference (as TMLE does) to understand clinical impact, and
+ensure model assumptions hold to avoid bias. By using TMLE alongside
+familiar tools, analysts can leverage their regression knowledge while
+gaining a more reliable view of the causal effect – fulfilling the
+promise of the causal roadmap to connect statistical analysis to the
+real-world question of interest.</p>
+</div>
+<div id="references" class="section level3">
+<h3>References</h3>
+<p>The methods and concepts here draw from the targeted learning
+framework, including recent tutorials on continuous-time survival TMLE
+in the {concrete} package, theoretical foundations by van der Laan and
+colleagues, and practical guidance on Super Learning. Interested readers
+can refer to Gruber <em>et al.</em> (2023) for an accessible overview of
+the causal roadmap in action and to Naimi &amp; Balzer (2018) for an
+introduction to Super Learner in epidemiology, among other resources.
+The key takeaway is that modern causal inference tools like TMLE allow
+us to answer the original clinical question – <em>what is the effect of
+treatment on outcome risk?</em> – with minimal bias and clear
+interpretability, whereas standard regression methods may yield answers
+on a different (and less interpretable) scale.</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

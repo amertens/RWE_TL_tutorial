@@ -69,7 +69,7 @@ make_concrete_input <- function(data, censor_at_switch = TRUE) {
       )
     ) %>%
     # Select columns needed by concrete (time, status, treatment + covariates)
-    select(time, status, trt = A, age, sex_male, ckd, cirrhosis, diabetes, hypertension) %>%
+    select(time, status, treatment, age, sex_male, ckd, cirrhosis, diabetes, hypertension) %>%
     # Drop any incomplete cases (concrete cannot handle missing)
     drop_na()
 }
