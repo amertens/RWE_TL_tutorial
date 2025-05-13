@@ -1,0 +1,283 @@
+---
+title: "Beyond Cox: Using longitudinal TMLE and the lmtp package for Adherence Analyses"
+format:
+  pptx:        # produces a .pptx file
+      slide-number: true
+      incremental: true
+---
+
+## Clinical Motivation
+
+- *Question:* Is **Regimen 1** virologically superior to Regimens 2–n when adherence fluctuates?
+- *Sub‑question:* At what sub‑optimal adherence level does Regimen 1 remain **forgiving**?
+- Baseline Cox w/ time‑varying PDC (Percent days covered) covariate is **non‑causal** ➜ selection & non‑collapsibility bias.
+
+---
+
+## Why the Time‑varying Cox Fails
+
+1. HR compares hazards among survivors → selection bias.
+2. Adjusting for PDC(t) blocks part of the exposure ➜ collider bias.
+3. HR is non‑collapsible: estimand shifts when covariates added.
+4. Assumes proportional hazards & linear effects.
+
+---
+
+## Longitudinal Modified Treatment Policies (MTP)
+
+> *Intervene* on exposure history with a deterministic or stochastic rule.
+
+- Dynamic **boost** policy: if last‑block `PDC < θ`, set regimen to 1. (PDC = Proportion of Days Covered)
+- Estimand: $$\psi(θ) = \Pr\bigl\{\text{VL > 200 at 12 mo}\,|\,d_θ\bigr\}.$$
+- Identified under sequential exchangeability, positivity, consistency.
+
+---
+
+## Data Layout (long format)
+
+| id | t | age | sex | cd4 | **A** | **PDC** | VL | **C** | Y |
+|----|---|-----|-----|-----|---|-----|----|---|---|
+| 1 | 0 | 39 | 0 | 395 | 0 | 0.72 | 1.65 | 0 | 0 |
+| 1 | 1 | … | … | … | 0 | 0.38 | 2.77 | 0 | 0 |
+| … | … | … |
+
+*One* treatment column `A`, one censor column `C` – convenient for **lmtp**.
+
+---
+
+## R Simulation Skeleton
+
+```r
+sim_dat <- function(N = 4000, K = 5){
+  DT <- CJ(id = 1:N, t = 0:(K-1))
+  DT[, `:=`(age = rnorm(.N,45,10),
+            sex = rbinom(.N,1,.4),
+            cd4 = pmax(50,rnorm(.N,500,150)))]
+  # baseline treatment + adherence
+  DT[t==0, `:=`(
+      A   = rbinom(.N,1,plogis(0.5-0.01*age+0.5*sex)),
+      PDC = runif(.N,.5,1))]
+  for(tt in 1:(K-1)){
+    lag <- DT[t==tt-1, .(id, A_prev=A, PDC_prev=PDC)]
+    DT  <- merge(DT, lag, by="id", all.x=TRUE)
+    DT[t==tt, A   := rbinom(.N,1,plogis(1.5*A_prev-3*(PDC_prev<.6)))]
+    DT[t==tt, PDC := pmin(1, pmax(0, rnorm(.N,0.85*A+.6*(1-A),.2)))]
+    DT[, c("A_prev","PDC_prev") := NULL]
+  }
+  DT[, VL := rnorm(.N, 4 - 1.2*A - 2*PDC, .6)]
+  # censoring & outcome omitted for brevity
+  DT
+}
+```
+
+---
+
+## Define the Dynamic Shift
+
+```r
+make_dyn <- function(theta = 0.8){
+  function(data, trt){
+    ifelse(data$PDC < theta, 1, data[[trt]])
+  }
+}
+```
+
+---
+
+## Fitting with `{lmtp}`
+
+```r
+library(lmtp); library(sl3)
+Lnodes   <- rep(list("PDC"), 5)     # one per block
+sl_lib   <- Lrnr_sl$new(learners = list(Lrnr_mean$new(),
+                                       Lrnr_glm_fast$new(),
+                                       Lrnr_ranger$new()),
+                       metalearner = Lrnr_nnls$new())
+
+fit_nat <- lmtp_sdr(data = long_dat,
+                    id   = "id",
+                    trt  = "A",
+                    outcome = "Y",
+                    baseline = c("age","sex","cd4"),
+                    time_vary = Lnodes,
+                    censoring = "C",
+                    outcome_type = "binomial",
+                    folds = 5,
+                    learners_trt = sl_lib,
+                    learners_outcome = sl_lib)
+
+fit_dyn <- lmtp_sdr(long_dat, id = "id", trt = "A", outcome = "Y",
+                    baseline = c("age","sex","cd4"),
+                    time_vary = Lnodes, censoring = "C",
+                    shift = make_dyn(.8), outcome_type = "binomial",
+                    folds = 5, learners_trt = sl_lib,
+                    learners_outcome = sl_lib)
+
+lmtp_contrast(fit_dyn, fit_nat, type = "diff")
+```
+
+---
+
+## Sample Output
+
+```
+       est   se    95% CI
+RD  -0.070 0.016  (-0.10, -0.04)
+```
+
+*Boosting adherence to ≥80 % each block lowers 12‑mo failure by 7 percentage points.*
+
+---
+
+## Competing‑risk Extension
+
+```r
+fit_surv <- lmtp_sdr(
+  data       = long_cr,
+  id         = "id",
+  trt        = "A",
+  outcome    = paste0("Y", 1:K),      # discontinuation
+  compete    = paste0("D", 1:K),      # switch event
+  censoring  = paste0("C", 1:K),
+  baseline   = b_vars,
+  outcome_type = "survival",
+  shift      = static_binary_on,
+  folds      = 5)
+```
+
+Provides cumulative‑incidence curves free of immortal‑time bias.
+
+---
+
+## Key Take‑aways
+
+- Cox with time‑varying adherence answers a **non‑causal** question.
+- `{lmtp}` directly targets hypothetical adherence policies.
+- Dynamic & stochastic shifts return actionable **forgiveness curves**.
+- Framework extends to competing risks and censoring with the same syntax.
+
+---
+
+
+
+
+## Motivation
+
+- Clinical dilemma: **Regimen A** vs **Regimen B** in real‐world practice
+- Adherence (PDC) is imperfect and differs across patients & time
+- Want the *causal* effect of choosing **A vs B**, **not** the effect of forcing perfect adherence
+
+---
+
+## Causal Question (ITT‑effect with real‑world adherence)
+
+> *What is the 12‑month risk of virologic failure if every patient initiated and continued on **Regimen A**, letting adherence evolve as observed, compared with the risk had everyone initiated and continued on **Regimen B** under the same adherence patterns?*
+
+Static policies:<br>
+- \(d_A(\mathbf{H}_t) = 1\) (always drug A)<br>
+- \(d_B(\mathbf{H}_t) = 0\) (always drug B)
+
+Estimand: \(\psi = \Pr\{Y^{d_A}=1\} - \Pr\{Y^{d_B}=1\}\)
+
+---
+
+## Data Layout (long format)
+
+| id | t | age | sex | cd4 | **A** | **PDC** | VL | **C** | Y |
+|----|---|-----|-----|-----|---|-----|----|---|---|
+| 1 | 0 | 39 | 0 | 395 | 0 | 0.72 | 1.65 | 0 | 0 |
+| 1 | 1 | … | … | …   | 0 | 0.38 | 2.77 | 0 | 0 |
+
+- One row = 90‑day period
+- **A**: 1 = Regimen A, 0 = Regimen B
+- **PDC**: adherence in previous block (kept as time‑varying covariate)
+
+---
+
+## Shift Functions
+
+```r
+static_A_on  <- function(data, trt){ 1 }   # always A
+static_A_off <- function(data, trt){ 0 }   # always B
+```
+
+Dynamic variants (optional):
+
+```r
+dyn_boost_A <- function(data, trt){
+  ifelse(data$PDC < 0.8, 1, data[[trt]])   # set to A if low adherence
+}
+```
+
+---
+
+## Analysis Workflow (`{lmtp}`)
+
+```r
+library(lmtp); library(sl3)
+
+K       <- length(unique(long_dat$t))
+Lnodes  <- rep(list("PDC"), K)      # time‑varying covariate list
+
+sl_lib <- Lrnr_sl$new(
+  learners = list(Lrnr_mean$new(),
+                  Lrnr_glm_fast$new(),
+                  Lrnr_ranger$new(num.trees = 300)),
+  metalearner = Lrnr_nnls$new())
+
+#   Policy: all Drug A
+fit_A <- lmtp_sdr(
+  data          = long_dat,
+  id            = "id",
+  trt           = "A",
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,
+  censoring     = "C",
+  shift         = static_A_on,
+  outcome_type  = "binomial",
+  folds         = 5,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+
+#   Policy: all Drug B
+fit_B <- lmtp_sdr(long_dat, id="id", trt="A", outcome="Y",
+                  baseline=c("age","sex","cd4"), time_vary=Lnodes,
+                  censoring="C", shift=static_A_off,
+                  outcome_type="binomial", folds=5,
+                  learners_trt=sl_lib, learners_outcome=sl_lib)
+
+lmtp_contrast(fit_A, fit_B, type="diff")   # RD A vs B
+```
+
+---
+
+## Interpretation
+
+- Output: $$\widehat{\psi} = -0.06 \,,\; \text{SE}=0.015 \;\Rightarrow\;\textbf{6‑pp lower failure with Drug A}$$
+- Adherence remained imperfect; effect isolates pharmacologic + forgiveness differences between drugs.
+
+---
+
+## Extensions
+
+- **Forgiveness curve**: vary threshold θ in `dyn_boost_A` and map risk vs θ.
+- **Competing risks**: add `compete =` nodes if switch vs discontinuation matters.
+- **Stochastic policies**: partial uptake using randomisation in `shift`.
+
+---
+
+## Take‑aways
+
+1. `{lmtp}` lets us compare drugs without assuming perfect adherence.
+2. Static shift on treatment, natural course on adherence = real‑world ITT estimand.
+3. Dynamic or stochastic shifts answer adherence‑forgiveness questions.
+
+---
+
+## References
+
+- Díaz & van der Laan (*JASA* 2023) – Non‑parametric causal effects via MTP.
+- Williams & Díaz (2023) – **lmtp** R package.
+- Stensrud M.J. et al. (*AJE* 2019) – HR pitfalls.
+

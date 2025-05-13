@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+<meta name="date" content="2025-05-13" />
+
+<title>TMLE Diagnostics when Covariate Balance is Poor</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="appendix.html">Appendix</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">TMLE Diagnostics when Covariate Balance is
+Poor</h1>
+<h4 class="date">2025-05-13</h4>
+
+</div>
+
+
+<div id="background-why-tmle-propensity-score-matching"
+class="section level1">
+<h1>Background: Why TMLE ≠ Propensity-Score Matching</h1>
+<p>Classical propensity-score matching (PSM) forces the marginal
+distribution of baseline covariates W to be the same in treatment (A =
+1) and control (A = 0) groups. Standardised mean differences (SMDs) are
+therefore natural diagnostics: they must be “small”.</p>
+<p>Targeted Maximum Likelihood Estimation (TMLE) follows a different
+logic:</p>
+<p>We specify a target causal quantity (here: 180-day risk difference
+for AKI).</p>
+<p>We estimate two nuisance functions: the outcome regression Q(W) and
+the treatment mechanism g(W)=P(A=1|W).</p>
+<p>A targeting step solves the efficient influence-function equation,
+producing an estimator that is doubly robust and locally efficient.</p>
+<p>Because the final estimator is consistent if either Q or g is well
+estimated, perfect covariate balance is not required. Nevertheless,
+diagnostics are essential to check the plausibility of the assumptions
+that guarantee consistency (no unmeasured confounding, positivity,
+correct specification of at least one nuisance model).</p>
+<p>#2 Generate Data – Deliberately Imbalanced</p>
+<p>We source the data-generating function from DGP.R, then make
+treatment assignment almost deterministic from one risk factor
+(cirrhosis). That yields extreme imbalance and near‐violation of
+positivity.</p>
+<pre class="r"><code>source(&quot;DGP.R&quot;)                              # generates generate_hcv_data()
+
+N &lt;- 3000                                    # moderate sample size
+df &lt;- generate_hcv_data(N, seed = 202)
+
+## --- Make cirrhosis a near-perfect predictor of treatment -------------
+## Suppose cirrhosis = 1 means strong clinical indication for SOF.
+df$treatment &lt;- rbinom(nrow(df), 1, ifelse(df$cirrhosis == 1, 0.95, 0.05))
+
+table(df$treatment, df$cirrhosis)</code></pre>
+<pre><code>##    
+##        0    1
+##   0 2009   18
+##   1  109  429</code></pre>
+<p>Treatment probability now ranges from 95 % (renal high-risk) to 5 %
+(renal low-risk), so balance is terrible and propensity-score overlap
+will be weak.</p>
+<p>#3 Define data and SuperLearner library for TMLE</p>
+<pre class="r"><code>#Create 180-day binary outcome
+t_cut &lt;- 180
+df &lt;- df %&gt;%
+  mutate(Y_180 = ifelse(event == 1 &amp; follow_time &lt;= t_cut, 1, 0))
+mean(df$Y_180)          # crude AKI incidence</code></pre>
+<pre><code>## [1] 0.008576998</code></pre>
+<pre class="r"><code>sl_lib &lt;- c(&quot;SL.glm&quot;,
+            &quot;SL.glmnet&quot;,      # elastic-net, alpha will be tuned
+            &quot;SL.xgboost&quot;,
+            &quot;SL.randomForest&quot;)
+
+#temp fast library
+sl_lib &lt;- c(&quot;SL.glm&quot;)</code></pre>
+<p>#6 Fit TMLE (180-day risk difference)</p>
+<pre class="r"><code>Wnames &lt;- setdiff(names(df), c(&quot;treatment&quot;, &quot;event&quot;, &quot;follow_time&quot;, &quot;Y_180&quot;))
+Wmat   &lt;- df[ , Wnames]
+
+tmle_fit &lt;- tmle(Y      = df$Y_180,
+                 A      = df$treatment,
+                 W      = Wmat,
+                 family = &quot;binomial&quot;,
+                 Q.SL.library = sl_lib,
+                 g.SL.library = sl_lib)
+
+tmle_fit$estimates$ATE          # point est., SE, CI, p-value</code></pre>
+<pre><code>## $psi
+## [1] -0.002077424
+## 
+## $var.psi
+## [1] 2.210862e-05
+## 
+## $CI
+## [1] -0.011293136  0.007138288
+## 
+## $pvalue
+## [1] 0.6586202
+## 
+## $bs.var
+## [1] NA
+## 
+## $bs.CI.twosided
+## [1] NA NA
+## 
+## $bs.CI.onesided.lower
+## [1] -Inf   NA
+## 
+## $bs.CI.onesided.upper
+## [1]  NA Inf</code></pre>
+</div>
+<div id="diagnostics" class="section level1">
+<h1>7 Diagnostics</h1>
+<div id="propensity-score-overlap" class="section level3">
+<h3>7.1 Propensity-score overlap</h3>
+<pre class="r"><code>ps &lt;- tmle_fit$g$g1W   # predicted P(A = 1 | W)
+ps_df &lt;- data.frame(ps, trt = factor(df$treatment))
+
+ggplot(ps_df, aes(ps, fill = trt)) +
+  geom_histogram(bins = 40, position = &quot;identity&quot;,
+                 alpha = .4, colour = &quot;black&quot;) +
+  labs(title = &quot;Propensity-score overlap&quot;, x = &quot;e(X)&quot;)</code></pre>
+<p><img src="TMLE_diagnostics_files/figure-html/unnamed-chunk-4-1.png" width="576" /></p>
+</div>
+<div id="weighted-smds" class="section level3">
+<h3>6.2 Weighted SMDs</h3>
+<pre class="r"><code>w_ipw &lt;- ifelse(df$treatment == 1, 1/ps, 1/(1-ps))
+
+bal &lt;- bal.tab(df[Wnames], treat = df$treatment, weights = w_ipw,
+               method = &quot;weighting&quot;, estimand = &quot;ATE&quot;)
+bal</code></pre>
+<pre><code>## Balance Measures
+##                     Type Diff.Adj
+## id               Contin.   0.0543
+## age              Contin.  -0.0004
+## sex_male          Binary  -0.0022
+## race_asian        Binary   0.0080
+## race_black        Binary   0.0004
+## race_hispanic     Binary  -0.0123
+## race_other        Binary   0.0019
+## race_white        Binary   0.0019
+## region_MW         Binary   0.0176
+## region_NE         Binary   0.0037
+## region_S          Binary  -0.0012
+## region_W          Binary  -0.0201
+## ckd               Binary  -0.0233
+## heart_failure     Binary   0.0020
+## sepsis            Binary   0.0031
+## dehydration       Binary   0.0081
+## obstruction       Binary  -0.0008
+## cirrhosis         Binary   0.7899
+## portal_htn        Binary   0.0014
+## esld              Binary  -0.0013
+## hiv               Binary   0.0014
+## diabetes          Binary   0.0182
+## hypertension      Binary  -0.0024
+## bmi              Contin.  -0.0075
+## overweight_obese  Binary   0.0011
+## smoking           Binary  -0.0029
+## alcohol           Binary   0.0002
+## substance_abuse   Binary   0.0024
+## cancer            Binary  -0.0045
+## chemo             Binary  -0.0051
+## nsaid             Binary  -0.0093
+## acearb            Binary   0.0114
+## diuretic          Binary   0.0015
+## aminoglycoside    Binary  -0.0170
+## contrast          Binary  -0.0001
+## statin            Binary   0.0029
+## aspirin           Binary  -0.0011
+## beta_blocker      Binary   0.0030
+## ccb               Binary  -0.0006
+## art               Binary  -0.0087
+## switch            Binary   0.0049
+## 
+## Effective sample sizes
+##            Control Treated
+## Unadjusted 2027.    538.  
+## Adjusted   2025.02  530.42</code></pre>
+<pre class="r"><code>love.plot(bal, threshold = .1) +
+  labs(title = &quot;IP-weighted SMDs (&lt;.1 desirable)&quot;)</code></pre>
+<p><img src="TMLE_diagnostics_files/figure-html/unnamed-chunk-5-1.png" width="576" /></p>
+</div>
+<div id="cross-validated-risk-of-sl-learners" class="section level3">
+<h3>6.3 Cross-validated risk of SL learners</h3>
+<pre class="r"><code>tmle_fit$Qinit$cvRisk  # log-loss for outcome model</code></pre>
+<pre><code>## NULL</code></pre>
+<pre class="r"><code>tmle_fit$g$cvRisk      # cv risk for treatment model</code></pre>
+<pre><code>## NULL</code></pre>
+</div>
+<div id="influence-curve-spread" class="section level3">
+<h3>6.4 Influence-curve spread</h3>
+<pre class="r"><code># with(tmle_fit, {
+#   H1W &lt;- A     / g$g1W            # clever covariate for treated
+#   H0W &lt;- (1-A) / (1 - g$g1W)      # clever covariate for control
+#   IC_manual &lt;- H1W*(Y - Qstar$Q1W) -
+#                H0W*(Y - Qstar$Q0W) +
+#                (Qstar$Q1W - Qstar$Q0W) - estimates$ATE$psi
+# })
+
+
+ic &lt;- tmle_fit$IC$ATE
+ggplot(data.frame(ic), aes(ic)) +
+  geom_histogram(bins = 60, alpha = .6, fill = &quot;steelblue&quot;) +
+  geom_vline(xintercept = 0, linetype = &quot;dashed&quot;) +
+  labs(title = &quot;EIF distribution&quot;, x = &quot;IC value&quot;)</code></pre>
+<p><img src="TMLE_diagnostics_files/figure-html/unnamed-chunk-7-1.png" width="576" /></p>
+</div>
+<div id="e-value" class="section level3">
+<h3>6.5 E-value</h3>
+<pre class="r"><code>#debig:
+rd  &lt;- tmle_fit$estimates$ATE[&quot;psi&quot;]
+se  &lt;- sqrt(tmle_fit$estimates$ATE[&quot;var.psi&quot;])
+rr  &lt;- 1 + rd / mean(df$Y_180)  # crude conversion
+
+EValue::evalue(est = rr,
+               lo  = rr - 1.96*se,
+               hi  = rr + 1.96*se,
+               true = 1,
+               type = &quot;RR&quot;)</code></pre>
+</div>
+<div id="omnibus-residual-test" class="section level3">
+<h3>6.6 Omnibus residual test</h3>
+<pre class="r"><code>resid &lt;- df$Y_180 - tmle_fit$Qstar
+omni  &lt;- lm(resid ~ ., data = df[Wnames])
+anova(omni)   # global F-test</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+##                    Df   Pillai approx F num Df den Df    Pr(&gt;F)    
+## (Intercept)         1 0.042369   55.835      2   2524 &lt; 2.2e-16 ***
+## id                  1 0.002475    3.132      2   2524 0.0438128 *  
+## age                 1 0.041738   54.968      2   2524 &lt; 2.2e-16 ***
+## sex_male            1 0.002859    3.618      2   2524 0.0269776 *  
+## race                4 0.007366    2.333      8   5050 0.0168876 *  
+## region              3 0.006004    2.534      6   5050 0.0188290 *  
+## ckd                 1 0.000246    0.311      2   2524 0.7329890    
+## heart_failure       1 0.000251    0.316      2   2524 0.7288365    
+## sepsis              1 0.000931    1.176      2   2524 0.3086201    
+## dehydration         1 0.000112    0.141      2   2524 0.8686165    
+## obstruction         1 0.001595    2.016      2   2524 0.1334403    
+## cirrhosis           1 0.003011    3.812      2   2524 0.0222406 *  
+## portal_htn          1 0.005716    7.255      2   2524 0.0007214 ***
+## esld                1 0.000206    0.260      2   2524 0.7707177    
+## hiv                 1 0.001847    2.335      2   2524 0.0970448 .  
+## diabetes            1 0.000214    0.270      2   2524 0.7635110    
+## hypertension        1 0.014342   18.363      2   2524 1.209e-08 ***
+## bmi                 1 0.000021    0.026      2   2524 0.9739663    
+## overweight_obese    1 0.005609    7.118      2   2524 0.0008264 ***
+## smoking             1 0.000065    0.082      2   2524 0.9213020    
+## alcohol             1 0.005436    6.898      2   2524 0.0010294 ** 
+## substance_abuse     1 0.000033    0.042      2   2524 0.9593057    
+## cancer              1 0.002428    3.072      2   2524 0.0465228 *  
+## chemo               1 0.000204    0.258      2   2524 0.7726773    
+## nsaid               1 0.000099    0.124      2   2524 0.8829734    
+## acearb              1 0.003917    4.963      2   2524 0.0070608 ** 
+## diuretic            1 0.004198    5.320      2   2524 0.0049461 ** 
+## aminoglycoside      1 0.002392    3.026      2   2524 0.0487036 *  
+## contrast            1 0.036354   47.609      2   2524 &lt; 2.2e-16 ***
+## statin              1 0.002954    3.739      2   2524 0.0238998 *  
+## aspirin             1 0.003750    4.750      2   2524 0.0087310 ** 
+## beta_blocker        1 0.002720    3.442      2   2524 0.0321504 *  
+## ccb                 1 0.004394    5.570      2   2524 0.0038564 ** 
+## art                 1 0.000102    0.128      2   2524 0.8795618    
+## switch              1 0.000829    1.047      2   2524 0.3510477    
+## Residuals        2525                                              
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>Conclusion: despite TMLE’s double robustness, violations of
+positivity and possible outcome-model misspecification mean the causal
+effect estimate is still fragile.</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,95 @@
+---
+title: "Causal Roadmap Tutorial: Summary & Next Steps"
+format: pptx
+---
+
+## Overview
+
+-   Review: Tutorial implementing the **Causal Roadmap** for AKI risk after HCV treatment
+-   Focus: From causal question → estimand → identification → estimation → interpretation
+-   Tools: `lmtp`, `concrete`, `tmle3`, Super Learner
+
+------------------------------------------------------------------------
+
+## Step 1a: Causal Question & Estimand
+
+-   Main estimand: 90-day **risk difference** of AKI under `SOF` vs `non-SOF` regimens
+-   Strategy: *Hypothetical* no-switch design
+-   Defined intercurrent events:
+    -   Regimen switching → censor at switch
+    -   Death → competing risk (Fine-Gray planned)
+
+------------------------------------------------------------------------
+
+## Step 1b: Causal Model
+
+-   DAG encoded time-varying structure:
+    -   Treatment ↔ time-varying lab + comorbidity status
+    -   Adherence varies by drug/tolerability
+-   Identification conditions explicitly stated:
+    -   Exchangeability, consistency, positivity, non-informative censoring
+
+------------------------------------------------------------------------
+
+## Step 2: Observed Data
+
+-   Retrospective claims data structured into 90-day intervals
+-   Variables:
+    -   Baseline: Age, sex, liver/kidney history, HCV genotype
+    -   Time-varying: labs (eGFR), drugs, adherence (PDC), censoring
+
+------------------------------------------------------------------------
+
+## Step 3: Identification Assumptions
+
+-   No unmeasured confounding → claims data only approximate this
+-   Positivity check: P(A = a \| W) \> 0 ∀a, W ➜ diagnostic plots under development
+-   Censoring: IPCW approach included for sensitivity analysis
+
+------------------------------------------------------------------------
+
+## Step 4: Statistical Estimand
+
+-   Primary:
+    -   Risk at 90 days under `SOF` and under `non-SOF` if no switch occurs
+-   Secondary:
+    -   ITT estimand (no censoring at switch)
+    -   Cumulative incidence under competing risk
+
+------------------------------------------------------------------------
+
+## Step 5: Estimation
+
+-   Used `concrete::doConcrete()` for one-step TMLE
+-   Outcome regression: SL with GLM, random forest, HAL
+-   Targeted updates yield influence-function–based standard errors
+
+------------------------------------------------------------------------
+
+## Step 6: Sensitivity Analyses
+
+-   IPCW for informative censoring at switch
+-   Alternative outcome definition (stricter AKI diagnosis code)
+-   Compare TMLE vs Cox HR
+-   Consider per-protocol via dynamic shift in `lmtp`
+
+------------------------------------------------------------------------
+
+## Key Takeaways
+
+-   Roadmap improves clarity & transparency
+-   TMLE/SDR estimators give interpretable, valid estimates
+-   `{lmtp}` offers flexibility for dynamic & stochastic adherence policies
+-   `{concrete}` enables valid inference for time-to-event contrasts
+
+------------------------------------------------------------------------
+
+## Next Steps
+
+-   Finalize diagnostic plots for positivity, model diagnostics
+-   Publish `R Markdown` companion and harmonize TMLE vs `lmtp` estimands
+-   Develop simulation-based validation: how close do our estimators recover truth?
+-   Explore incorporation of competing risk CIF using `lmtp_sdr(..., compete =)`
+-   Submit methods summary to regulatory engagement workstream
+
+------------------------------------------------------------------------

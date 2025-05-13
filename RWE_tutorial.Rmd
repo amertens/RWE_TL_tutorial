@@ -18,75 +18,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALS
 
 
 
-## Time-to-Event Outcomes: Common Estimands and Pitfalls
 
-In time-to-event (survival) analysis, a common practice is to report a hazard ratio from a Cox proportional hazards (PH) model. While hazard ratios are popular, we need to understand their limitations for causal interpretation. Let's unpack what estimands are possible in time-to-event studies and why the hazard ratio may fall short.
-
-### What Estimand Are We Getting from a Cox Model?
-
-The Cox PH model gives a hazard ratio – roughly, the ratio of instantaneous event rates between two groups (exposed vs. unexposed) at any given time. If you include covariates, the Cox model yields an adjusted hazard ratio (often interpreted as the effect of treatment *holding confounders constant*). Many epidemiologic studies report only this HR as the measure of effect.
-
-However, the hazard ratio is **not a direct probability, risk, or survival difference**. Importantly, a hazard ratio from an observational Cox model is a conditional measure (conditional on covariates and on surviving up to a given time). It does not directly answer questions like "how many more/fewer patients have the event by 12 months if treated vs. untreated?". In fact, the hazard ratio "does not correspond to a clearly defined causal effect" on its own. It's a rate ratio averaged over follow-up and, unless hazards are proportional and no other biases, it isn't straightforward to interpret causally.
-
-### Pitfalls of the Hazard Ratio:
-
-* **Assumes Proportional Hazards**: Cox models assume the hazard ratio is constant over time. In reality, treatment effects may start strong and wane, or vice-versa. If the HR is not constant, the single number reported is some complex average of time-varying effects. For example, a treatment might increase early risk but improve long-term outcomes, yielding an average HR ~1.0 – masking important time patterns. Reporting only an "average" HR can be misleading if effects change over follow-up.
-
-* **Built-in Selection Bias (Survivor Bias)**: The hazard at time t is among those who have not yet had the event by t. If treatment affects who remains event-free, the treated and untreated groups at later times become inherently different ("depletion of susceptibles"). Miguel Hernán pointed out that period-specific hazard ratios have a "built-in selection bias". For instance, if susceptible individuals in the treatment arm experience the event early, the remaining treated patients are a healthier subset, which can make the hazard ratio appear to favor treatment later regardless of true long-term effect. This is one reason a treatment with no real long-term benefit could show an HR < 1 in later years purely by selection of who's left.
-
-* **Lack of Collapsibility**: Hazard ratios (like odds ratios) are non-collapsible, meaning the adjusted HR is not equal to any simple ratio of marginal (population-level) risks. Even if there is no confounding, conditioning on covariates can change the numerical value of an HR. This makes it hard to interpret the adjusted HR as a population effect. In contrast, measures like risk differences are collapsible (they can be aggregated without distortion).
-
-* **Clinical Interpretation**: Physicians and policymakers often find absolute probabilities more intuitive (e.g. "5% of patients had kidney injury with drug vs 8% without"). A hazard ratio of 0.7 does imply a relative reduction, but it's not obvious how that translates to absolute risk reduction without additional calculations. As the CONSORT guidelines note, reporting both absolute and relative measures is ideal, "as neither alone gives a complete picture". An HR alone doesn't tell you baseline risk or NNT (number needed to treat).
-
-Bottom line: A hazard ratio from a Cox model is a useful associative measure, but endowing it with a causal interpretation is tricky. Hernán's article "The Hazards of Hazard Ratios" cautioned that treating HR as *the* causal effect measure is risky. It may obscure time-varying effects and introduce bias due to the very way it's defined over time at risk. Indeed, one review bluntly states that an HR from a Cox model "may be estimated... but does not correspond to a clearly defined causal effect".
-
-### Illustrative Example: Hazard Ratio vs. Absolute Risk
-
-Consider a hypothetical (but inspired by real data) example: In a cohort of patients with chronic HCV infection, suppose we compare those treated with a new antiviral vs. those untreated, and we observe a hazard ratio of 0.70 for developing chronic kidney disease (CKD). In fact, a published real-world study found about a 30% hazard reduction in CKD risk with HCV treatment (HR 0.70, 95% CI 0.55–0.88). This suggests the treatment is beneficial. But what does HR = 0.70 mean in tangible terms?
-
-* If the 5-year cumulative incidence of CKD in untreated patients is, say, 5%, an HR of 0.70 might correspond to roughly a 3.5% 5-year incidence in treated patients. That's an absolute risk reduction of ~1.5 percentage points (5% vs 3.5%).
-* If untreated risk is higher, e.g. 15% over 5 years, HR 0.70 might correspond to ~10.5% in treated – an absolute reduction of 4.5%.
-
-The hazard ratio alone doesn't tell us these absolute risks. In the HCV example, the authors reported incidence rates: untreated patients had about 10.8 CKD cases per 1000 person-years versus 6.7 per 1000 PY in effectively treated patients. Over a few years of follow-up, that implies only a few percent of patients developed CKD in either group. So the HR=0.70, while showing a relative benefit, translates to a modest absolute risk difference (a few fewer cases per 100 patients treated). This absolute effect size might matter for cost-benefit or clinical decisions, but it's not apparent from the HR alone.
-
-Takeaway: Especially in RWE settings with relatively low event rates, an impressive HR can correspond to a small absolute risk reduction. To fully answer our causal question ("should we treat HCV to prevent CKD?"), we likely want to know the absolute benefit (e.g. percentage of patients spared CKD over X years by treating). That is why careful estimand selection is needed – perhaps we want our estimand to be the risk difference at 5 years, rather than a hazard ratio.
-
-## Choosing a Causal Estimand for Time-to-Event Data
-
-Given the pitfalls above, how should we define our estimand for time-to-event outcomes? The estimand should align with a meaningful causal contrast. Common choices include measures of survival probability or cumulative incidence at a certain time, or contrasts of survival distributions. Here are some estimand options:
-
-* **Absolute Risk (Cumulative Incidence) at time $t$**: e.g. "Probability of being event-free through 12 months." From this we can derive risk difference or risk ratio between groups at time $t$.
-
-* **Survival Curve Difference**: Comparing the entire survival curves over time between treatment and control (e.g. showing adjusted Kaplan-Meier curves). This can be summarized at specific time points (risk at 1 year, 2 years, etc.) or by an area/difference measure.
-
-* **Restricted Mean Survival Time (RMST)**: The average time without the event up to a milestone time (the area under the survival curve up to $t$). The difference in RMST between groups is an estimand (how much longer, on average, patients survive without the event with treatment vs. control, within a fixed horizon). This is an alternative summary that is often more interpretable when hazards are non-proportional.
-
-* **Hazard-based estimands**: If truly the hazard function itself is of interest, one could define estimands like a time-specific hazard ratio at a certain time, or the average hazard ratio over follow-up. However, as discussed, these are harder to interpret causally, so they are less commonly chosen as target estimands in a causal analysis (they might be more a by-product of a model).
-
-The key is to pick an estimand that directly answers the causal question. Often for decision-making, risks and risk differences are very useful estimands:
-
-* **Risk difference at time $t$** (also known as absolute risk reduction): Tells how much the treatment changes the probability of the outcome by time $t$. It's easy to interpret (e.g. "treatment reduces 1-year event risk by 5 percentage points") and can be translated to Number Needed to Treat (NNT = 1/(risk difference)).
-
-* **Risk ratio at time $t$** (or relative risk): Tells how many times more or less likely the outcome is by time $t$ in one group vs. the other (e.g. "0.5 times as likely at 1 year" meaning a 50% relative reduction). Some prefer relative measures for their stability across populations.
-
-* **RMST difference**: Tells the average gain or loss in event-free time within a certain period due to the treatment (e.g. "on average, patients lived 2 months longer without kidney failure over a 3-year period with treatment"). This can be very intuitive in some contexts (like quality of life or survival time gained).
-
-* **Hazard ratio**: as discussed, it's a relative measure of hazard rates. It's commonly reported but should be linked to a causal estimand if used. For example, one might define the estimand as something like "the hazard ratio if the treatment were applied to everyone vs to no one, under PH assumption". However, because of its issues, many causal analyses de-emphasize the HR as the primary estimand. Instead, they might report HR as a secondary analysis, acknowledging its limitations.
-
-Below is a summary table of different estimands for time-to-event outcomes and when you might use them:
-
-| Estimand | Definition | Use Case & Interpretation |
-|----------|------------|--------------------------|
-| Risk (Survival) at time $t$ | Probability of having (or not having) the event by a specific time $t$ under a given treatment strategy. Often expressed as cumulative incidence. | Useful for clear time-bound outcomes (e.g. 1-year event risk). Directly interpretable. Can compare risk in Treatment vs. Control to get risk difference or ratio. |
-| Risk Difference at $t$ | Difference in cumulative incidence by time $t$ between two strategies (e.g. treated minus untreated risk). | Best for communicating absolute effect. Answers "How many fewer (or more) events by $t$ if everyone treated vs. no one treated?". Policy-friendly (can compute NNT). |
-| Risk Ratio at $t$ | Ratio of cumulative incidences by time $t$ between two strategies. | A relative measure at a concrete time point. Interpretation: "Patients treated have 0.xx times the risk by 12 months compared to untreated." Useful for epidemiologic comparison; still fairly intuitive if communicated as "% reduction". |
-| Hazard Ratio (over follow-up) | Ratio of hazard rates (instantaneous event risk) between groups, typically assumed constant in Cox PH model. It's a conditional relative measure, averaged over the follow-up period. | Common in literature, but caution: does not directly translate to absolute risk. Use when PH assumption is reasonable and when a relative rate measure is needed. Always consider also presenting absolute measures. Not a pure causal estimand unless proportional hazards and no confounding (in RCT). |
-| Restricted Mean Survival Time (RMST) Difference | Difference in the area under the survival curve up to time $t$ between two groups. Equivalently, the difference in average event-free time by $t$. | Good when timing of events matters or when hazards are non-proportional. E.g., "Over 5 years, treatment A gives 3 months more event-free survival on average than treatment B." Clinically intuitive in many settings (time gained). |
-| Median Survival Time Difference (if applicable) | Difference in median time to event between groups (or ratio of medians). | Sometimes used in oncology (e.g. median survival). Requires enough events to estimate median. Interpretation: how much longer median survival is with treatment. Could be considered if PH fails and median is of interest. |
-
-Table: Common estimands for time-to-event outcomes and their interpretations. Each estimand answers a slightly different question. Generally, for causal inference in RWE, absolute risk measures (risk differences) are recommended to convey real-world impact, often alongside a relative measure.
-
-Choosing the estimand depends on the question: For example, if stakeholders care about "how many events are prevented by treatment within 1 year," the estimand should be a 1-year risk difference. If they care about long-term prognosis, perhaps a 5-year survival probability or RMST difference is appropriate. The estimand should be decided first; the statistical approach comes next to estimate that estimand.
 
 ## Time-Varying Treatments and Dynamic Causal Effects
 

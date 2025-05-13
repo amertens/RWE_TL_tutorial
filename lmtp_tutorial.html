@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Your Name" />
+
+<meta name="date" content="2025-05-08" />
+
+<title>Dynamic &amp; Stochastic Adherence‑Forgiveness with lmtp</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="appendix.html">Appendix</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Dynamic &amp; Stochastic
+Adherence‑Forgiveness with <strong>lmtp</strong></h1>
+<h4 class="author">Your Name</h4>
+<h4 class="date">2025-05-08</h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#roadmap-for-a-longitudinal-causal-question"
+id="toc-roadmap-for-a-longitudinal-causal-question"><span
+class="toc-section-number">1</span> 1 Road‑map for a Longitudinal Causal
+Question</a></li>
+<li><a href="#simulating-a-realistic-art-cohort"
+id="toc-simulating-a-realistic-art-cohort"><span
+class="toc-section-number">2</span> 2 Simulating a Realistic ART
+Cohort</a></li>
+<li><a href="#define-shift-functions-static-dynamic-stochastic"
+id="toc-define-shift-functions-static-dynamic-stochastic"><span
+class="toc-section-number">3</span> 3 Define Shift Functions (Static,
+Dynamic, Stochastic)</a></li>
+<li><a href="#super-learner-library-via-sl3"
+id="toc-super-learner-library-via-sl3"><span
+class="toc-section-number">4</span> 4 Super Learner Library via
+<strong>sl3</strong></a></li>
+<li><a href="#fit-sdrtmle-under-natural-course-interventions"
+id="toc-fit-sdrtmle-under-natural-course-interventions"><span
+class="toc-section-number">5</span> 5 Fit SDR‑TMLE under Natural Course
+&amp; Interventions</a></li>
+<li><a href="#results" id="toc-results"><span
+class="toc-section-number">6</span> 6 Results</a></li>
+<li><a href="#sensitivity-varying-the-threshold"
+id="toc-sensitivity-varying-the-threshold"><span
+class="toc-section-number">7</span> 7 Sensitivity: Varying the
+Threshold</a></li>
+<li><a href="#discussion" id="toc-discussion"><span
+class="toc-section-number">8</span> 8 Discussion</a></li>
+<li><a href="#references" id="toc-references"><span
+class="toc-section-number">9</span> 9 References</a></li>
+</ul>
+</div>
+
+<blockquote>
+<p><strong>Goal.</strong> Walk through a <em>complete</em>
+causal‐inference pipeline for the question:</p>
+<blockquote>
+<p><em>Is Antiretroviral Regimen 1 virologically superior to
+Regimens 2–n when we account for dynamic adherence patterns? At what
+adherence threshold is it still “forgiving” ?</em></p>
+</blockquote>
+<p>We (i) simulate realistic longitudinal data, (ii) define static,
+dynamic <strong>and</strong> stochastic adherence interventions, and
+(iii) estimate 1‑year risk &amp; risk‑differences with
+{lmtp} (v≥1.1).</p>
+</blockquote>
+<div id="roadmap-for-a-longitudinal-causal-question"
+class="section level2" number="1">
+<h2><span class="header-section-number">1</span> 1 Road‑map for a
+Longitudinal Causal Question</h2>
+<table>
+<colgroup>
+<col width="44%" />
+<col width="55%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">Road‑map Step</th>
+<th>Our specification</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right"><strong>1a Question</strong></td>
+<td><em>Adherence forgiveness</em>: “Had everyone initiated Regimen 1
+(vs. observed comparators) <strong>and</strong> we dynamically boosted
+each 90‑day block’s adherence (<code>PDCᵗ</code>) to ≥ ϑ, what is the
+12‑mo risk of virologic failure?”</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Population</strong></td>
+<td>Adults starting <em>any</em> first‑line ART in an integrated
+EHR/claims DB</td>
+</tr>
+<tr class="odd">
+<td align="right"><strong>Treatment nodes <code>Aₜ</code></strong></td>
+<td>Indicator that current regimen is <strong>Regimen 1</strong> (1) or
+another comparator (0) at start of each 90‑day block
+(<code>t = 0,…,K−1</code>)</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Time‑varying <code>Lₜ</code></strong></td>
+<td>Last‑block % days‑covered (<code>PDCᵗ₋¹</code>), log viral‑load,
+creatinine, comorbidity flare score</td>
+</tr>
+<tr class="odd">
+<td align="right"><strong>Outcome <code>Y</code></strong></td>
+<td>Viral‑suppression failure at 12 months (VL &gt; 200 copies/ml)</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Censoring <code>Cₜ</code></strong></td>
+<td>Loss to FU, death, regimen discontinuation</td>
+</tr>
+<tr class="odd">
+<td align="right"><strong>Estimand</strong></td>
+<td><span
+class="math inline">\(\,\psi(\vartheta)=\Pr\bigl\{Y^{d_{\vartheta}}=1\bigr\}\)</span>
+under the MTP that raises <code>PDCᵗ</code> to ≥ ϑ whenever below</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Identification</strong></td>
+<td>Sequential exchangeability, positivity, consistency</td>
+</tr>
+<tr class="odd">
+<td align="right"><strong>Estimation</strong></td>
+<td><code>lmtp_sdr()</code> (sequentially doubly‑robust) with
+<strong>sl3</strong> Super Learner</td>
+</tr>
+<tr class="even">
+<td align="right"><strong>Sensitivity</strong></td>
+<td>Vary ϑ ∈ {0.5, 0.7, 0.9}; IPCW for LTFU; alternative VL
+thresholds</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="simulating-a-realistic-art-cohort" class="section level2"
+number="2">
+<h2><span class="header-section-number">2</span> 2 Simulating a
+Realistic ART Cohort</h2>
+<p>We create 5 blocks (<code>K = 5</code>, i.e. 15 months) so the last
+viral‑load occurs ≈ 12 mo.</p>
+<pre class="r"><code>library(tidyverse)
+library(data.table)
+
+sim_dat &lt;- function(N = 4000, K = 5, censor_prob = .15, seed = 123) {
+  
+  set.seed(seed)
+  
+  ## -------- baseline ---------------------------------------------------
+  id  &lt;- 1:N
+  age &lt;- rnorm(N, 45, 10)
+  sex &lt;- rbinom(N, 1, 0.4)
+  cd4 &lt;- pmax(50, rnorm(N, 500, 150))
+  
+  DT  &lt;- CJ(id, t = 0:(K - 1))
+  DT  &lt;- merge(DT, data.table(id, age, sex, cd4), by = &quot;id&quot;)
+  
+  ## -------- block 0 ----------------------------------------------------
+  DT[t == 0, `:=`(
+    A    = rbinom(.N, 1, plogis(0.5 - 0.01 * age + 0.5 * sex)),
+    PDC  = runif(.N, .5, 1)
+  )]
+  
+  ## -------- iterate blocks 1 … K-1 ------------------------------------
+  for (tt in 1:(K - 1)) {
+    
+    ## lag from previous block
+    lag &lt;- DT[t == tt - 1,
+              .(id,
+                A_prev   = A,
+                PDC_prev = PDC)]
+    
+    DT &lt;- merge(DT, lag, by = &quot;id&quot;, all.x = TRUE)
+    
+    ## treatment switching uses lagged vars
+    DT[t == tt,
+       A := rbinom(.N, 1,
+                   plogis(1.5 * A_prev -
+                            3 * (PDC_prev &lt; .6) -
+                            0.01 * age))]
+    
+    ## new current adherence
+    DT[t == tt,
+       PDC := pmin(1,
+                   pmax(0,
+                        rnorm(.N,
+                              0.85 * A + 0.6 * (1 - A), .2)))]
+    
+    ## drop the temporary lags
+    DT[, c(&quot;A_prev&quot;, &quot;PDC_prev&quot;) := NULL]
+  }
+  
+  ## -------- viral load &amp; outcome --------------------------------------
+  DT[, VL := rnorm(.N, 4 - 1.2 * A - 2 * PDC, 0.6)]
+  
+  Y &lt;- DT[t == K - 1,
+          .(id,
+            Y = rbinom(.N, 1,
+                       plogis(-3 - 0.4 * A - 2 * PDC + 0.3 * (VL &gt; 4))))]
+  
+  ## -------- censoring --------------------------------------------------
+  drop &lt;- data.table(id,
+                     t_cens = rbinom(N, 1, censor_prob) *
+                       sample(1:K, N, TRUE))
+  
+  DT &lt;- merge(DT, drop, by = &quot;id&quot;)
+  DT[, C := as.integer(t &gt;= t_cens &amp; t_cens &gt; 0)]
+  DT[, t_cens := NULL]
+  
+  ## -------- merge outcome, order, return ------------------------------
+  long &lt;- merge(DT, Y, by = &quot;id&quot;)
+  setorder(long, id, t)
+  
+  long &lt;- as.data.frame(long)
+  return(long[])
+}
+
+## test
+long_dat &lt;- sim_dat() %&gt;% as.data.frame()</code></pre>
+</div>
+<div id="define-shift-functions-static-dynamic-stochastic"
+class="section level2" number="3">
+<h2><span class="header-section-number">3</span> 3 Define Shift
+Functions (Static, Dynamic, Stochastic)</h2>
+<pre class="r"><code>library(lmtp)
+# 3.1 Dynamic “boost-to-threshold” (MTP)
+make_dyn &lt;- function(thr=.8){
+  function(data, trt){
+    pdc &lt;- data[[gsub(&quot;^A&quot;,&quot;PDC_prev&quot;, trt)]]
+    at  &lt;- data[[trt]]
+    ifelse(pdc &lt; thr, 1, at)   # force Regimen 1 when adherence low
+  }
+}
+
+# 3.2 Stochastic shift: when pdc&lt;thr, switch to Regimen 1 with prob p
+make_stoch &lt;- function(thr=.8, p=.7){
+  function(data, trt){
+    pdc &lt;- data[[gsub(&quot;^A&quot;,&quot;PDC_prev&quot;, trt)]]
+    at  &lt;- data[[trt]]
+    need&lt;- (pdc &lt; thr)
+    flip&lt;- rbinom(length(at),1,p)
+    ifelse(need &amp; flip==1, 1, at)
+  }
+}</code></pre>
+</div>
+<div id="super-learner-library-via-sl3" class="section level2"
+number="4">
+<h2><span class="header-section-number">4</span> 4 Super Learner Library
+via <strong>sl3</strong></h2>
+<pre class="r"><code>library(SuperLearner)
+sl_lib &lt;- c(&quot;SL.glm&quot;)</code></pre>
+</div>
+<div id="fit-sdrtmle-under-natural-course-interventions"
+class="section level2" number="5">
+<h2><span class="header-section-number">5</span> 5 Fit SDR‑TMLE under
+Natural Course &amp; Interventions</h2>
+<pre class="r"><code># Map time‑varying covariates into list-of-lists for lmtp
+Lnodes &lt;- list( c(&quot;PDC&quot;))
+
+# Natural course (reference)
+fit_nat &lt;- lmtp_sdr(
+  data          = long_dat,
+  id            = &quot;id&quot;, 
+  trt           = &quot;A&quot;,                 # single treatment col in long data
+  outcome       = &quot;Y&quot;,                 # third argument
+  baseline      = c(&quot;age&quot;, &quot;sex&quot;, &quot;cd4&quot;),
+  time_vary     = Lnodes,              # list of time-varying covars
+  cens     = &quot;C&quot;,                 # name of censoring column
+  outcome_type  = &quot;binomial&quot;,
+  folds         = 5,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib
+)
+
+# Dynamic thr=0.8
+fit_dyn &lt;- lmtp_sdr(
+  data          = long_dat,
+  id            = &quot;id&quot;,
+  trt           = &quot;A&quot;,          # &lt;-- one column
+  outcome       = &quot;Y&quot;,
+  baseline      = c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;),
+  time_vary     = Lnodes,       # list of &quot;PDC&quot; or &quot;PDC_prev&quot;
+  cens     = &quot;C&quot;,          # &lt;-- one column
+  shift         = make_dyn(.8),
+  outcome_type  = &quot;binomial&quot;,
+  folds         = 5,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib
+)
+
+# Stochastic (thr=0.8, p=0.7)
+fit_sto &lt;- lmtp_sdr(long_dat, &quot;Y&quot;, trt_nodes,
+                    baseline = c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;),
+                    time_vary = Lnodes,
+                    censoring = cen_nodes,
+                    shift = make_stoch(.8,.7),
+                    outcome_type = &quot;binomial&quot;,
+                    folds = 5,
+                    learners_trt = sl_lib,
+                    learners_outcome = sl_lib)</code></pre>
+</div>
+<div id="results" class="section level2" number="6">
+<h2><span class="header-section-number">6</span> 6 Results</h2>
+<pre class="r"><code>print(summary(fit_nat))
+print(summary(fit_dyn))
+print(lmtp_contrast(fit_dyn, fit_nat, type = &quot;diff&quot;))
+print(summary(fit_sto))</code></pre>
+<p><em>Interpretation</em>   <code>lmtp_contrast()</code> shows the
+<strong>risk difference</strong> if we had ensured ≥80 % adherence each
+block. A negative RD ⇒ fewer failures (better suppression) under the
+dynamic boost.</p>
+</div>
+<div id="sensitivity-varying-the-threshold" class="section level2"
+number="7">
+<h2><span class="header-section-number">7</span> 7 Sensitivity: Varying
+the Threshold</h2>
+<pre class="r"><code>ths &lt;- c(.5,.7,.9)
+cts &lt;- lapply(ths, function(th){
+  f &lt;- lmtp_sdr(long_dat,&quot;Y&quot;,trt_nodes,
+                baseline=c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;), time_vary=Lnodes,
+                censoring=cen_nodes, shift=make_dyn(th),
+                outcome_type=&quot;binomial&quot;, folds=5,
+                learners_trt=sl_lib, learners_outcome=sl_lib)
+  data.frame(th=th, psi = f$estimates$theta, se=f$estimates$std.error)
+})
+knitr::kable(do.call(rbind, cts), digits=3)</code></pre>
+</div>
+<div id="discussion" class="section level2" number="8">
+<h2><span class="header-section-number">8</span> 8 Discussion</h2>
+<ul>
+<li><strong>Dynamic vs. stochastic</strong>: Dynamic MTPs enforce a
+deterministic rule; stochastic shifts can mimic partial program
+uptake.</li>
+<li><strong>Why SDR/TMLE?</strong> Doubly‑robust + efficient in large
+models; compatible for ≥90‑day blocks; easy Super Learner
+integration.</li>
+<li><strong>Limitations</strong>: Requires positivity (<code>PDC</code>
+boosted for <em>some</em> low‑adherence patients in observed
+data). Outcome measured at a fixed time; extensions exist for restricted
+mean‑time‑to‑suppression.</li>
+</ul>
+</div>
+<div id="references" class="section level2" number="9">
+<h2><span class="header-section-number">9</span> 9 References</h2>
+<ol style="list-style-type: decimal">
+<li>Díaz, I., &amp; van der Laan, M. (2021). <em>Non‑parametric causal
+effects based on longitudinal modified treatment
+policies.</em> JASA.</li>
+<li>Young, J. G., et al. (2020). <em>A causal roadmap for generating
+high‑quality real‑world evidence.</em> JCTS.</li>
+<li>Rudolph, K., et al. (2022). <em>lmtp: An R package for longitudinal
+modified treatment policies.</em></li>
+</ol>
+<pre><code>## R version 4.4.2 (2024-10-31 ucrt)
+## Platform: x86_64-w64-mingw32/x64
+## Running under: Windows 11 x64 (build 26100)
+## 
+## Matrix products: default
+## 
+## 
+## locale:
+## [1] LC_COLLATE=English_United States.utf8 
+## [2] LC_CTYPE=English_United States.utf8   
+## [3] LC_MONETARY=English_United States.utf8
+## [4] LC_NUMERIC=C                          
+## [5] LC_TIME=English_United States.utf8    
+## 
+## time zone: America/Los_Angeles
+## tzcode source: internal
+## 
+## attached base packages:
+## [1] splines   stats     graphics  grDevices utils     datasets  methods  
+## [8] base     
+## 
+## other attached packages:
+##  [1] SuperLearner_2.0-29 gam_1.22-5          foreach_1.5.2      
+##  [4] nnls_1.6            lmtp_1.5.0          data.table_1.16.2  
+##  [7] lubridate_1.9.3     forcats_1.0.0       stringr_1.5.1      
+## [10] dplyr_1.1.4         purrr_1.0.2         readr_2.1.5        
+## [13] tidyr_1.3.1         tibble_3.2.1        ggplot2_3.5.1      
+## [16] tidyverse_2.0.0    
+## 
+## loaded via a namespace (and not attached):
+##  [1] future_1.34.0       sass_0.4.9          utf8_1.2.4         
+##  [4] generics_0.1.3      stringi_1.8.4       listenv_0.9.1      
+##  [7] hms_1.1.3           digest_0.6.37       magrittr_2.0.3     
+## [10] evaluate_1.0.1      grid_4.4.2          timechange_0.3.0   
+## [13] iterators_1.0.14    fastmap_1.2.0       jsonlite_1.8.9     
+## [16] backports_1.5.0     origami_1.0.7       fansi_1.0.6        
+## [19] scales_1.3.0        codetools_0.2-20    jquerylib_0.1.4    
+## [22] abind_1.4-8         cli_3.6.3           rlang_1.1.4        
+## [25] future.apply_1.11.3 parallelly_1.39.0   munsell_0.5.1      
+## [28] withr_3.0.2         cachem_1.1.0        yaml_2.3.10        
+## [31] parallel_4.4.2      tools_4.4.2         tzdb_0.4.0         
+## [34] checkmate_2.3.2     colorspace_2.1-1    globals_0.16.3     
+## [37] assertthat_0.2.1    vctrs_0.6.5         R6_2.5.1           
+## [40] lifecycle_1.0.4     pkgconfig_2.0.3     pillar_1.9.0       
+## [43] bslib_0.8.0         gtable_0.3.6        glue_1.8.0         
+## [46] xfun_0.49           tidyselect_1.2.1    rstudioapi_0.17.1  
+## [49] knitr_1.49          htmltools_0.5.8.1   rmarkdown_2.29     
+## [52] compiler_4.4.2</code></pre>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

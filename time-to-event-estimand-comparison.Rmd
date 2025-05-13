@@ -261,6 +261,152 @@ One should always perform diagnostics on the weights; if weights are extreme or 
 
 When done properly, IPCW is regarded as a reliable method in causal inference to handle time-varying treatment and censoring. It's one of the simpler g-methods (others include g-formula and marginal structural models) that can recover the causal estimand of interest.
 
-In the context of AKI, IPCW would allow us to say: "Based on observational data,
+In the context of AKI, IPCW would allow us to say: "Based on observational data, after adjusting for who tends to switch when, Drug A (always used) leads to X% incidence of AKI by 1 year, versus Drug B (always used) leads to Y%" – a statement about causal effects as if we intervened to prevent switching. Without IPCW, we either couldn't make that statement (ITT gives a different one) or we'd make it with bias (naive censoring).
 
+Therefore, IPCW is a crucial tool for unbiased causal estimation in the presence of treatment switching, given appropriate conditions.
 
+### When to Use IPCW
+
+IPCW is appropriate whenever you need to estimate a causal effect in a survival analysis with informative censoring or non-adherence. In an observational drug comparison with possible switching, if your aim is to determine the effect of each drug as if patients had stayed on it, IPCW is the recommended approach (assuming you have data on the reasons/determinants of switching).
+
+Use IPCW when switching is relatively common or believed to be confounded with patient prognosis, and you have collected sufficient covariate information to model that switching. It's particularly useful in pharmacoepidemiology studies or pragmatic trials where patients may cross over to alternative therapies.
+
+Regulatory science and the ICH E9 addendum encourage defining estimands like the hypothetical no-switch scenario, and IPCW is a method aligned with that goal.
+
+For example, if a new drug is being evaluated but many control patients switched to it mid-study, regulators might ask: "what is the benefit of the new drug if no one had switched from control to new?" – IPCW could answer that.
+
+In observational settings, consider IPCW if simple analyses give conflicting results or if you suspect the observed outcome difference is being suppressed by treatment changes. It is also indicated if you find that baseline or time-varying factors strongly predict switching (meaning naive per-protocol will be biased – a prime case for IPCW).
+
+However, IPCW may not be necessary if switching is very rare or occurs late (ITT may suffice), or if you genuinely believe switching is random/unrelated to outcomes (then a simpler censoring might do).
+
+Another consideration: IPCW requires adequate sample size and covariate data; if these are lacking, the method might yield unstable results.
+
+When using IPCW, it is good practice to report how well the model predicted switching (e.g. C-statistic), how the weights behaved (mean, range), and maybe perform sensitivity analysis to unmeasured confounding.
+
+In summary, use IPCW to obtain an unbiased per-protocol causal effect when treatment switching is present, especially if you want to answer a "what-if" policy question about eliminating switching, and you have confidence in your ability to model the switching process.
+
+## Summary and Context
+
+In an observational time-to-event analysis of two drugs with possible switching, each estimand addresses a different causal question:
+
+**ITT estimand**: "What is the effect of starting Drug A versus Drug B on time to AKI, allowing patients to switch as they did in reality?" – This is a treatment policy effect that is straightforward to estimate (just compare groups by initial drug) but includes the diluting impact of switching. It requires only baseline comparability for validity. ITT is robust to biases from post-baseline events but does not reflect the pure effect of continuous treatment.
+
+**Censor-at-switch estimand**: "What is the effect of Drug A vs Drug B on time to AKI while patients adhere to the initial drug (censoring them if they switch)?" – This aims at a per-protocol effect but relies on the assumption that switching is not biasing the comparison. It's easy to implement but can mislead if switching is influenced by patient risk. Use it cautiously, typically as a secondary analysis or if you have reason to believe censoring is approximately non-informative.
+
+**IPCW estimand**: "What would the effect on time to AKI be if patients never switched from their initial therapy (Drug A vs Drug B)?" – This is a hypothetical causal effect under no switching, estimated via weighting to adjust for selection bias. It requires more assumptions (no unmeasured confounding for switching, correct models) but, if done properly, yields a credible estimate of the causal effect of continuous treatment. IPCW effectively fixes the bias that a censor-at-switch analysis would have, providing a more valid per-protocol comparison.
+
+Choosing among these estimands depends on the study objective. If the goal is a real-world effectiveness measure or if policy-makers want to know the overall outcome with current practice (where switching happens), the ITT approach is appropriate. If the goal is to understand the drugs' effects absent switching (e.g. for mechanistic insight or efficacy), one should target the hypothetical no-switch estimand – and IPCW is a rigorous way to do that.
+
+A naive per-protocol (censoring) is generally not sufficient for causal inference unless one is comfortable assuming no bias from switching; IPCW is preferable for unbiased results in most cases.
+
+Often, researchers will report both ITT and weighted per-protocol results: ITT to describe the effect in practice, and IPCW to estimate the effect if patients had adhered to initial therapy. Discrepancies between them can be informative. For instance, a much stronger effect in the IPCW analysis (compared to ITT) suggests that switching diluted the effect, implying that maintaining the original therapy has a big impact on outcomes.
+
+In conclusion, handling treatment switching in a time-to-event analysis requires clarity about the estimand of interest. ITT, censoring at switch, and IPCW each answer different questions about the comparative effect of two drugs on AKI. An epidemiologist or biostatistician should weigh the assumptions and relevance of each estimand: ITT for robustness and pragmatic interpretation, IPCW for causal precision under a no-switch scenario, and simple censoring mainly as a pedagogical or exploratory tool. By understanding these approaches, one can correctly interpret results and avoid biased conclusions when patients switch therapies during follow-up.
+
+## An Example in R
+
+This is a simplified example of implementing these three approaches in R. Note that the code is not evaluated (`eval=F`).
+
+```{r, eval=F}
+# Load necessary packages
+library(survival)
+library(ipw)     # For IPCW
+library(ggplot2)
+library(dplyr)
+
+# Assume we have a dataset 'aki_data' with:
+# - patient_id: unique identifier
+# - treatment: initial drug (A=1, B=0)
+# - start_time: time of treatment initiation
+# - switch_time: time of switching (NA if no switch)
+# - switch: indicator if patient switched (1=yes, 0=no)
+# - event_time: time to AKI event or censoring
+# - event: AKI event indicator (1=yes, 0=no/censored)
+# - plus baseline covariates (age, sex, baseline_egfr, etc.)
+# - plus time-varying covariates (creatinine_change, etc.)
+
+# 1. ITT Analysis
+itt_model <- coxph(Surv(event_time, event) ~ treatment + age + sex + baseline_egfr, 
+                  data = aki_data)
+summary(itt_model)
+
+# Visualize ITT survival curves 
+itt_surv <- survfit(Surv(event_time, event) ~ treatment, data = aki_data)
+plot(itt_surv, col=c("blue", "red"), xlab="Time (days)", ylab="AKI-free probability",
+     main="ITT Survival Curves")
+legend("topright", c("Drug B", "Drug A"), col=c("blue", "red"), lty=1)
+
+# 2. Censoring at Switch Analysis
+# Create a dataset where follow-up ends at switching
+aki_cens <- aki_data %>%
+  mutate(
+    # If switched, event time is min of switch time or original event time
+    cens_event_time = ifelse(!is.na(switch_time), 
+                             pmin(switch_time, event_time), 
+                             event_time),
+    # If switched before event, then censored
+    cens_event = ifelse(!is.na(switch_time) & switch_time <= event_time, 
+                        0, 
+                        event)
+  )
+
+# Fit Cox model with censoring at switch
+cens_model <- coxph(Surv(cens_event_time, cens_event) ~ treatment + age + sex + baseline_egfr, 
+                   data = aki_cens)
+summary(cens_model)
+
+# 3. IPCW Analysis
+# First, create a person-period dataset (for time-varying covariates)
+# This would require expanding the dataset to multiple rows per patient
+# Simplified here for illustration
+
+# Step 1: Fit a model for the probability of switching
+switch_model <- coxph(Surv(pmin(event_time, switch_time), switch) ~ 
+                     treatment + age + sex + baseline_egfr + creatinine_change, 
+                     data = aki_data)
+
+# Step 2: Predict censoring weights
+# Note: In practice, this requires careful stabilization and more steps
+# This is simplified for illustration
+aki_data$switch_prob <- 1 - predict(switch_model, type = "expected") 
+aki_data$ipcw_weight <- 1 / aki_data$switch_prob
+
+# Step 3: Fit weighted Cox model with censoring at switch
+ipcw_model <- coxph(Surv(cens_event_time, cens_event) ~ treatment + age + sex + baseline_egfr,
+                    data = aki_cens,
+                    weights = ipcw_weight)
+summary(ipcw_model)
+
+# Step 4: Compare results from all three approaches
+results <- data.frame(
+  Method = c("ITT", "Censoring at Switch", "IPCW"),
+  HR = c(exp(coef(itt_model)[1]), 
+         exp(coef(cens_model)[1]), 
+         exp(coef(ipcw_model)[1])),
+  Lower_CI = c(exp(confint(itt_model)[1,1]), 
+              exp(confint(cens_model)[1,1]), 
+              exp(confint(ipcw_model)[1,1])),
+  Upper_CI = c(exp(confint(itt_model)[1,2]), 
+              exp(confint(cens_model)[1,2]), 
+              exp(confint(ipcw_model)[1,2]))
+)
+print(results)
+
+# Diagnostics for IPCW (should be done in practice)
+summary(aki_data$ipcw_weight) # Check for extreme weights
+```
+
+Note: This example is greatly simplified. In practice, IPCW implementation would involve:
+1. Creating a person-period dataset with time-varying covariates
+2. Proper weighting with stabilized weights
+3. Robust variance estimation
+4. Careful diagnostics for weight models
+5. Sensitivity analyses for unmeasured confounding
+
+## References
+
+- Analytical methods for treatment switching and causal inference
+- Examples of ITT vs hypothetical estimands in clinical trials
+- Intention-to-treat principle and treatment policy effects
+- Methodological guidelines for per-protocol analyses
+- Assumptions underlying IPCW estimators

@@ -19,7 +19,7 @@ output:
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, echo = TRUE)
 
 # BONUS: progressr progress bars!
-progressr::handlers(global = TRUE)
+#progressr::handlers(global = TRUE)
 ```
 
 ## 1 Road‑map for a Longitudinal Causal Question
@@ -161,7 +161,7 @@ sl_lib <- c("SL.glm")
 
 ## 5 Fit SDR‑TMLE under Natural Course & Interventions
 
-```{r fit}
+```{r fit, eval=F}
 
 
 # Map time‑varying covariates into list-of-lists for lmtp
@@ -213,7 +213,7 @@ fit_sto <- lmtp_sdr(long_dat, "Y", trt_nodes,
 
 ## 6 Results
 
-```{r results}
+```{r results, eval=F}
 print(summary(fit_nat))
 print(summary(fit_dyn))
 print(lmtp_contrast(fit_dyn, fit_nat, type = "diff"))
@@ -225,7 +225,7 @@ print(summary(fit_sto))
 
 ## 7 Sensitivity: Varying the Threshold
 
-```{r sens}
+```{r sens, eval=F}
 ths <- c(.5,.7,.9)
 cts <- lapply(ths, function(th){
   f <- lmtp_sdr(long_dat,"Y",trt_nodes,
@@ -251,7 +251,3 @@ knitr::kable(do.call(rbind, cts), digits=3)
 1. Díaz, I., & van der Laan, M. (2021). *Non‑parametric causal effects based on longitudinal modified treatment policies.* JASA.
 2. Young, J. G., et al. (2020). *A causal roadmap for generating high‑quality real‑world evidence.* JCTS.
 3. Rudolph, K., et al. (2022). *lmtp: An R package for longitudinal modified treatment policies.*
-
-
-```{r session, echo=FALSE}
-sessionInfo()

@@ -1,6 +1,5 @@
 ---
 title:  "TMLE Diagnostics when Covariate Balance is Poor"
-author: "Your Name"
 date:   "`r Sys.Date()`"
 output: html_document
 ---
@@ -22,7 +21,7 @@ lapply(pkgs, library, character.only = TRUE)
 ```
 
 
-#1 Background: Why TMLE ≠ Propensity-Score Matching
+# Background: Why TMLE ≠ Propensity-Score Matching
 
 Classical propensity-score matching (PSM) forces the marginal distribution of
 baseline covariates W to be the same in treatment (A = 1) and control (A = 0) groups.
@@ -162,10 +161,10 @@ ggplot(data.frame(ic), aes(ic)) +
 
 ### 6.5 E-value
 
-```{r}
-
+```{r, eval=F}
+#debig:
 rd  <- tmle_fit$estimates$ATE["psi"]
-se  <- tmle_fit$estimates$ATE["var.psi"] |> sqrt()
+se  <- sqrt(tmle_fit$estimates$ATE["var.psi"])
 rr  <- 1 + rd / mean(df$Y_180)  # crude conversion
 
 EValue::evalue(est = rr,
