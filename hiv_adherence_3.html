@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Andrew Mertens" />
+
+
+<title>Longitudinal Causal Effect of ART Regimens Under Imperfect Adherence</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="appendix.html">Appendix</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Longitudinal Causal Effect of ART Regimens
+Under Imperfect Adherence</h1>
+<h4 class="author">Andrew Mertens</h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#causal-question-and-intervention-strategies"
+id="toc-causal-question-and-intervention-strategies">Causal Question and
+Intervention Strategies</a></li>
+<li><a href="#target-estimands-risk-difference-and-risk-ratio"
+id="toc-target-estimands-risk-difference-and-risk-ratio">Target
+Estimands: Risk Difference and Risk Ratio</a></li>
+</ul>
+</div>
+
+<div id="causal-question-and-intervention-strategies"
+class="section level2">
+<h2>Causal Question and Intervention Strategies</h2>
+<p>We consider two antiretroviral therapy (ART) regimens (Regimen 1 vs
+Regimen 2) and ask: What is the effect of Regimen 1 compared to Regimen
+2 on the risk of having an unsuppressed viral load (&gt;200 copies/mL)
+at specific follow-up times, in a setting of imperfect adherence? In
+other words, we target the per-protocol (as-treated) causal effect of
+staying on Regimen 1 versus staying on Regimen 2 on the probability of
+viral failure, evaluated at two time points (e.g. 6 months and 12 months
+of follow-up). This contrasts with an intent-to-treat effect: here we
+explicitly account for patients possibly switching or discontinuing
+their assigned regimen (imperfect adherence) in the observed data. Our
+hypothetical intervention is to implement a policy where patients remain
+on one regimen throughout (no switching to the other regimen), and we
+compare the outcomes under Regimen 1 versus Regimen 2 maintained over
+time. The causal question can be phrased as: “What would be the risk of
+viral load &gt;200 copies/mL at 6 and 12 months if all patients followed
+Regimen 1 continuously, versus if all followed Regimen 2
+continuously?”</p>
+<p><strong>Note</strong> Update causal question to reflect the
+comparison under imperfect adherence</p>
+</div>
+<div id="target-estimands-risk-difference-and-risk-ratio"
+class="section level2">
+<h2>Target Estimands: Risk Difference and Risk Ratio</h2>
+<p>We target two marginal causal estimands at each follow-up time of
+interest (e.g. 6 and 12 months): • Risk at time <span
+class="math inline">\(t\)</span> under Regimen 1: <span
+class="math inline">\(P(Y(t)=1 \mid \text{Intervention: Regimen
+1})\)</span>, the proportion of patients with viral load &gt;200
+copies/mL at time <span class="math inline">\(t\)</span> if everyone
+follows Regimen 1. • Risk at time <span class="math inline">\(t\)</span>
+under Regimen 2: <span class="math inline">\(P(Y(t)=1 \mid
+\text{Intervention: Regimen 2})\)</span>, defined analogously under
+Regimen 2. From these, we define: - Risk Difference at time <span
+class="math inline">\(t\)</span>: <span
+class="math inline">\(\text{RD}(t) = P(Y(t)=1 \mid \text{Regimen 1})
+\;-\; P(Y(t)=1 \mid \text{Regimen 2})\)</span>. This is the absolute
+difference in viral failure risk between the two regimens at time <span
+class="math inline">\(t\)</span>. - Risk Ratio at time <span
+class="math inline">\(t\)</span>: <span
+class="math inline">\(\text{RR}(t) = \frac{P(Y(t)=1 \mid \text{Regimen
+1})}{P(Y(t)=1 \mid \text{Regimen 2})}\)</span>. This is the relative
+risk of viral failure on Regimen 1 compared to Regimen 2 at time <span
+class="math inline">\(t\)</span>. We will estimate these quantities at
+two specific follow-up times: <span class="math inline">\(t=2\)</span>
+(e.g. 6 months) and <span class="math inline">\(t=4\)</span> (e.g. 12
+months). For example, <span class="math inline">\(\text{RD}(2)\)</span>
+is the difference in 6-month viral failure risk between Regimen 1 vs
+Regimen 2, and <span class="math inline">\(\text{RD}(4)\)</span> is the
+difference in 12-month risk. Similarly, <span
+class="math inline">\(\text{RR}(2)\)</span> and <span
+class="math inline">\(\text{RR}(4)\)</span> compare the 6-month and
+12-month risks on the two regimens. These estimands are marginal
+(population-averaged) effects, appropriate for policy decisions. We
+prefer risk differences and ratios at fixed times (instead of, say,
+hazard ratios) because they are more interpretable as absolute and
+relative effects on viral failure probability[3][4].</p>
+<pre class="r"><code>set.seed(123)  # for reproducibility
+n &lt;- 1000      # sample size
+
+# Simulate baseline covariate
+W &lt;- rnorm(n, mean=0, sd=1)  # e.g. a continuous risk factor
+
+# Baseline regimen assignment (randomized 1 vs 2 with 50/50 probability)
+A1 &lt;- rbinom(n, size=1, prob=0.5) + 1  # generates 1 or 2 with equal prob
+
+# Covariate at time 1 (L2), influenced by W and A1 (e.g., side effect or marker)
+L2 &lt;- 0.5*W - 0.5*(A1==1) + rnorm(n, 0, 1)
+# (If A1==1, subtracting 0.5 means regimen1 tends to yield lower L2 on average, perhaps indicating better health)
+
+# Regimen at time 1 (A2): probability of staying on initial regimen vs switching
+# Model: logistic, more likely to switch if L2 is high (indicating trouble)
+p_switch &lt;- plogis( -1.5 + 1.0*L2 )  # higher L2 -&gt; higher p(switch)
+# If A1 was 1, switching means A2 becomes 2. If A1 was 2, switching means A2 becomes 1.
+# We&#39;ll generate A2 with that logic:
+A2 &lt;- A1  # start with same regimen
+switch_flag &lt;- rbinom(n, 1, p_switch)  # who switches at time1
+A2[switch_flag==1] &lt;- 3 - A1[switch_flag==1]  # flip 1 to 2 or 2 to 1 for switchers
+
+# (If we were doing 4-point simulation, continue similarly:)
+# Simulate L3 at time 2:
+L3 &lt;- 0.3*W - 0.5*(A2==1) + 0.2*L2 + rnorm(n,0,1)
+# Regimen at time 2 (A3):
+p_switch2 &lt;- plogis( -1 + 0.8*L3 )
+A3 &lt;- A2
+switch_flag2 &lt;- rbinom(n, 1, p_switch2)
+A3[switch_flag2==1] &lt;- 3 - A2[switch_flag2==1]
+
+# Simulate L4 at time 3:
+L4 &lt;- 0.3*W - 0.5*(A3==1) + 0.2*L3 + rnorm(n,0,1)
+# Regimen at time 3 (A4):
+p_switch3 &lt;- plogis( -1 + 0.8*L4 )
+A4 &lt;- A3
+switch_flag3 &lt;- rbinom(n, 1, p_switch3)
+A4[switch_flag3==1] &lt;- 3 - A3[switch_flag3==1]
+
+# Now simulate survival (censoring) and outcome:
+# Death by time2
+p_death2 &lt;- plogis( -3 + 0.5*W )       # baseline risk of death by 6 months (rare ~ few %)
+death_by2 &lt;- rbinom(n, 1, p_death2)
+# Death between time2 and time4 (for those alive at time2)
+p_death4 &lt;- plogis( -3 + 0.5*W )       # similarly small
+death_by4 &lt;- rbinom(n, 1, p_death4)
+# Now define censoring indicators:
+C1 &lt;- ifelse(death_by2==1, 0, 1)       # observed past baseline
+C2 &lt;- ifelse(death_by2==1, 0, 1)       # observed past time1 (if died by time2, C2=0)
+# For extended times:
+C3 &lt;- ifelse(death_by2==1 | (death_by2==0 &amp; death_by4==1), 0, 1)  # observed past time2
+C4 &lt;- ifelse(death_by2==1 | (death_by4==1), 0, 1)                 # observed past time3
+# (Note: If died by 6m, they wouldn&#39;t be observed at 9m or 12m; if died between 6 and 12m, they have C3=1, C4=0.)
+
+# Outcome generation (viral failure):
+# We determine if they had viral &gt;200 by 6m and by 12m.
+# Fail by 6m (Y2) if not dead:
+logit_p_fail2 &lt;- -1 + 0.8*W - 1.0*(A1==1)  # Regimen1 lowers log-odds of failure
+p_fail2 &lt;- plogis(logit_p_fail2)
+Y2 &lt;- rbinom(n, 1, p_fail2)
+Y2[death_by2==1] &lt;- NA  # if died before 6m, outcome not observed
+
+# Fail by 12m (by end of study) if not failed by 6m and not dead:
+logit_p_fail4 &lt;- -1 + 0.8*W - 1.0*(A1==1)  # baseline regimen effect persists
+# We allow additional failures between 6 and 12m among those who didn&#39;t fail at 6m:
+p_fail4 &lt;- plogis(logit_p_fail4)
+Y4_extra &lt;- rbinom(n, 1, p_fail4)
+# Define final outcome Y:
+Y &lt;- ifelse(!is.na(Y2) &amp; Y2==1, 1, 0)  # if failed by 6m, consider them failed by 12m as well
+# For those who did not fail by 6m:
+Y[!is.na(Y2) &amp; Y2==0] &lt;- Y4_extra[!is.na(Y2) &amp; Y2==0]
+# Those who died by 12m without failing:
+Y[death_by2==0 &amp; death_by4==1] &lt;- NA  # died after 6m, no fail observed by death, censor outcome
+# If died by 6m, already set NA above.
+
+# Assemble final data frames:
+data_2point &lt;- data.frame(W, A1, L2, A2, C1, C2, Y = Y2)
+data_4point &lt;- data.frame(W, A1, L2, A2, L3, A3, L4, A4, C1, C2, C3, C4, Y)</code></pre>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("show" === "show");
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

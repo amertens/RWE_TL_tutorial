@@ -1,0 +1,149 @@
+---
+title: "Longitudinal Causal Effect of ART Regimens Under Imperfect Adherence"
+author: "Andrew Mertens"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    code_folding: show
+---
+
+
+## Causal Question and Intervention Strategies
+
+We consider two antiretroviral therapy (ART) regimens (Regimen 1 vs Regimen 2) and ask: What is the effect of Regimen 1 compared to Regimen 2 on the risk of having an unsuppressed viral load (>200 copies/mL) at specific follow-up times, in a setting of imperfect adherence? In other words, we target the per-protocol (as-treated) causal effect of staying on Regimen 1 versus staying on Regimen 2 on the probability of viral failure, evaluated at two time points (e.g. 6 months and 12 months of follow-up). This contrasts with an intent-to-treat effect: here we explicitly account for patients possibly switching or discontinuing their assigned regimen (imperfect adherence) in the observed data. Our hypothetical intervention is to implement a policy where patients remain on one regimen throughout (no switching to the other regimen), and we compare the outcomes under Regimen 1 versus Regimen 2 maintained over time. The causal question can be phrased as: “What would be the risk of viral load >200 copies/mL at 6 and 12 months if all patients followed Regimen 1 continuously, versus if all followed Regimen 2 continuously?”
+
+**Note** Update causal question to reflect the comparison under imperfect adherence
+
+## Target Estimands: Risk Difference and Risk Ratio
+
+We target two marginal causal estimands at each follow-up time of interest (e.g. 6 and 12 months):
+•	Risk at time $t$ under Regimen 1: $P(Y(t)=1 \mid \text{Intervention: Regimen 1})$, the proportion of patients with viral load >200 copies/mL at time $t$ if everyone follows Regimen 1.
+•	Risk at time $t$ under Regimen 2: $P(Y(t)=1 \mid \text{Intervention: Regimen 2})$, defined analogously under Regimen 2.
+From these, we define: - Risk Difference at time $t$: $\text{RD}(t) = P(Y(t)=1 \mid \text{Regimen 1}) \;-\; P(Y(t)=1 \mid \text{Regimen 2})$. This is the absolute difference in viral failure risk between the two regimens at time $t$. - Risk Ratio at time $t$: $\text{RR}(t) = \frac{P(Y(t)=1 \mid \text{Regimen 1})}{P(Y(t)=1 \mid \text{Regimen 2})}$. This is the relative risk of viral failure on Regimen 1 compared to Regimen 2 at time $t$.
+We will estimate these quantities at two specific follow-up times: $t=2$ (e.g. 6 months) and $t=4$ (e.g. 12 months). For example, $\text{RD}(2)$ is the difference in 6-month viral failure risk between Regimen 1 vs Regimen 2, and $\text{RD}(4)$ is the difference in 12-month risk. Similarly, $\text{RR}(2)$ and $\text{RR}(4)$ compare the 6-month and 12-month risks on the two regimens. These estimands are marginal (population-averaged) effects, appropriate for policy decisions. We prefer risk differences and ratios at fixed times (instead of, say, hazard ratios) because they are more interpretable as absolute and relative effects on viral failure probability[3][4].
+
+
+
+```{r}
+set.seed(123)  # for reproducibility
+n <- 1000      # sample size
+
+# Simulate baseline covariate
+W <- rnorm(n, mean=0, sd=1)  # e.g. a continuous risk factor
+
+# Baseline regimen assignment (randomized 1 vs 2 with 50/50 probability)
+A1 <- rbinom(n, size=1, prob=0.5) + 1  # generates 1 or 2 with equal prob
+
+# Covariate at time 1 (L2), influenced by W and A1 (e.g., side effect or marker)
+L2 <- 0.5*W - 0.5*(A1==1) + rnorm(n, 0, 1)
+# (If A1==1, subtracting 0.5 means regimen1 tends to yield lower L2 on average, perhaps indicating better health)
+
+# Regimen at time 1 (A2): probability of staying on initial regimen vs switching
+# Model: logistic, more likely to switch if L2 is high (indicating trouble)
+p_switch <- plogis( -1.5 + 1.0*L2 )  # higher L2 -> higher p(switch)
+# If A1 was 1, switching means A2 becomes 2. If A1 was 2, switching means A2 becomes 1.
+# We'll generate A2 with that logic:
+A2 <- A1  # start with same regimen
+switch_flag <- rbinom(n, 1, p_switch)  # who switches at time1
+A2[switch_flag==1] <- 3 - A1[switch_flag==1]  # flip 1 to 2 or 2 to 1 for switchers
+
+# (If we were doing 4-point simulation, continue similarly:)
+# Simulate L3 at time 2:
+L3 <- 0.3*W - 0.5*(A2==1) + 0.2*L2 + rnorm(n,0,1)
+# Regimen at time 2 (A3):
+p_switch2 <- plogis( -1 + 0.8*L3 )
+A3 <- A2
+switch_flag2 <- rbinom(n, 1, p_switch2)
+A3[switch_flag2==1] <- 3 - A2[switch_flag2==1]
+
+# Simulate L4 at time 3:
+L4 <- 0.3*W - 0.5*(A3==1) + 0.2*L3 + rnorm(n,0,1)
+# Regimen at time 3 (A4):
+p_switch3 <- plogis( -1 + 0.8*L4 )
+A4 <- A3
+switch_flag3 <- rbinom(n, 1, p_switch3)
+A4[switch_flag3==1] <- 3 - A3[switch_flag3==1]
+
+# Now simulate survival (censoring) and outcome:
+# Death by time2
+p_death2 <- plogis( -3 + 0.5*W )       # baseline risk of death by 6 months (rare ~ few %)
+death_by2 <- rbinom(n, 1, p_death2)
+# Death between time2 and time4 (for those alive at time2)
+p_death4 <- plogis( -3 + 0.5*W )       # similarly small
+death_by4 <- rbinom(n, 1, p_death4)
+# Now define censoring indicators:
+C1 <- ifelse(death_by2==1, 0, 1)       # observed past baseline
+C2 <- ifelse(death_by2==1, 0, 1)       # observed past time1 (if died by time2, C2=0)
+# For extended times:
+C3 <- ifelse(death_by2==1 | (death_by2==0 & death_by4==1), 0, 1)  # observed past time2
+C4 <- ifelse(death_by2==1 | (death_by4==1), 0, 1)                 # observed past time3
+# (Note: If died by 6m, they wouldn't be observed at 9m or 12m; if died between 6 and 12m, they have C3=1, C4=0.)
+
+# Outcome generation (viral failure):
+# We determine if they had viral >200 by 6m and by 12m.
+# Fail by 6m (Y2) if not dead:
+logit_p_fail2 <- -1 + 0.8*W - 1.0*(A1==1)  # Regimen1 lowers log-odds of failure
+p_fail2 <- plogis(logit_p_fail2)
+Y2 <- rbinom(n, 1, p_fail2)
+Y2[death_by2==1] <- NA  # if died before 6m, outcome not observed
+
+# Fail by 12m (by end of study) if not failed by 6m and not dead:
+logit_p_fail4 <- -1 + 0.8*W - 1.0*(A1==1)  # baseline regimen effect persists
+# We allow additional failures between 6 and 12m among those who didn't fail at 6m:
+p_fail4 <- plogis(logit_p_fail4)
+Y4_extra <- rbinom(n, 1, p_fail4)
+# Define final outcome Y:
+Y <- ifelse(!is.na(Y2) & Y2==1, 1, 0)  # if failed by 6m, consider them failed by 12m as well
+# For those who did not fail by 6m:
+Y[!is.na(Y2) & Y2==0] <- Y4_extra[!is.na(Y2) & Y2==0]
+# Those who died by 12m without failing:
+Y[death_by2==0 & death_by4==1] <- NA  # died after 6m, no fail observed by death, censor outcome
+# If died by 6m, already set NA above.
+
+# Assemble final data frames:
+data_2point <- data.frame(W, A1, L2, A2, C1, C2, Y = Y2)
+data_4point <- data.frame(W, A1, L2, A2, L3, A3, L4, A4, C1, C2, C3, C4, Y)
+
+```
+
+
+
+
+```{r}
+library(lmtp)
+# Define nodes for lmtp
+A_nodes   <- c("A1", "A2")                         # regimen at baseline and at 3 months
+covars    <- list("W", "L2")                       # baseline W (before A1) and L2 (before A2)
+censors   <- c("C1", "C2")                         # censoring indicators for each interval
+outcome   <- "Y"                                   # viral failure by 6 months
+
+# Learner library
+learners <- c("SL.glm", "SL.glmnet")
+
+# Fit TMLE for Regimen 1 (static intervention all A=1)
+psi_reg1_6m <- lmtp_tmle(data_2point, 
+                         trt_nodes = A_nodes, outcome_node = outcome,
+                         time_vary = covars, censoring_nodes = censors,
+                         shift = static_binary_on,   # force all treatment nodes to 1 (Regimen1)
+                         learners_outcome = learners, learners_trt = learners,
+                         folds = 10, 
+                         mtp = FALSE)
+# Fit TMLE for Regimen 2
+psi_reg2_6m <- lmtp_tmle(data_2point,
+                         trt_nodes = A_nodes, outcome_node = outcome,
+                         time_vary = covars, censoring_nodes = censors,
+                         shift = static_binary_off,  # force all treatment nodes to 2 (Regimen2)
+                         learners_outcome = learners, learners_trt = learners,
+                         folds = 10,
+                         mtp = FALSE)
+
+# Use lmtp_contrast to get RD and RR at 6m
+RD_6m <- lmtp_contrast(psi_reg1_6m, ref = psi_reg2_6m, type = "additive")
+RR_6m <- lmtp_contrast(psi_reg1_6m, ref = psi_reg2_6m, type = "rr")
+
+print(RD_6m)
+print(RR_6m)
+
+```
+

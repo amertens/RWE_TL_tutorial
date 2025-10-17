@@ -1,0 +1,476 @@
+---
+title: "LMTP Tutorial: Drug‑Effect under Perfect vs Imperfect Adherence"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    code_folding: show
+---
+
+> **Goal** Guide a new analyst through a full longitudinal‑confounding workflow with the
+> `{lmtp}` package, using the HIV adherence simulator we built.  We will:  
+> 1. simulate data, 2. reshape wide, 3. specify intervention rules, 4. fit LMTP models, 5. inspect positivity, and 6. interpret drug‑effect contrasts.
+
+---
+
+## 1 Load packages & global options
+
+```{r setup, message=FALSE, warning=FALSE}
+############################################
+## 0 ─ Packages & options
+############################################
+
+knitr::opts_chunk$set(warning=F, message=F)
+
+library(data.table)
+library(tidyverse)
+library(zoo)
+library(SuperLearner)
+library(lmtp)
+library(future)     
+
+# allow large objects in cross‑validated futures
+options(future.globals.maxSize = 4 * 1024^3)
+future::plan(multisession, workers = parallel::detectCores())
+set.seed(123)
+```
+
+**Note:** `{lmtp}` relies on nested cross‑validation and can be very computationally expensive; setting a 4‑GB
+`future.globals.maxSize` avoids “global size” errors when the data object is large.
+
+---
+
+## 2 Simulate longitudinal EHR‑style data
+
+We emulate 4 000 new ART users followed in six 180‑day blocks.  Viral load
+(VL), kidney function (eGFR), prescriber switching, and VL‑measurement
+probability all evolve with treatment **and** affect future adherence—
+a classic time‑dependent confounding structure.
+
+```{r simulate}
+
+############################################
+## 1 ─ Settings
+############################################
+N <- 4000          # patients
+K <- 6             # six 180-day blocks
+
+############################################
+## 2 ─ Baseline data
+############################################
+age <- rnorm(N, 45, 10)
+sex <- rbinom(N, 1, .25)
+cd4 <- rpois(N, 500)
+
+## Baseline regimen: 1 = Drug A, 0 = Drug B
+A0  <- rbinom(N, 1, plogis(-0.3 + 0.01*(cd4-500) - 0.2*sex))
+
+long <- CJ(id = 1:N, t = 0:(K-1))
+long[, `:=`(age = age[id],
+            sex = sex[id],
+            cd4 = cd4[id],
+            A   = A0[id])]
+
+############################################
+## 3 ─ Longitudinal simulation 
+############################################
+for (tt in 0:(K-1)) {
+  
+  if (tt == 0) {
+    
+    long[t==0, PDC  := rbeta(.N, 9 + 2*A, 5 + 3*(1-A))]
+    long[t==0, eGFR := rnorm(.N, 90 - 5*age/10 - 2*(1-A), 15)]
+    long[t==0, VL   := rnorm(.N, 3.0 - 0.2*A - 0.6*PDC, 0.6)]
+    
+    long[t==0, M := 1L]          # baseline VL always measured
+    long[t==0, VL_obs := VL]
+    
+  } else {
+    
+    long[, c("PDC_prev","VL_prev","eGFR_prev") := NULL]
+    
+    lag <- long[t==tt-1,
+                .(id, PDC_prev=PDC, VL_prev=VL, eGFR_prev=eGFR)]
+    long <- merge(long, lag, by="id", all.x=TRUE)
+    
+    ## prescriber switch
+    long[t==tt, SW := rbinom(.N,1,plogis(-4 + 1.2*VL_prev + 0.8*(PDC_prev<0.6)))]
+    long[t==tt & SW==1, A := 1 - A]
+    
+    ## adherence, eGFR, VL
+    long[t==tt, PDC  := pmin(1, pmax(0,
+                                     rbeta(.N, 8 + 2*A - 1.0*tt/K + 1.2*(VL_prev>3),
+                                           6 + 4*(1-A) + 1.0*tt/K)))]
+    long[t==tt, eGFR := pmin(120, pmax(10,
+                                       rnorm(.N, eGFR_prev - 0.5*(VL_prev>3) + 0.2*A, 10)))]
+    long[t==tt, VL   := rnorm(.N,
+                              2.7 - 0.2*A - 1.8*PDC + 0.4*VL_prev + 0.01*(100-eGFR),0.6)]
+    
+    ## measurement indicator
+    long[t==tt, M := rbinom(.N,1,plogis(-1 + 1.2*(VL>3) - 0.5*A))]
+    long[t==tt, VL_obs := ifelse(M==1, VL, NA_real_)]
+  }
+}
+
+############################################
+## 4 ─ Impute *all* missing VLs (guaranteed complete)
+############################################
+long[, VL_imp := zoo::na.locf(VL_obs, na.rm = FALSE), by = id]
+long[, VL_imp := zoo::na.locf(VL_imp, fromLast = TRUE, na.rm = FALSE), by = id]
+stopifnot(all(!is.na(long$VL_imp)))     # passes
+
+############################################
+## 5 ─ Outcome & wide reshape (no NA rows)
+############################################
+long[, Y := as.integer(VL >= log10(200)), by = id]
+
+## last-block outcome per id
+outcome <- long[t == (K-1), .(id, Y)]
+
+```
+
+*After running*, you should have `long` with **no missing `VL_imp`** and realistic
+feedback between treatment → VL → future adherence.
+
+---
+
+## 3 Wide reshape for `{lmtp}`
+
+`lmtp_sdr()` in wide mode needs **one row per subject** with block‑level
+columns.  We also create a duplicate baseline drug column named
+`A` for clarity.
+
+```{r reshape}
+
+
+
+## wide-format longitudinal block-level variables
+Wlong <- dcast(long, id ~ t,
+               value.var = c("PDC","VL_imp","eGFR","M","SW"))
+
+## merge with *baseline* covariates and outcome (one row per id)
+baseline <- long[t==0, .(id, age, sex, cd4, A)]
+wide     <- merge(baseline, Wlong, by="id")
+wide     <- merge(wide, outcome,  by="id")
+
+#Drop baseline switch decision (all NA)
+wide[, SW_0 := NULL]
+
+head(wide)
+
+
+table(is.na(wide))
+
+## final checks
+stopifnot(nrow(wide) == N)
+stopifnot(all(colSums(is.na(wide)) == 0))
+
+wide = data.frame(wide)
+
+head(wide, 3)
+```
+
+**Why wide?**  In wide format we can specify multiple treatment columns
+(`A`, `PDC_0 … PDC_5`) in a list, which is the simplest interface
+for static policies.  Long format is equally supported but would need an
+`id` and `t` column.
+
+---
+
+## 4 Specify nodes for LMTP
+
+```{r nodes}
+trt_nodes <- list(c("A","PDC_0"), "PDC_1","PDC_2","PDC_3","PDC_4","PDC_5")
+Lnodes <- list(
+  c("VL_imp_0","eGFR_0","M_0"),
+  c("VL_imp_1","eGFR_1","M_1"),
+  c("VL_imp_2","eGFR_2","M_2"),
+  c("VL_imp_3","eGFR_3","M_3"),
+  c("VL_imp_4","eGFR_4","M_4"),
+  c("VL_imp_5","eGFR_5","M_5"))
+
+sl_lib <- "SL.glm"     # lightweight Super Learner for demo
+
+```
+
+*Interpretation*: `A` is the exposure we want to compare; `PDC_k`
+are continuous adherence modifiers also in the treatment vector; each
+`Lnodes[[k]]` holds the time‑varying confounders measured **before** that
+block’s exposure.
+
+---
+
+
+## 5 Check adherence and treatment probablities
+
+# ADD
+
+## 5 Helper functions for LMTP shifts
+
+```{r helper-functions}
+## helper: returns named list for lmtp
+set_cols <- function(data, trt, new_A = NULL, new_PDC = NULL){
+  out <- vector("list", length(trt)); names(out) <- trt
+  for(nm in trt){
+    if(nm == "A" && !is.null(new_A))            out[[nm]] <- rep(new_A, nrow(data))
+    else if(grepl("^PDC", nm) && !is.null(new_PDC)) out[[nm]] <- new_PDC[[nm]]
+    else                                        out[[nm]] <- data[[nm]]
+  }
+  out
+}
+
+#### 1.1 Perfect adherence (PDC = 1) ####
+A_perfect <- function(data, trt){
+  new_P <- lapply(trt[grepl("^PDC", trt)], function(x) rep(1, nrow(data)))
+  names(new_P) <- trt[grepl("^PDC", trt)]
+  set_cols(data, trt, new_A = 1, new_PDC = new_P)
+}
+
+B_perfect <- function(data, trt){
+  new_P <- lapply(trt[grepl("^PDC", trt)], function(x) rep(1, nrow(data)))
+  names(new_P) <- trt[grepl("^PDC", trt)]
+  set_cols(data, trt, new_A = 0, new_PDC = new_P)
+}
+
+```
+
+## 6 Natural‑course fit
+
+The natural‑course fit estimates the risk of
+virologic failure under *what actually happened*—it will serve as a
+reference when we impose hypothetical adherence interventions.
+
+
+```{r fit-natural, cache=TRUE}
+fit_nat <- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,
+  outcome_type  = "binomial",
+   folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+```
+
+`summary(fit_nat)` prints the estimated risk,
+standard error, and clever‑covariate diagnostics, which we will revisit
+for positivity.
+
+---
+
+## 6 Policy 1 ‑ Perfect adherence
+
+We create a shift function that sets every `PDC_t` to 1 while leaving
+the baseline regimen unchanged.
+
+```{r shift-perfect, cache=TRUE}
+
+## helper: returns named list for lmtp
+set_cols <- function(data, trt, new_A = NULL, new_PDC = NULL){
+  out <- vector("list", length(trt)); names(out) <- trt
+  for(nm in trt){
+    if(nm == "A" && !is.null(new_A))            out[[nm]] <- rep(new_A, nrow(data))
+    else if(grepl("^PDC", nm) && !is.null(new_PDC)) out[[nm]] <- new_PDC[[nm]]
+    else                                        out[[nm]] <- data[[nm]]
+  }
+  out
+}
+
+#### 1.1 Perfect adherence (PDC = 1) ####
+A_perfect <- function(data, trt){
+  new_P <- lapply(trt[grepl("^PDC", trt)], function(x) rep(1, nrow(data)))
+  names(new_P) <- trt[grepl("^PDC", trt)]
+  set_cols(data, trt, new_A = 1, new_PDC = new_P)
+}
+
+B_perfect <- function(data, trt){
+  new_P <- lapply(trt[grepl("^PDC", trt)], function(x) rep(1, nrow(data)))
+  names(new_P) <- trt[grepl("^PDC", trt)]
+  set_cols(data, trt, new_A = 0, new_PDC = new_P)
+}
+
+
+## 2.1 Perfect adherence, Drug A vs B
+fit_A_perfect <- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,
+  shift         = A_perfect,
+  mtp           = TRUE,
+  outcome_type  = "binomial",
+  folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+
+fit_B_perfect <- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,
+  shift         = B_perfect,
+  mtp           = TRUE,
+  outcome_type  = "binomial",
+  folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+```
+
+**Why mtp = TRUE?**  Because `PDC_t` is continuous; setting it from
+observed to 1 is a **modified‑treatment policy** in LMTP terminology.
+
+---
+
+## 7 Policy 2 ‑ Drug A adherence for everyone
+```{r shift-astyle, cache=TRUE}
+## block‑specific A minus B gap
+gap_vec <- sapply(0:5, function(k){
+  with(wide,
+       mean(get(paste0("PDC_",k))[A==1]) -
+       mean(get(paste0("PDC_",k))[A==0]))
+})
+names(gap_vec) <- paste0("PDC_",0:5)
+
+Astyle_PDC <- function(data,trt){
+  lapply(trt[grepl("^PDC",trt)], function(col){
+      pmin(1, data[[col]] + gap_vec[col])
+  }) |> (\(L){names(L) <- trt[grepl("^PDC",trt)]; L})()
+}
+
+A_Astyle <- function(data,trt){
+  set_cols(data,trt,new_A=1,new_PDC=Astyle_PDC(data,trt)) }
+B_Astyle <- function(data,trt){
+  set_cols(data,trt,new_A=0,new_PDC=Astyle_PDC(data,trt)) }
+
+fit_A_Astyle <- lmtp_sdr(wide, trt_nodes, "Y",
+                         c("age","sex","cd4"), Lnodes,
+                         shift = A_Astyle, mtp = TRUE,
+                         outcome_type = "binomial", folds = 2,
+                         learners_trt = sl_lib, learners_outcome = sl_lib)
+
+fit_B_Astyle <- lmtp_sdr(wide, trt_nodes, "Y",
+                         c("age","sex","cd4"), Lnodes,
+                         shift = B_Astyle, mtp = TRUE,
+                         outcome_type = "binomial", folds = 2,
+                         learners_trt = sl_lib, learners_outcome = sl_lib)
+```
+
+*Rationale*  These fits imagine a world where **every block’s adherence
+looks like Drug A’s distribution**, then ask: if we also force the index
+drug to A vs B, how different is failure risk?
+
+---
+
+## 8 Drug contrasts & interpretation
+
+```{r contrasts}
+cat("Drug A vs B  •  Perfect PDC\n")
+print(lmtp_contrast(fit_A_perfect, ref = fit_B_perfect, type = "additive"))
+print(lmtp_contrast(fit_A_perfect, ref = fit_B_perfect, type = "rr"))
+
+cat("\nDrug A vs B  •  Drug‑A adherence pattern\n")
+print(lmtp_contrast(fit_A_Astyle, ref = fit_B_Astyle, type = "additive"))
+print(lmtp_contrast(fit_A_Astyle, ref = fit_B_Astyle, type = "rr"))
+```
+
+ The additive result is the %-point reduction in
+failure when prescribing Drug A instead of Drug B under the given
+adherence regime.  The RR gives the multiplicative effect.  Compare the
+magnitudes: a smaller gap under A‑style adherence indicates that **Drug
+B’s efficacy deficit is partly adherence‑driven**; a persistent gap
+points to lower pharmacologic potency or higher resistance.
+
+---
+
+## 9 Positivity diagnostics
+
+
+```{r positivity, fig.height=3, fig.width=5}
+# density ratios = product of g & c weights
+w <- fit_nat$density_ratios
+
+hist(log(w), 50,
+     main = "log-weights (natural course)",
+     xlab = "log weight")
+abline(v = quantile(log(w), c(.01,.99)), col = "red")
+
+quantile(w, probs = c(0,.01,.05,.5,.95,.99,1))
+
+```
+
+If the histogram has extreme tails (red lines far from the bulk),
+consider weight truncation, broader policies, or collapsers such as
+coarser PDC categories.
+
+
+
+## 10 Overlap of adherence distributions by drug & baseline strata  *(new)*
+  
+For additional intuition we can **model the probability of achieving high adherence** (here PDC ≥ 0.8) separately in each 180‑day block using a light Super Learner. We then compare the score distributions between Drug A and B — overall and within baseline‑age strata — to see whether support overlaps.
+  
+```{r adherence-ps, warning=FALSE, message=FALSE, fig.height=3.2}
+  # pick first follow‑up block as example (block 1)
+  block <- 1
+  
+  X <- data.frame(age = wide$age, sex = wide$sex, cd4 = wide$cd4,
+                  drug = factor(wide$A))
+  Ahi <- as.integer(wide[[paste0("PDC_", block)]] >= 0.8)   # high adherence (Y_ps)
+  
+ ps_fit <- SuperLearner(Y = Ahi, X = X,SL.library = c("SL.glm","SL.mean"), family = binomial())
+  ps <- ps_fit$SL.predict   # propensity for PDC≥0.8
+  
+  # merge scores and plot by drug and age‑tertile
+  score_dat <- data.frame(ps, drug = X$drug,
+                          age_band = cut(X$age, breaks = quantile(X$age, probs = 0:3/3),
+                                         include.lowest = TRUE))
+  
+  ggplot(score_dat, aes(drug, ps, fill = drug))+
+    geom_violin(alpha = .4, trim = FALSE)+
+    facet_wrap(~age_band)+
+    scale_fill_brewer(palette="Set2")+
+    labs(title = paste("Propensity for PDC ≥ 0.8 in block", block),
+         y = "Predicted P(Adhere)", x = "Baseline drug")+
+  theme_minimal()+ theme(legend.position="none")
+```
+
+**How to read the plot**  Substantial overlap of violin densities across
+Drug A/B in every age‑stratum indicates feasible positivity.  Little or
+no overlap (one distribution hugs 0 or 1) warns that the adherence shift
+is poorly supported in certain baseline groups.
+
+---
+
+## 11 Sensitivity: omit time‑dependent confounders
+
+```{r sensitivity, cache=TRUE}
+Lnodes_noVL <- lapply(Lnodes, function(vec) setdiff(vec, grep("^VL_imp|^eGFR", vec, value = TRUE)))
+fit_nat_noVL <- lmtp_sdr(wide, trt_nodes, "Y",
+                         c("age","sex","cd4"), Lnodes_noVL,
+                         outcome_type = "binomial", folds = 5,
+                         learners_trt = sl_lib, learners_outcome = sl_lib)
+print(lmtp_contrast(fit_nat_noVL, ref = fit_nat, type = "additive"))
+```
+
+**Interpretation**  A large deviation from the full‑adjusted estimate
+indicates residual bias if VL and eGFR were ignored—mirroring what would
+happen with a naïve time‑varying Cox.
+
+---
+
+## 11 Key lessons for a new analyst
+
+* Always map the causal question → modified‑treatment policy → LMTP
+  shift function.
+* List every covariate that (i) predicts future exposure/outcome and (ii)
+  is affected by past exposure—otherwise identification fails.
+* Check support: clever‑covariate tails or extreme estimated propensities
+  warn about positivity violations.
+* Sensitivity runs (dropping confounders, changing block length, or
+  trimming weights) reveal robustness vs hidden bias.
+
+With these steps the analyst can adapt the tutorial to real EHR data
+once access is granted.

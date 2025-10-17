@@ -1,0 +1,483 @@
+---
+title: "Comparing ART Regimens Under Imperfect Adherence with {lmtp}: A Causal Roadmap Tutorial"
+author: "Your Team"
+date: "`r format(Sys.Date())`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+fontsize: 11pt
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+set.seed(20250811)
+```
+
+
+# Causal Roadmap for: Safety Comparison of Two ART Regimens Under Imperfect Adherence
+
+## 1) Define the precise causal question (scientific and decision-relevant)
+We seek to quantify how the risk of an adverse safety endpoint (e.g., AKI or composite safety event) differs between two clinically relevant first-line ART regimens when *real-world adherence is imperfect*. Rather than conditioning on perfect adherence (often clinically unrealistic), we target *modified treatment policies (MTPs)* that perturb adherence intensity—via incremental propensity score interventions (IPSI)—by multiplicative factors δ∈{0.75, 1.00, 1.25} separately for each regimen. The primary decision-relevant contrast is the between-regimen difference (or ratio) in cumulative risk by clinically meaningful times (e.g., 12, 24, 36, 48 weeks) under each δ, thereby characterizing *“forgiveness”*—i.e., the degree to which safety risk deteriorates as adherence is stochastically reduced and improves as it is increased.
+
+## 2) Specify the idealized interventions
+Let $A_t$ denote current regimen at visit $t$ and $Z_t$ denote observed adherence (e.g., PDC, pill counts, pharmacy fills, or EHR adherence proxies). For each regimen $r\in\{R_0,R_1\}$, define an IPSI that multiplies the observed adherence assignment odds by δ at each time, preserving the observed covariate–adherence relationships but shifting adherence intensity. This yields counterfactual adherence trajectories $\tilde Z^{(r, \delta)}_{1:K}$ and outcome $Y^{(r,\delta)}$. We also consider a *dynamic regimen assignment at baseline* to $R_0$ vs $R_1$ with adherence subsequently perturbed by the δ‑IPSI. These are *well-defined, feasible, and policy-relevant* stochastic interventions for real-world use cases.
+
+## 3) Define the causal estimands
+For time horizon $t$, define the regimen- and δ-specific cumulative risk:
+$$
+\psi_{r,\delta}(t) \equiv \Pr\!\big(Y^{(r,\delta)}\le t\big).
+$$
+Primary estimands include:
+- **Between-regimen risk difference at δ:** $\psi_{R_1,\delta}(t)-\psi_{R_0,\delta}(t)$.
+- **Between-regimen risk ratio at δ:** $\psi_{R_1,\delta}(t)/\psi_{R_0,\delta}(t)$.
+- **Forgiveness curve:** $\delta\mapsto \psi_{r,\delta}(t)$ for each regimen, summarized by slope or area (e.g., finite differences across a δ grid).
+
+For time-to-event outcomes, these parameters are transparent, collapsible, and align with estimand guidance emphasizing clinically interpretable risks and survival probabilities rather than noncollapsible hazards.
+
+## 4) Link data to counterfactuals (observed data structure)
+Observed longitudinal data for each person $i$: baseline $W$; at visits $t=1,\dots,K$: time-varying covariates $L_t$ (disease status, labs, toxicity, concomitant meds), treatment $A_t$ (here baseline regimen choice; optionally allow switches), adherence $Z_t$, censoring $C_t$, and outcome time-to-event $T$ with indicator $\Delta$. Write $O=(W,\{L_t,A_t,Z_t,C_t\}_{t\le K},T,\Delta)$. The likelihood factorizes into conditional hazards for the event, censoring, adherence, and (if relevant) regimen switching.
+
+## 5) Causal identification assumptions
+Under standard longitudinal identification:
+- **Consistency:** If a subject’s observed regimen/adherence trajectory matches the intervention, then observed and counterfactual outcomes coincide.
+- **Sequential exchangeability (no unmeasured confounding):** Given $W,\bar L_t,\bar A_t,\bar Z_{t-1}$, adherence at $t$ and censoring at $t$ are as good as randomized relative to future potential outcomes under the intervention.
+- **Positivity:** Positive probability of observed adherence and censoring patterns in all strata needed by the intervention, and overlap in baseline regimen assignment support.
+- **Correct handling of intercurrent events:** Switching, competing risks, and loss-to-follow-up represented as hazards and included in identification (see §9).
+
+When these hold, the δ‑MTP/δ‑IPSI risks are identified by a longitudinal g-formula integrating the observed conditional hazards with the adherence mechanism replaced by the δ‑shifted stochastic policy.
+
+## 6) Estimation strategy (targeted, doubly robust, machine-learning–friendly)
+We will estimate $\psi_{r,\delta}(t)$ using **longitudinal TMLE** (or the **lmtp** estimator for IPSI/MTPs), which:
+1. Learns nuisance functions with cross-validated Super Learner (SL) (e.g., outcome, adherence, censoring hazards);  
+2. *Targets* the plug-in estimate along a least-favorable submodel to solve the efficient influence function, delivering valid Wald inference under broad conditions;  
+3. Provides **double robustness** and **efficiency** under coarsening-at-random censoring and flexible learning of hazards.
+
+SL library design (GLMs, penalized GLMs, trees/forests/boosting, HAL) and V-fold CV must follow best practices to control overfitting and improve finite-sample behavior.
+
+## 7) Working model components and SL specification
+- **Outcome model:** discrete-time hazard (pooled logistic) or survival hazards (discrete or continuous-time) regressed on $W,\bar L_t,\bar Z_t,\bar A_t$; include sparse and flexible learners.
+- **Adherence mechanism:** conditional density/propensity of $Z_t$ given history, needed for IPSI weighting/clever covariates; if $Z_t$ is categorical/binary, model as conditional odds; if continuous, use density-ratio learners supported by *lmtp*.
+- **Censoring (and administrative loss):** hazard $\lambda_C(t\mid \text{history})$.
+- **Regimen switching (if allowed):** model hazard $\lambda_{S}(t\mid \text{history})$ and incorporate in identification/estimation (see §9).
+
+## 8) Inference, error control, and operating characteristics
+TMLE/lmtp yields asymptotically linear estimators with influence-curve–based standard errors; we will report pointwise 95% CIs and, for trajectories $\delta\mapsto\psi_{r,\delta}(t)$ or $t\mapsto\psi_{r,\delta}(t)$, simultaneous bands where appropriate. Simulations in analogous right-censored settings show that TMLE maintains nominal coverage and often improves efficiency versus Kaplan–Meier and model-based G‑comp, especially under informative censoring and moderate covariate predictiveness.
+
+## 9) Intercurrent events, competing risks, and switching
+- **Switching:** Censor-at-switching can be informatively biased. Prefer modeling the **switching hazard** and incorporating it into the longitudinal identification, or expand the intervention to *prevent switching* in the counterfactual while estimating the switching process from data—then target the no-switch estimand.
+- **Competing risks:** When death (or other) competes with the safety event, we target **cause-specific cumulative incidence** (risk) under the δ‑policy and present both event-free survival and cause-specific risks.
+- **Loss to follow-up:** Treat as censoring with a modeled hazard; identification requires coarsening-at-random given the measured history.
+
+## 10) Why not Cox with time-varying covariates?
+Cox HRs are **noncollapsible** (adjustment changes the estimand), hinge on proportional hazards, and condition on remaining at risk (subject to selection), which can mislead about absolute risks—especially with time-varying effects, informative censoring, and regimen/adherence dynamics. In contrast, roadmap-based risks and risk differences/ratios are collapsible and directly interpretable for decision-making; TMLE provides robust estimation in large, nonparametric models. We therefore present Cox only as a **secondary, model-based** sensitivity analysis, not as the primary estimand.
+
+## 11) Diagnostics and model-free checks
+- **Design diagnostics:** Examine overlap/positivity (propensity of baseline regimen; adherence support across δ‑relevant strata); assess near‑violations (truncation thresholds, stabilized clever covariates).  
+- **Learner diagnostics:** Cross‑validated risks, SL weights, and sensitivity to library composition; adjust V‑folds in small‑event contexts.  
+- **Targeting diagnostics:** Empirical mean of the efficient influence function close to 0; bounded, monotone survival/risk curves.  
+- **Sensitivity to unmeasured confounding:** E‑values or bias‑function sensitivity, including sensitivity to MNAR censoring and to measurement error in adherence.
+
+## 12) Missing data and measurement error
+- **Covariates:** Use missingness indicators or multiple imputation nested within CV (preferably outcome‑blind steps within CV folds).  
+- **Adherence measurement error:** If adherence is an error‑prone proxy (PDC), consider SIMEX‑type sensitivity, validation sub‑studies, or replicate‑measure approaches; report how measurement error could attenuate the forgiveness curves.
+
+## 13) Reporting
+For each regimen $r$ and time $t$: report $\hat\psi_{r,\delta}(t)$ across δ∈{0.75, 1.00, 1.25} (tables and plots), between‑regimen contrasts with 95% CIs, and a succinct “forgiveness profile” summary (e.g., slope per 0.25 change in δ). Provide full diagnostics (positivity, SL weights, EIF checks) in the appendix.
+
+## 14) Simulation (internal validation)
+Accompany the analysis with a small simulation calibrated to the study’s event rate, adherence distribution, and covariate structure, varying (i) censoring informativeness, (ii) adherence predictiveness, and (iii) degree of overlap, to verify estimator bias, variance, and coverage under plausible scenarios.
+
+
+
+# 0. Roadmap Step 0: Define the causal question
+
+We compare two first‑line ART regimens (Drug A vs Drug B) on the **risk of a safety event** (e.g., AKI) by 12 months in routine care where adherence fluctuates and switching can occur. The target is **policy‑relevant risk at fixed times** (6, 12 months) rather than a hazard ratio. We explicitly preserve *imperfect* adherence patterns observed in practice.
+
+**Primary estimand (real‑world initiation effect under imperfect adherence).**  
+Let \(A_t\in\{0,1\}\) indicate regimen at visit \(t\) (1=A, 0=B), \(W\) baseline covariates, \(L_t\) time‑varying predictors (e.g., adherence proxy, side‑effects), and \(Y\) the 12‑month safety event (1=event). Define two feasible interventions that **set only the baseline regimen** (initiation) and leave the subsequent regimen/adherence process unchanged:
+
+- \(d^{\text{init}=A}\): set \(A_1=1\), leave \(A_{t>1}\) and \(L_t\) as observed (natural course).
+- \(d^{\text{init}=B}\): set \(A_1=0\), leave \(A_{t>1}\) and \(L_t\) as observed.
+
+We target \(E\{Y(d^{\text{init}=A})\}\) and \(E\{Y(d^{\text{init}=B})\}\), reporting RD and RR. This is a **real‑world initiation** effect (sometimes informally called “ITT‑like” in longitudinal settings) and *does not* assume perfect regimen persistence. We estimate it with `{lmtp}` by supplying a shift function that modifies only `A1`. :contentReference[oaicite:5]{index=5} :contentReference[oaicite:6]{index=6}
+
+**Secondary estimands (for context).**
+
+1. **Per‑protocol static regimens** (perfect persistence): set all \(A_t\equiv 1\) vs all \(A_t\equiv 0\). Useful comparator, but not “imperfect adherence”. `{lmtp}` supports static policies via `static_binary_on/off`. :contentReference[oaicite:7]{index=7} :contentReference[oaicite:8]{index=8}  
+2. **Incremental propensity score interventions (IPSI)**: stochastically increase/decrease the odds of choosing Drug A at each decision by a factor \(\delta\) to study *forgiveness* to suboptimal uptake/adherence. Implemented via `ipsi(delta)`. :contentReference[oaicite:9]{index=9}
+
+# 1. Roadmap Step 1: Specify causal model, interventions, and estimands
+
+We adopt a longitudinal causal structure \(W \rightarrow A_1 \rightarrow L_2 \rightarrow A_2 \rightarrow \cdots \rightarrow Y\), with switching driven by measured \(L_t\) (e.g., adherence, toxicity). Competing death can be handled as censoring or as a competing risk depending on the safety question (we show both encodings below). `{lmtp}` estimators target **marginal risks** \(E\{Y(d)\}\) at the horizon; contrasts are RD and RR. :contentReference[oaicite:10]{index=10} :contentReference[oaicite:11]{index=11}
+
+# 2. Roadmap Step 2: Identification assumptions
+
+Under the usual conditions—consistency, sequential exchangeability given past \((W,\bar L_t,\bar A_t)\), positivity, and correct (or flexible) nuisance learning—\(E\{Y(d)\}\) is identified from the observed data. For survival/competing risk encodings we additionally use the standard “degenerate outcome vector (LOCF)” and optional competing risk formulation in `{lmtp}`. :contentReference[oaicite:12]{index=12} :contentReference[oaicite:13]{index=13}
+
+# 3. Roadmap Step 3: Observed data structure (wide)
+
+We store data in wide format with one row per person. For \(K=4\) regimen decisions (baseline, 3 follow‑ups) we will have:
+- Baseline: `W_*` (baseline confounders).
+- Time‑varying covariates before each decision: `L1` (pre‑A1), `L2` (pre‑A2), `L3`, `L4`.
+- Regimens: `A1`, `A2`, `A3`, `A4`.
+- Censoring indicators per interval: `C1`…`C4` (1=uncensored through interval).  
+- Outcome: `Y` (AKI by 12m).  
+
+This mirrors the layout recommended in your draft and the tutorials. (See the example table of node ordering in the *Survival Analysis* and *Dynamic Regimes* tutorials.) :contentReference[oaicite:14]{index=14} :contentReference[oaicite:15]{index=15}
+
+# 4. Roadmap Step 4: Estimation strategy
+
+We use `{lmtp}` with the **TMLE** or **SDR** estimator and Super Learner nuisance fits. Function signatures and arguments below follow the package manual. :contentReference[oaicite:16]{index=16}
+
+
+```{r packages}
+# Core
+library(lmtp)
+library(SuperLearner)
+
+# Helpers
+library(dplyr)
+library(tidyr)
+library(broom)     # for tidy() on results if desired
+library(survival)  # for the Cox illustration
+library(readr)
+
+```
+
+
+
+# 5. Simulated EHR‑style cohort with imperfect adherence
+
+We simulate baseline risk, time‑varying adherence/toxicity (`L_t`), regimen switching, event hazards, and censoring. Drug A is safer (lower AKI hazard) *if taken*, but switching depends on `L_t` and prior adherence—creating time‑varying confounding by indication.
+
+```{r simulate}
+sim_art <- function(n = 4000, K = 4) {
+
+  # Baseline
+  W_age  <- rnorm(n, 45, 10)
+  W_cd4  <- pmax(50, rnorm(n, 500, 150))
+  W_male <- rbinom(n, 1, 0.55)
+  W0 <- data.frame(age = W_age, cd4 = W_cd4, male = W_male)
+
+  # Pre-A1 covariate (e.g., baseline pill burden tolerance / expected adherence)
+  L1 <- pmin(pmax(rnorm(n, 0, 1), -3), 3)
+
+  # Baseline regimen choice (depends on W0, L1)
+  logit_pA1 <- -0.2 + 0.25*(W_male) - 0.002*(W_cd4 - 500)/100 + 0.4*L1
+  A1 <- rbinom(n, 1, plogis(logit_pA1))
+
+  # Containers
+  L <- matrix(NA_real_, n, K)     # L1..L4 (we'll fill L1 plus L2..L4)
+  A <- matrix(NA_integer_, n, K)  # A1..A4
+  C <- matrix(1L, n, K)           # C1..C4 (1=uncensored through interval)
+  Yk <- rep(0L, n)                # running event indicator
+  T_event <- rep(K+1L, n)         # first event time if any (for Cox illustration)
+
+  L[,1] <- L1
+  A[,1] <- A1
+
+  # Effects: Drug A reduces hazard; higher L_t increases hazard and promotes switching
+  beta_A   <- -0.8
+  beta_L   <-  0.6
+  beta_W   <-  0.15
+  base_logit <- -3.2
+
+  for (k in 1:K) {
+    # For k >= 2, generate new L_k depending on last A_{k-1} and L_{k-1}
+    if (k >= 2) {
+      mu_L <- 0.2*(1 - A[,k-1]) + 0.5*plogis(L[,k-1]) + 0.1*scale(W_cd4) # toxicity/adherence proxy
+      L[,k] <- pmin(pmax(rnorm(n, mu_L, 0.8), -3), 3)
+    }
+
+    # Event occurrence in interval k if not yet occurred:
+    lp <- base_logit + beta_A*A[,k] + beta_L*L[,k] + beta_W*scale(W_age)[,1]
+    prob_event <- plogis(lp)
+    new_event <- rbinom(n, 1, prob_event) * (Yk == 0L)
+    just_happened <- which(new_event == 1L)
+    if (length(just_happened)) {
+      Yk[just_happened] <- 1L
+      T_event[just_happened] <- pmin(T_event[just_happened], k)
+    }
+
+    # Random censoring (e.g., death/LTFU) depending on W and L
+    pcens <- plogis(-3 + 0.3*scale(W_age)[,1] + 0.25*L[,k])
+    cens_k <- rbinom(n, 1, pcens) * (rowSums(C, na.rm=TRUE) == k-1) # first time to censor
+    if (any(cens_k == 1L)) {
+      i <- which(cens_k == 1L)
+      C[i, k:K] <- 0L
+    }
+
+    # For next decision (k<K), allow switching driven by L_{k+1} and last A_k
+    if (k < K) {
+      logit_pA_next <- -0.3 + 1.2*A[,k] - 0.9*(L[,k] > 0.8) + 0.3*L[,k]
+      A[,k+1] <- rbinom(n, 1, plogis(logit_pA_next))
+    }
+  }
+
+  # Final binary outcome by 12m: event before or at K and uncensored through K
+  Y <- as.integer((T_event <= K) & (C[,K] == 1L))
+
+  # Assemble wide data frame
+  df <- data.frame(
+    age = W_age, cd4 = W_cd4, male = W_male,
+    L1 = L[,1], A1 = A[,1],
+    L2 = L[,2], A2 = A[,2],
+    L3 = L[,3], A3 = A[,3],
+    L4 = L[,4], A4 = A[,4],
+    C1 = C[,1], C2 = C[,2], C3 = C[,3], C4 = C[,4],
+    Y = Y,
+    T_event = T_event # for Cox illustration
+  )
+  df
+}
+
+dat <- sim_art(n = 4000, K = 4)
+dplyr::glimpse(dat)
+```
+
+
+
+> **Note:** The wide layout above is exactly what `{lmtp}` expects: a vector of treatments `trt = c("A1","A2","A3","A4")`, a list of time‑varying covariates aligned by decision times `time_vary = list(c("L1"),c("L2"),c("L3"),c("L4"))`, censoring indicators `cens = c("C1","C2","C3","C4")`, and a single binary outcome `Y`. See the package manual for argument definitions. 
+
+# 6. Node specification
+
+
+```{r nodes}
+trt_nodes <- c("A1","A2","A3","A4")
+baseline  <- c("age","cd4","male")
+time_vary <- list(c("L1"), c("L2"), c("L3"), c("L4"))
+cens_nodes <- c("C1","C2","C3","C4")
+outcome <- "Y"
+
+# modest, fast SL library (expand in real analysis)
+sl_lib <- c("SL.mean", "SL.glm", "SL.glmnet")
+
+```
+
+
+
+
+
+# 7. Define interventions
+
+**(a) Real‑world initiation (imperfect adherence preserved).**  
+Shift only `A1`, leave later `A_t` as observed.
+
+```{r shifts-init}
+d_initiate_A <- function(data, trt) ifelse(trt == "A1", 1L, data[[trt]])
+d_initiate_B <- function(data, trt) ifelse(trt == "A1", 0L, data[[trt]])
+```
+
+
+
+**(b) Per‑protocol static regimens (perfect persistence; comparator).**  
+Use built‑ins `static_binary_on` (all \(A_t=1\)) and `static_binary_off` (all \(A_t=0\)). 
+
+```{r shifts-static}
+# Provided by {lmtp}; no code needed beyond referencing them.
+# static_binary_on; static_binary_off
+```
+
+
+
+**(c) Incremental propensity policies (forgiveness analysis; optional).**  
+Increase the odds of choosing Drug A at every decision point by, e.g., 25% (`ipsi(1.25)`), or decrease by 25% (`ipsi(0.75)`). 
+
+```{r shifts-ipsi}
+# e.g., ipsi_up <- ipsi(1.25); ipsi_down <- ipsi(0.75)
+```
+
+
+
+# 8. Estimation with `{lmtp}`
+
+We estimate \(E\{Y(d)\}\) under each policy using TMLE (or SDR). Argument names and defaults follow the manual. :contentReference[oaicite:20]{index=20}
+
+```{r fit-init, cache=TRUE}
+fit_initA <- lmtp_tmle(
+  data = dat,
+  trt = trt_nodes,
+  outcome = outcome,
+  baseline = baseline,
+  time_vary = time_vary,
+  cens = cens_nodes,
+  shift = d_initiate_A,
+  outcome_type = "binomial",
+  learners_trt = sl_lib,
+  learners_outcome = sl_lib,
+  folds = 5
+)
+
+fit_initB <- lmtp_tmle(
+  data = dat,
+  trt = trt_nodes,
+  outcome = outcome,
+  baseline = baseline,
+  time_vary = time_vary,
+  cens = cens_nodes,
+  shift = d_initiate_B,
+  outcome_type = "binomial",
+  learners_trt = sl_lib,
+  learners_outcome = sl_lib,
+  folds = 5
+)
+
+# Contrasts for real‑world initiation (A vs B)
+rd_init <- lmtp_contrast(fit_initA, ref = fit_initB, type = "additive")
+rr_init <- lmtp_contrast(fit_initA, ref = fit_initB, type = "rr")
+rd_init; rr_init
+```
+
+
+
+```{r fit-ipsi, eval=FALSE}
+# Optional: “forgiveness” analysis via IPSI
+fit_ipsi_up <- lmtp_tmle(
+  data = dat, trt = trt_nodes, outcome = outcome,
+  baseline = baseline, time_vary = time_vary, cens = cens_nodes,
+  shift = ipsi(1.25),
+  outcome_type = "binomial",
+  learners_trt = sl_lib, learners_outcome = sl_lib, folds = 5
+)
+tidy(fit_ipsi_up)  # risk trajectory under IPSI
+```
+
+
+
+> For dynamic and survival examples, see the “Beyond the ATE” exercises; the code here matches their `lmtp_sdr/lmtp_tmle` usage and contrast pattern. 
+
+# 9. Diagnostics and design checks
+
+- **Positivity:** tabulate observed treatment across strata of \(L_t\)/\(W\); inspect estimated treatment/censoring hazards to ensure no extremes.  
+- **Learner sanity:** verify Super Learner didn’t degenerate (e.g., both GLM and GLMnet used).  
+- **Sensitivity:** compare TMLE to SDR; vary SL library.  
+
+These checks parallel those in your draft planning document and HTML tutorial. 
+
+```{r simple-positivity}
+with(dat, prop.table(table(cut(L2, breaks = quantile(L2, seq(0,1,0.2), include.lowest=TRUE)), A2), 1))
+```
+
+
+
+
+# 10. (Optional) Competing risks encoding in `{lmtp}`
+
+When the safety outcome is subject to a competing event (e.g., death precluding AKI ascertainment), encode **degenerate outcome vectors** `Y_1…Y_K` and specify either (i) treat competing event as censoring (`cens = ...`) or (ii) as a competing risk (`compete = ...`) to target **cumulative incidence** effects. The tutorials show this pattern and how to flip/LOCF the deterministic columns prior to fitting. :contentReference[oaicite:25]{index=25}
+
+```{r compete-outline, eval=FALSE}
+# Sketch only (simulate Y_1..Y_K and D_0..D_{K-1}, then):
+fit_compete <- lmtp_sdr(
+  data     = dat_surv,               # wide with Y_1..Y_K
+  trt      = paste0("A", 1:K),
+  outcome  = paste0("Y_", 1:K),
+  baseline = baseline,
+  time_vary= lapply(1:K, function(k) paste0("L", k)),
+  compete  = paste0("D_", 0:(K-1)),  # competing event indicators
+  shift    = d_initiate_A,           # or static_binary_on/off, ipsi(..), etc.
+  mtp      = TRUE,                   # TRUE for modified/stochastic policies
+  outcome_type = "survival",
+  folds = 5
+)
+tidy(fit_compete)
+
+```
+
+
+
+> See the survival tutorial for the precise LOCF and `compete` argument usage and interpretation of **cumulative incidence** effects. :contentReference[oaicite:26]{index=26}
+
+# 11. Why a Cox model with time‑varying covariates may not be sufficient
+
+**Conceptual issues.** A Cox HR among survivors is a *conditional* estimand that can suffer from selection bias (conditioning on survival), non‑collapsibility (HR changes with covariate sets even without confounding), model dependence (PH assumption), and—if time‑varying adherence (e.g., PDC) is included—possible adjustment for an **intermediate/confounded mediator**, shifting the target estimand away from the marginal policy‑relevant causal risk. Your methods slides summarize these pitfalls succinctly in the ART context. :contentReference[oaicite:27]{index=27}
+
+**Illustration on the simulated data.** Below we reshape to counting‑process format and fit a time‑varying Cox model. Its HR need not approximate the marginal RD/RR from `{lmtp}` because (i) it’s conditional on survival and (ii) it conflates structural and design choices (e.g., whether to adjust for \(L_t\)/PDC). This chunk is for demonstration; the coefficient values will generally disagree with the LMTP contrasts.
+
+
+```{r cox-illustration}
+# Build start-stop dataset with time-varying A and L
+#### Cox illustration (robust) ####
+suppressPackageStartupMessages({library(dplyr); library(tidyr); library(survival)})
+
+# Infer K from treatment columns A1..AK
+K <- length(grep("^A\\d+$", names(dat)))
+stopifnot(K >= 1)
+
+dat <- tibble::as_tibble(dat) %>% mutate(id = row_number())
+
+# Wide→long for node families present
+# Expect any of these families to exist in your data: A,L,C,Y
+families_present <- paste0("^(", paste(c("A","L","C","Y"), collapse="|"), ")\\d+$")
+long <- dat %>%
+  pivot_longer(
+    cols = matches(families_present),
+    names_to   = c(".value","t"),
+    names_pattern = "([A-Z]+)(\\d+)"
+  ) %>%
+  mutate(t = as.integer(t)) %>%
+  arrange(id, t) %>%
+  mutate(start = t - 1L, stop = t)
+
+# ---------- Create an incident-event column ----------
+# Case 1: You encoded Y1..YK (preferred). After pivot, that's a single column Y (0/1 *by t*).
+if ("Y" %in% names(long)) {
+  long <- long %>%
+    group_by(id) %>%
+    mutate(
+      # incident event at time t if Y turns 1 for the first time at t
+      event = as.integer(Y == 1L & dplyr::lag(cummax(replace_na(Y,0L)), default = 0L) == 0L)
+    ) %>%
+    ungroup()
+} else if ("T_event" %in% names(dat)) {
+  # Case 2: Only a terminal event time exists (T_event); mark the interval where stop == T_event
+  long <- long %>%
+    left_join(dat %>% select(id, T_event), by = "id") %>%
+    mutate(event = as.integer(stop == T_event)) %>%
+    select(-T_event)
+} else {
+  stop("No per-interval Y1..YK and no T_event found. Please either (i) construct Y1..YK, or (ii) supply T_event.")
+}
+
+# Optional: drop post-event intervals, keeping the first event interval
+long <- long %>%
+  group_by(id) %>%
+  mutate(any_event = cumsum(event) > 0L) %>%
+  filter(!lag(any_event, default = FALSE) | event == 1L) %>%
+  ungroup() %>%
+  select(-any_event)
+
+# Fit Cox model with time‑varying A and (optionally) L
+cox_fit <- coxph(Surv(start, stop, event) ~ A + L + age + cd4 + male, data = long)
+summary(cox_fit)
+
+```
+
+
+> LMTP returns marginal risks under explicit policies; Cox returns a conditional hazard ratio tied to modeling assumptions and the chosen covariate set. For policy decisions we prefer risk contrasts at clinically meaningful times, as emphasized in the tutorials. :contentReference[oaicite:28]{index=28} :contentReference[oaicite:29]{index=29}
+
+# 12. Reporting the results
+
+Report \( \widehat{E}\{Y(d^{\text{init}=A})\}, \widehat{E}\{Y(d^{\text{init}=B})\}\) and their RD/RR with CIs; include positivity diagnostics (no extreme estimated hazards/weights), SL library used, and sensitivity (e.g., SDR vs TMLE, IPSI grids). This mirrors the patterns in your HTML drafts and our earlier “Longitudinal ART under imperfect adherence” plan. :contentReference[oaicite:30]{index=30} :contentReference[oaicite:31]{index=31}
+
+# 13. Reproducibility appendix
+
+- `{lmtp}` function arguments and estimator options (TMLE/SDR, `outcome_type`, `compete`) are specified per the package manual. :contentReference[oaicite:32]{index=32}  
+- Dynamic/static regime examples align with the “Beyond the ATE” DTR tutorial. :contentReference[oaicite:33]{index=33}  
+- Survival/competing risks encoding and interpretation follow the survival tutorial. :contentReference[oaicite:34]{index=34}  
+- Incremental propensity score interventions (`ipsi`) follow the IPSI tutorial. :contentReference[oaicite:35]{index=35}
+- The overall step‑wise structure mirrors your HTML tutorial’s “Step 0–5” navigation. :contentReference[oaicite:36]{index=36}
+
+---
+
+## Notes on reconciliation with your files
+
+- The prior draft focused on **perfect persistence**; here the *primary* analysis is **baseline initiation with natural subsequent adherence/switching** via a custom shift that only sets `A1`. This is the key pivot to *imperfect adherence*. (Your HTML menu and outline were used to structure sections and chunk names.) :contentReference[oaicite:37]{index=37}
+- Where helpful, I included contextual static policies (per‑protocol) and an IPSI variant to trace “forgiveness” curves—both are first‑class `{lmtp}` use cases. :contentReference[oaicite:38]{index=38} :contentReference[oaicite:39]{index=39}
+- Survival/competing risk remarks follow the official examples (LOCF, `compete=`), so you can extend to cumulative incidence if the safety outcome is event‑time based. :contentReference[oaicite:40]{index=40}
+
+<!-- If you want, I can now run a small grid of IPSI deltas (e.g., 0.75, 1.00, 1.25) and return a table/plot of estimated risk vs. delta to visualize regimen “forgiveness.” -->
+

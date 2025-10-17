@@ -1,0 +1,357 @@
+---
+title: "HIV adherence analysis using the LTMLE package"
+author: "Andrew Mertens"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=F, message=F)
+
+
+```
+
+## Analysis setup
+
+```{r, echo=F}
+############################################
+## 0 ─ Packages & options
+############################################
+library(data.table)
+library(tidyverse)
+library(zoo)
+library(lmtp)
+set.seed(123)
+
+```
+
+## Simulate data
+
+
+```{r cars}
+
+############################################
+## 1 ─ Settings
+############################################
+N <- 4000          # patients
+K <- 6             # six 180-day blocks
+
+############################################
+## 2 ─ Baseline data
+############################################
+age <- rnorm(N, 45, 10)
+sex <- rbinom(N, 1, .25)
+cd4 <- rpois(N, 500)
+
+## Baseline regimen: 1 = Drug A, 0 = Drug B
+A0  <- rbinom(N, 1, plogis(-0.3 + 0.01*(cd4-500) - 0.2*sex))
+
+long <- CJ(id = 1:N, t = 0:(K-1))
+long[, `:=`(age = age[id],
+            sex = sex[id],
+            cd4 = cd4[id],
+            A   = A0[id])]
+
+############################################
+## 3 ─ Longitudinal simulation 
+############################################
+for (tt in 0:(K-1)) {
+  
+  if (tt == 0) {
+    
+    long[t==0, PDC  := rbeta(.N, 9 + 2*A, 5 + 3*(1-A))]
+    long[t==0, eGFR := rnorm(.N, 90 - 5*age/10 - 2*(1-A), 15)]
+    long[t==0, VL   := rnorm(.N, 3.0 - 0.2*A - 0.6*PDC, 0.6)]
+    
+    long[t==0, M := 1L]          # baseline VL always measured
+    long[t==0, VL_obs := VL]
+    
+  } else {
+    
+    long[, c("PDC_prev","VL_prev","eGFR_prev") := NULL]
+    
+    lag <- long[t==tt-1,
+                .(id, PDC_prev=PDC, VL_prev=VL, eGFR_prev=eGFR)]
+    long <- merge(long, lag, by="id", all.x=TRUE)
+    
+    ## prescriber switch
+    long[t==tt, SW := rbinom(.N,1,plogis(-4 + 1.2*VL_prev + 0.8*(PDC_prev<0.6)))]
+    long[t==tt & SW==1, A := 1 - A]
+    
+    ## adherence, eGFR, VL
+    long[t==tt, PDC  := pmin(1, pmax(0,
+                                     rbeta(.N, 8 + 2*A - 1.0*tt/K + 1.2*(VL_prev>3),
+                                           6 + 4*(1-A) + 1.0*tt/K)))]
+    long[t==tt, eGFR := pmin(120, pmax(10,
+                                       rnorm(.N, eGFR_prev - 0.5*(VL_prev>3) + 0.2*A, 10)))]
+    long[t==tt, VL   := rnorm(.N,
+                              2.7 - 0.2*A - 1.8*PDC + 0.4*VL_prev + 0.01*(100-eGFR),0.6)]
+    
+    ## measurement indicator
+    long[t==tt, M := rbinom(.N,1,plogis(-1 + 1.2*(VL>3) - 0.5*A))]
+    long[t==tt, VL_obs := ifelse(M==1, VL, NA_real_)]
+  }
+}
+
+############################################
+## 4 ─ Impute *all* missing VLs (guaranteed complete)
+############################################
+long[, VL_imp := zoo::na.locf(VL_obs, na.rm = FALSE), by = id]
+long[, VL_imp := zoo::na.locf(VL_imp, fromLast = TRUE, na.rm = FALSE), by = id]
+stopifnot(all(!is.na(long$VL_imp)))     # passes
+
+############################################
+## 5 ─ Outcome & wide reshape (no NA rows)
+############################################
+long[, Y := as.integer(VL >= log10(200)), by = id]
+
+## last-block outcome per id
+outcome <- long[t == (K-1), .(id, Y)]
+
+## wide-format longitudinal block-level variables
+Wlong <- dcast(long, id ~ t,
+               value.var = c("PDC","VL_imp","eGFR","M","SW"))
+
+## merge with *baseline* covariates and outcome (one row per id)
+baseline <- long[t==0, .(id, age, sex, cd4, A)]
+wide     <- merge(baseline, Wlong, by="id")
+wide     <- merge(wide, outcome,  by="id")
+
+#Drop baseline switch decision (all NA)
+wide[, SW_0 := NULL]
+
+head(wide)
+
+
+table(is.na(wide))
+
+## final checks
+stopifnot(nrow(wide) == N)
+stopifnot(all(colSums(is.na(wide)) == 0))
+
+wide = data.frame(wide)
+
+head(wide, 3)
+```
+
+## Contrasting drug effects under perfect adherence
+
+
+### Setup treatment nodes and shift regime
+
+```{r, warning=F, message=F}
+
+## treatment nodes: baseline A and six PDCs
+trt_nodes <- list(c("A","PDC_0"), "PDC_1","PDC_2","PDC_3","PDC_4","PDC_5")
+
+## time-varying confounder nodes (VL_imp, eGFR, monitoring indicator M)
+Lnodes <- list(
+  c("VL_imp_0","eGFR_0","M_0"),
+  c("VL_imp_1","eGFR_1","M_1"),
+  c("VL_imp_2","eGFR_2","M_2"),
+  c("VL_imp_3","eGFR_3","M_3"),
+  c("VL_imp_4","eGFR_4","M_4"),
+  c("VL_imp_5","eGFR_5","M_5")
+)
+
+sl_lib <- "SL.glm"     # lightweight Super Learner for demo
+
+## helper: returns named list for lmtp
+set_cols <- function(data, trt, new_A = NULL, new_PDC = NULL){
+  out <- vector("list", length(trt)); names(out) <- trt
+  for(nm in trt){
+    if(nm == "A" && !is.null(new_A))            out[[nm]] <- rep(new_A, nrow(data))
+    else if(grepl("^PDC", nm) && !is.null(new_PDC)) out[[nm]] <- new_PDC[[nm]]
+    else                                        out[[nm]] <- data[[nm]]
+  }
+  out
+}
+
+#### 1.1 Perfect adherence (PDC = 1) ####
+A_perfect <- function(data, trt){
+  new_P <- lapply(trt[grepl("^PDC", trt)], function(x) rep(1, nrow(data)))
+  names(new_P) <- trt[grepl("^PDC", trt)]
+  set_cols(data, trt, new_A = 1, new_PDC = new_P)
+}
+
+B_perfect <- function(data, trt){
+  new_P <- lapply(trt[grepl("^PDC", trt)], function(x) rep(1, nrow(data)))
+  names(new_P) <- trt[grepl("^PDC", trt)]
+  set_cols(data, trt, new_A = 0, new_PDC = new_P)
+}
+
+```
+
+
+### Run analyses
+
+
+```{r, cache=TRUE}
+
+
+## 2.1 Perfect adherence, Drug A vs B
+fit_A_perfect <- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,
+  shift         = A_perfect,
+  mtp           = TRUE,
+  outcome_type  = "binomial",
+  folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+
+fit_B_perfect <- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = "Y",
+  baseline      = c("age","sex","cd4"),
+  time_vary     = Lnodes,
+  shift         = B_perfect,
+  mtp           = TRUE,
+  outcome_type  = "binomial",
+  folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+
+```
+
+### Get contrasts between two regimes 
+
+ATE and RR between if all patients took drug A and had a perfect adherence vs if all patients took drug A and had a perfect adherence.
+
+```{r}
+lmtp_contrast(fit_A_perfect, ref = fit_B_perfect,
+              type = "additive")
+lmtp_contrast(fit_A_perfect, ref = fit_B_perfect,
+              type = "rr")
+```
+
+
+
+## Contrasting drug effects under the observed adherence of drug A
+
+Causal question: what is the difference in effect on viral load failure if all patients took drug A and had their observed adherence vs if all patients took drug B and had the observed adherence of drug A?
+
+### Setup treatment nodes and shift regime
+
+
+```{r}
+
+## helper
+replace_cols <- function(data, trt, new_pdc, new_A){
+  out <- vector("list", length(trt)); names(out) <- trt
+  for (nm in trt) {
+    if (nm == "A")            out[[nm]] <- rep(new_A, nrow(data))
+    else if (grepl("^PDC",nm))out[[nm]] <- new_pdc[[nm]]
+    else                      out[[nm]] <- data[[nm]]
+  }
+  out
+}
+
+
+## mean adherence gap (A minus B) in block 0
+mean_gapA <- with(wide, mean(PDC_0[A==1]) - mean(PDC_0[A==0]))
+
+
+A_adherence_val <- function(data, trt){
+  ## keep original PDC for A, bump B up by mean_gapA
+  new_pdc <- lapply(trt[grepl("^PDC",trt)], function(col){
+    ifelse(data$A==0, pmin(1, data[[col]] + mean_gapA), data[[col]])
+  })
+  names(new_pdc) <- trt[grepl("^PDC",trt)]
+  new_pdc
+}
+
+Ashift_PDC <- function(data, trt){
+  new_pdc <- A_adherence_val(data,trt)
+  replace_cols(data, trt, new_pdc, new_A = 1)   # force regimen = A
+}
+
+Bshift_PDC <- function(data, trt){
+  new_pdc <- A_adherence_val(data,trt)          # same PDC as above
+  replace_cols(data, trt, new_pdc, new_A = 0)   # force regimen = B
+}
+
+
+
+#Fix code from above
+make_Astyle <- function(data, trt){
+  lapply(trt[grepl("^PDC",trt)], function(col){
+    ## shift **every** row the same way, because in the target world
+    ## everyone's adherence should be A-style
+    pmin(1, data[[col]] + gap_vec[col])
+  }) |>
+    (\(L){names(L) <- trt[grepl("^PDC",trt)]; L})()
+}
+
+A_Astyle <- function(data,trt){
+  set_cols(data,trt,new_A = 1, new_PDC = make_Astyle(data,trt))
+}
+B_Astyle <- function(data,trt){
+  set_cols(data,trt,new_A = 0, new_PDC = make_Astyle(data,trt))
+}
+gap_vec <- sapply(0:5, function(k){
+  mnA <- mean(wide[[paste0("PDC_",k)]][wide$A0==1])
+  mnB <- mean(wide[[paste0("PDC_",k)]][wide$A0==0])
+  mnA - mnB
+})
+names(gap_vec) <- paste0("PDC_",0:5)
+```
+
+
+### Run analysis
+
+```{r, cache=TRUE}
+
+fit_A_Astyle <- lmtp_sdr(
+  data      = wide,
+  trt       = trt_nodes,
+  outcome   = "Y",
+  baseline  = c("age","sex","cd4"),
+  time_vary = Lnodes,
+  shift     = Ashift_PDC,
+  mtp       = TRUE,            # PDC is continuous
+  outcome_type = "binomial",
+  folds     = 5,
+  learners_trt     = sl_lib,
+  learners_outcome = sl_lib)
+
+fit_B_Astyle <- lmtp_sdr(
+  data      = wide,
+  trt       = trt_nodes,
+  outcome   = "Y",
+  baseline  = c("age","sex","cd4"),
+  time_vary = Lnodes,
+  shift     = Bshift_PDC,
+  mtp       = TRUE,
+  outcome_type = "binomial",
+  folds     = 5,
+  learners_trt     = sl_lib,
+  learners_outcome = sl_lib)
+
+#Contrast Drug A vs Drug B given Drug-A adherence
+
+```
+
+### Get contrast
+
+
+```{r}
+
+lmtp_contrast(fit_A_Astyle, ref = fit_B_Astyle, type = "additive")
+lmtp_contrast(fit_A_Astyle, ref = fit_B_Astyle, type = "rr")
+
+```
+
+
+
+
+## To do:
+
+-check realism of data simulation
+-include differential censoring in the analysis
+-
+
+

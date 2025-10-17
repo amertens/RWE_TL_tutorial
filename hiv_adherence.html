@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Andrew Mertens" />
+
+
+<title>HIV adherence analysis using the LTMLE package</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">HOME</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="RWE_tutorial.html">Introduction: TL Roadmap in RWE</a>
+</li>
+<li>
+  <a href="step0.html">Causal roadmap and case study introduction</a>
+</li>
+<li>
+  <a href="step1v2.html">Roadmap step 1-alt</a>
+</li>
+<li>
+  <a href="step1a.html">Roadmap step 1a</a>
+</li>
+<li>
+  <a href="step1b.html">Roadmap step 1b</a>
+</li>
+<li>
+  <a href="step2.html">Roadmap step 2</a>
+</li>
+<li>
+  <a href="step3.html">Roadmap step 3</a>
+</li>
+<li>
+  <a href="step4.html">Roadmap step 4</a>
+</li>
+<li>
+  <a href="step5.html">Roadmap step 5</a>
+</li>
+<li>
+  <a href="PS_analysis.html">Propensity score matching analysis</a>
+</li>
+<li>
+  <a href="appendix.html">Appendix</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">HIV adherence analysis using the LTMLE
+package</h1>
+<h4 class="author">Andrew Mertens</h4>
+
+</div>
+
+
+<div id="analysis-setup" class="section level2">
+<h2>Analysis setup</h2>
+</div>
+<div id="simulate-data" class="section level2">
+<h2>Simulate data</h2>
+<pre class="r"><code>############################################
+## 1 ─ Settings
+############################################
+N &lt;- 4000          # patients
+K &lt;- 6             # six 180-day blocks
+
+############################################
+## 2 ─ Baseline data
+############################################
+age &lt;- rnorm(N, 45, 10)
+sex &lt;- rbinom(N, 1, .25)
+cd4 &lt;- rpois(N, 500)
+
+## Baseline regimen: 1 = Drug A, 0 = Drug B
+A0  &lt;- rbinom(N, 1, plogis(-0.3 + 0.01*(cd4-500) - 0.2*sex))
+
+long &lt;- CJ(id = 1:N, t = 0:(K-1))
+long[, `:=`(age = age[id],
+            sex = sex[id],
+            cd4 = cd4[id],
+            A   = A0[id])]
+
+############################################
+## 3 ─ Longitudinal simulation 
+############################################
+for (tt in 0:(K-1)) {
+  
+  if (tt == 0) {
+    
+    long[t==0, PDC  := rbeta(.N, 9 + 2*A, 5 + 3*(1-A))]
+    long[t==0, eGFR := rnorm(.N, 90 - 5*age/10 - 2*(1-A), 15)]
+    long[t==0, VL   := rnorm(.N, 3.0 - 0.2*A - 0.6*PDC, 0.6)]
+    
+    long[t==0, M := 1L]          # baseline VL always measured
+    long[t==0, VL_obs := VL]
+    
+  } else {
+    
+    long[, c(&quot;PDC_prev&quot;,&quot;VL_prev&quot;,&quot;eGFR_prev&quot;) := NULL]
+    
+    lag &lt;- long[t==tt-1,
+                .(id, PDC_prev=PDC, VL_prev=VL, eGFR_prev=eGFR)]
+    long &lt;- merge(long, lag, by=&quot;id&quot;, all.x=TRUE)
+    
+    ## prescriber switch
+    long[t==tt, SW := rbinom(.N,1,plogis(-4 + 1.2*VL_prev + 0.8*(PDC_prev&lt;0.6)))]
+    long[t==tt &amp; SW==1, A := 1 - A]
+    
+    ## adherence, eGFR, VL
+    long[t==tt, PDC  := pmin(1, pmax(0,
+                                     rbeta(.N, 8 + 2*A - 1.0*tt/K + 1.2*(VL_prev&gt;3),
+                                           6 + 4*(1-A) + 1.0*tt/K)))]
+    long[t==tt, eGFR := pmin(120, pmax(10,
+                                       rnorm(.N, eGFR_prev - 0.5*(VL_prev&gt;3) + 0.2*A, 10)))]
+    long[t==tt, VL   := rnorm(.N,
+                              2.7 - 0.2*A - 1.8*PDC + 0.4*VL_prev + 0.01*(100-eGFR),0.6)]
+    
+    ## measurement indicator
+    long[t==tt, M := rbinom(.N,1,plogis(-1 + 1.2*(VL&gt;3) - 0.5*A))]
+    long[t==tt, VL_obs := ifelse(M==1, VL, NA_real_)]
+  }
+}
+
+############################################
+## 4 ─ Impute *all* missing VLs (guaranteed complete)
+############################################
+long[, VL_imp := zoo::na.locf(VL_obs, na.rm = FALSE), by = id]
+long[, VL_imp := zoo::na.locf(VL_imp, fromLast = TRUE, na.rm = FALSE), by = id]
+stopifnot(all(!is.na(long$VL_imp)))     # passes
+
+############################################
+## 5 ─ Outcome &amp; wide reshape (no NA rows)
+############################################
+long[, Y := as.integer(VL &gt;= log10(200)), by = id]
+
+## last-block outcome per id
+outcome &lt;- long[t == (K-1), .(id, Y)]
+
+## wide-format longitudinal block-level variables
+Wlong &lt;- dcast(long, id ~ t,
+               value.var = c(&quot;PDC&quot;,&quot;VL_imp&quot;,&quot;eGFR&quot;,&quot;M&quot;,&quot;SW&quot;))
+
+## merge with *baseline* covariates and outcome (one row per id)
+baseline &lt;- long[t==0, .(id, age, sex, cd4, A)]
+wide     &lt;- merge(baseline, Wlong, by=&quot;id&quot;)
+wide     &lt;- merge(wide, outcome,  by=&quot;id&quot;)
+
+#Drop baseline switch decision (all NA)
+wide[, SW_0 := NULL]
+
+head(wide)</code></pre>
+<pre><code>## Key: &lt;id&gt;
+##       id      age   sex   cd4     A     PDC_0     PDC_1     PDC_2     PDC_3
+##    &lt;int&gt;    &lt;num&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;
+## 1:     1 39.39524     0   484     1 0.7598766 0.6067949 0.6482170 0.6354454
+## 2:     2 42.69823     0   553     1 0.8162333 0.6266917 0.6341811 0.5780071
+## 3:     3 60.58708     0   507     0 0.7021332 0.4061550 0.5856960 0.7852081
+## 4:     4 45.70508     0   523     0 0.6834556 0.5959444 0.4711834 0.8181404
+## 5:     5 46.29288     0   480     1 0.6908311 0.5461305 0.5577337 0.3606371
+## 6:     6 62.15065     1   501     1 0.8350873 0.6944804 0.8207580 0.5805873
+##        PDC_4     PDC_5 VL_imp_0 VL_imp_1 VL_imp_2 VL_imp_3 VL_imp_4 VL_imp_5
+##        &lt;num&gt;     &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;
+## 1: 0.4870895 0.5084234 2.064436 2.064436 2.064436 2.064436 4.530751 4.530751
+## 2: 0.3377387 0.4388281 2.353548 2.353548 2.353548 2.353548 3.250262 3.250262
+## 3: 0.4092935 0.3631273 3.174790 3.174790 3.174790 3.174790 3.174790 3.174790
+## 4: 0.5771498 0.6109966 2.862672 2.862672 2.862672 2.862672 3.505998 3.505998
+## 5: 0.4636720 0.6829748 2.232195 2.232195 2.232195 2.232195 2.232195 2.232195
+## 6: 0.3363335 0.4425417 2.026128 2.026128 2.026128 2.975800 2.975800 2.975800
+##      eGFR_0   eGFR_1   eGFR_2   eGFR_3   eGFR_4   eGFR_5   M_0   M_1   M_2
+##       &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+## 1: 53.51247 40.59073 40.98703 26.41821 16.81106 14.25523     1     0     0
+## 2: 78.23627 82.01622 72.11864 68.12226 72.69176 68.32935     1     0     0
+## 3: 52.76850 63.32728 62.92488 52.11680 52.05794 55.54990     1     0     0
+## 4: 51.80772 41.71005 36.33968 36.09841 26.47890 18.47111     1     0     0
+## 5: 80.15824 73.05298 72.51575 74.37254 59.04346 60.87165     1     0     0
+## 6: 20.56316 38.29330 30.27268 30.14659 33.32667 32.21641     1     0     0
+##      M_3   M_4   M_5  SW_1  SW_2  SW_3  SW_4  SW_5     Y
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+## 1:     0     1     0     0     0     0     0     1     1
+## 2:     0     1     0     0     0     0     1     1     1
+## 3:     0     0     0     0     1     1     0     0     1
+## 4:     0     1     0     1     0     1     0     1     1
+## 5:     0     0     0     1     0     1     1     0     1
+## 6:     1     0     0     0     0     0     1     1     1</code></pre>
+<pre class="r"><code>table(is.na(wide))</code></pre>
+<pre><code>## 
+##  FALSE 
+## 140000</code></pre>
+<pre class="r"><code>## final checks
+stopifnot(nrow(wide) == N)
+stopifnot(all(colSums(is.na(wide)) == 0))
+
+wide = data.frame(wide)
+
+head(wide, 3)</code></pre>
+<pre><code>##   id      age sex cd4 A     PDC_0     PDC_1     PDC_2     PDC_3     PDC_4
+## 1  1 39.39524   0 484 1 0.7598766 0.6067949 0.6482170 0.6354454 0.4870895
+## 2  2 42.69823   0 553 1 0.8162333 0.6266917 0.6341811 0.5780071 0.3377387
+## 3  3 60.58708   0 507 0 0.7021332 0.4061550 0.5856960 0.7852081 0.4092935
+##       PDC_5 VL_imp_0 VL_imp_1 VL_imp_2 VL_imp_3 VL_imp_4 VL_imp_5   eGFR_0
+## 1 0.5084234 2.064436 2.064436 2.064436 2.064436 4.530751 4.530751 53.51247
+## 2 0.4388281 2.353548 2.353548 2.353548 2.353548 3.250262 3.250262 78.23627
+## 3 0.3631273 3.174790 3.174790 3.174790 3.174790 3.174790 3.174790 52.76850
+##     eGFR_1   eGFR_2   eGFR_3   eGFR_4   eGFR_5 M_0 M_1 M_2 M_3 M_4 M_5 SW_1
+## 1 40.59073 40.98703 26.41821 16.81106 14.25523   1   0   0   0   1   0    0
+## 2 82.01622 72.11864 68.12226 72.69176 68.32935   1   0   0   0   1   0    0
+## 3 63.32728 62.92488 52.11680 52.05794 55.54990   1   0   0   0   0   0    0
+##   SW_2 SW_3 SW_4 SW_5 Y
+## 1    0    0    0    1 1
+## 2    0    0    1    1 1
+## 3    1    1    0    0 1</code></pre>
+</div>
+<div id="contrasting-drug-effects-under-perfect-adherence"
+class="section level2">
+<h2>Contrasting drug effects under perfect adherence</h2>
+<div id="setup-treatment-nodes-and-shift-regime" class="section level3">
+<h3>Setup treatment nodes and shift regime</h3>
+<pre class="r"><code>## treatment nodes: baseline A and six PDCs
+trt_nodes &lt;- list(c(&quot;A&quot;,&quot;PDC_0&quot;), &quot;PDC_1&quot;,&quot;PDC_2&quot;,&quot;PDC_3&quot;,&quot;PDC_4&quot;,&quot;PDC_5&quot;)
+
+## time-varying confounder nodes (VL_imp, eGFR, monitoring indicator M)
+Lnodes &lt;- list(
+  c(&quot;VL_imp_0&quot;,&quot;eGFR_0&quot;,&quot;M_0&quot;),
+  c(&quot;VL_imp_1&quot;,&quot;eGFR_1&quot;,&quot;M_1&quot;),
+  c(&quot;VL_imp_2&quot;,&quot;eGFR_2&quot;,&quot;M_2&quot;),
+  c(&quot;VL_imp_3&quot;,&quot;eGFR_3&quot;,&quot;M_3&quot;),
+  c(&quot;VL_imp_4&quot;,&quot;eGFR_4&quot;,&quot;M_4&quot;),
+  c(&quot;VL_imp_5&quot;,&quot;eGFR_5&quot;,&quot;M_5&quot;)
+)
+
+sl_lib &lt;- &quot;SL.glm&quot;     # lightweight Super Learner for demo
+
+## helper: returns named list for lmtp
+set_cols &lt;- function(data, trt, new_A = NULL, new_PDC = NULL){
+  out &lt;- vector(&quot;list&quot;, length(trt)); names(out) &lt;- trt
+  for(nm in trt){
+    if(nm == &quot;A&quot; &amp;&amp; !is.null(new_A))            out[[nm]] &lt;- rep(new_A, nrow(data))
+    else if(grepl(&quot;^PDC&quot;, nm) &amp;&amp; !is.null(new_PDC)) out[[nm]] &lt;- new_PDC[[nm]]
+    else                                        out[[nm]] &lt;- data[[nm]]
+  }
+  out
+}
+
+#### 1.1 Perfect adherence (PDC = 1) ####
+A_perfect &lt;- function(data, trt){
+  new_P &lt;- lapply(trt[grepl(&quot;^PDC&quot;, trt)], function(x) rep(1, nrow(data)))
+  names(new_P) &lt;- trt[grepl(&quot;^PDC&quot;, trt)]
+  set_cols(data, trt, new_A = 1, new_PDC = new_P)
+}
+
+B_perfect &lt;- function(data, trt){
+  new_P &lt;- lapply(trt[grepl(&quot;^PDC&quot;, trt)], function(x) rep(1, nrow(data)))
+  names(new_P) &lt;- trt[grepl(&quot;^PDC&quot;, trt)]
+  set_cols(data, trt, new_A = 0, new_PDC = new_P)
+}</code></pre>
+</div>
+<div id="run-analyses" class="section level3">
+<h3>Run analyses</h3>
+<pre class="r"><code>## 2.1 Perfect adherence, Drug A vs B
+fit_A_perfect &lt;- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = &quot;Y&quot;,
+  baseline      = c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;),
+  time_vary     = Lnodes,
+  shift         = A_perfect,
+  mtp           = TRUE,
+  outcome_type  = &quot;binomial&quot;,
+  folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)
+
+fit_B_perfect &lt;- lmtp_sdr(
+  data          = wide,
+  trt           = trt_nodes,
+  outcome       = &quot;Y&quot;,
+  baseline      = c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;),
+  time_vary     = Lnodes,
+  shift         = B_perfect,
+  mtp           = TRUE,
+  outcome_type  = &quot;binomial&quot;,
+  folds         = 2,
+  learners_trt      = sl_lib,
+  learners_outcome  = sl_lib)</code></pre>
+</div>
+<div id="get-contrasts-between-two-regimes" class="section level3">
+<h3>Get contrasts between two regimes</h3>
+<p>ATE and RR between if all patients took drug A and had a perfect
+adherence vs if all patients took drug A and had a perfect
+adherence.</p>
+<pre class="r"><code>lmtp_contrast(fit_A_perfect, ref = fit_B_perfect,
+              type = &quot;additive&quot;)</code></pre>
+<pre><code>## 
+##   shift   ref estimate std.error conf.low conf.high p.value
+## 1 0.312 0.326  -0.0142  0.000474  -0.0152   -0.0133  &lt;0.001</code></pre>
+<pre class="r"><code>lmtp_contrast(fit_A_perfect, ref = fit_B_perfect,
+              type = &quot;rr&quot;)</code></pre>
+<pre><code>## 
+##   shift   ref estimate std.error conf.low conf.high p.value
+## 1 0.312 0.326    0.956   0.00143    0.954     0.959  &lt;0.001</code></pre>
+</div>
+</div>
+<div
+id="contrasting-drug-effects-under-the-observed-adherence-of-drug-a"
+class="section level2">
+<h2>Contrasting drug effects under the observed adherence of drug A</h2>
+<p>Causal question: what is the difference in effect on viral load
+failure if all patients took drug A and had their observed adherence vs
+if all patients took drug B and had the observed adherence of drug
+A?</p>
+<div id="setup-treatment-nodes-and-shift-regime-1"
+class="section level3">
+<h3>Setup treatment nodes and shift regime</h3>
+<pre class="r"><code>## helper
+replace_cols &lt;- function(data, trt, new_pdc, new_A){
+  out &lt;- vector(&quot;list&quot;, length(trt)); names(out) &lt;- trt
+  for (nm in trt) {
+    if (nm == &quot;A&quot;)            out[[nm]] &lt;- rep(new_A, nrow(data))
+    else if (grepl(&quot;^PDC&quot;,nm))out[[nm]] &lt;- new_pdc[[nm]]
+    else                      out[[nm]] &lt;- data[[nm]]
+  }
+  out
+}
+
+
+## mean adherence gap (A minus B) in block 0
+mean_gapA &lt;- with(wide, mean(PDC_0[A==1]) - mean(PDC_0[A==0]))
+
+
+A_adherence_val &lt;- function(data, trt){
+  ## keep original PDC for A, bump B up by mean_gapA
+  new_pdc &lt;- lapply(trt[grepl(&quot;^PDC&quot;,trt)], function(col){
+    ifelse(data$A==0, pmin(1, data[[col]] + mean_gapA), data[[col]])
+  })
+  names(new_pdc) &lt;- trt[grepl(&quot;^PDC&quot;,trt)]
+  new_pdc
+}
+
+Ashift_PDC &lt;- function(data, trt){
+  new_pdc &lt;- A_adherence_val(data,trt)
+  replace_cols(data, trt, new_pdc, new_A = 1)   # force regimen = A
+}
+
+Bshift_PDC &lt;- function(data, trt){
+  new_pdc &lt;- A_adherence_val(data,trt)          # same PDC as above
+  replace_cols(data, trt, new_pdc, new_A = 0)   # force regimen = B
+}
+
+
+
+#Fix code from above
+make_Astyle &lt;- function(data, trt){
+  lapply(trt[grepl(&quot;^PDC&quot;,trt)], function(col){
+    ## shift **every** row the same way, because in the target world
+    ## everyone&#39;s adherence should be A-style
+    pmin(1, data[[col]] + gap_vec[col])
+  }) |&gt;
+    (\(L){names(L) &lt;- trt[grepl(&quot;^PDC&quot;,trt)]; L})()
+}
+
+A_Astyle &lt;- function(data,trt){
+  set_cols(data,trt,new_A = 1, new_PDC = make_Astyle(data,trt))
+}
+B_Astyle &lt;- function(data,trt){
+  set_cols(data,trt,new_A = 0, new_PDC = make_Astyle(data,trt))
+}
+gap_vec &lt;- sapply(0:5, function(k){
+  mnA &lt;- mean(wide[[paste0(&quot;PDC_&quot;,k)]][wide$A0==1])
+  mnB &lt;- mean(wide[[paste0(&quot;PDC_&quot;,k)]][wide$A0==0])
+  mnA - mnB
+})
+names(gap_vec) &lt;- paste0(&quot;PDC_&quot;,0:5)</code></pre>
+</div>
+<div id="run-analysis" class="section level3">
+<h3>Run analysis</h3>
+<pre class="r"><code>fit_A_Astyle &lt;- lmtp_sdr(
+  data      = wide,
+  trt       = trt_nodes,
+  outcome   = &quot;Y&quot;,
+  baseline  = c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;),
+  time_vary = Lnodes,
+  shift     = Ashift_PDC,
+  mtp       = TRUE,            # PDC is continuous
+  outcome_type = &quot;binomial&quot;,
+  folds     = 5,
+  learners_trt     = sl_lib,
+  learners_outcome = sl_lib)
+
+fit_B_Astyle &lt;- lmtp_sdr(
+  data      = wide,
+  trt       = trt_nodes,
+  outcome   = &quot;Y&quot;,
+  baseline  = c(&quot;age&quot;,&quot;sex&quot;,&quot;cd4&quot;),
+  time_vary = Lnodes,
+  shift     = Bshift_PDC,
+  mtp       = TRUE,
+  outcome_type = &quot;binomial&quot;,
+  folds     = 5,
+  learners_trt     = sl_lib,
+  learners_outcome = sl_lib)
+
+#Contrast Drug A vs Drug B given Drug-A adherence</code></pre>
+</div>
+<div id="get-contrast" class="section level3">
+<h3>Get contrast</h3>
+<pre class="r"><code>lmtp_contrast(fit_A_Astyle, ref = fit_B_Astyle, type = &quot;additive&quot;)</code></pre>
+<pre><code>## 
+##   shift   ref estimate std.error conf.low conf.high p.value
+## 1 0.827 0.752   0.0751     0.123   -0.166     0.317   0.542</code></pre>
+<pre class="r"><code>lmtp_contrast(fit_A_Astyle, ref = fit_B_Astyle, type = &quot;rr&quot;)</code></pre>
+<pre><code>## 
+##   shift   ref estimate std.error conf.low conf.high p.value
+## 1 0.827 0.752      1.1     0.164    0.778      1.42  &lt;0.001</code></pre>
+</div>
+</div>
+<div id="to-do" class="section level2">
+<h2>To do:</h2>
+<p>-check realism of data simulation -include differential censoring in
+the analysis -</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
