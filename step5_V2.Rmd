@@ -36,7 +36,7 @@ We will use the **{concrete}** R package's TMLE implementation to estimate the 6
 
 Below is the code to perform TMLE. We specify the dataset and identify the relevant columns: Tt for the follow-up time, Delta for the event indicator (1 if event occurred by that time, 0 if censored), A for treatment, and L for the list of baseline covariates to adjust for. We target the *risk difference (RD)* at 180 days (the end of follow-up). The Super Learner library can be left as default or specified; here we use defaults which might include algorithms like logistic regression, random forests, etc., for both the hazard and propensity models.
 
-```{r, eval=F}
+```{r, eval=TRUE}
 library(concrete)
 # Define analysis for TMLE
 ConcreteArgs <- list(
